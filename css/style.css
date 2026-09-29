@@ -1335,3 +1335,48 @@ p {
     }
 
 }
+
+/* ---------------------------------------------------------
+   Tool status badges
+   --------------------------------------------------------- */
+
+.tool-status {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+
+    margin-bottom: 0.8rem;
+    padding: 0.3rem 0.65rem;
+
+    border-radius: 999px;
+
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1;
+
+    letter-spacing: 0.02em;
+}
+
+
+/* ChemIsFree-developed project */
+
+.tool-status-own {
+    background: #dff4ee;
+    color: #08745f;
+}
+
+
+/* Independent community project */
+
+.tool-status-community {
+    background: #eef1f4;
+    color: #46515a;
+}
+
+
+/* Archived resource */
+
+.tool-status-archived {
+    background: #f1f1f1;
+    color: #707070;
+}
