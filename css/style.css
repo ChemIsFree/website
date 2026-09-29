@@ -912,32 +912,76 @@ button {
 
 
 /* =========================================================
-   CATALOGUE — EDITORIAL INDEX
+   CATALOGUE — PAGE HERO
    ========================================================= */
 
-.catalogue-hero {
-    padding: 42px 0 85px;
+.page-hero {
+    padding: 85px 0 70px;
     background: var(--ink);
     color: var(--text-on-dark);
 }
 
+.page-hero .eyebrow {
+    color: var(--lime);
+}
+
+.page-hero h1 {
+    margin: 0;
+
+    font-family: var(--font-display);
+    font-size: clamp(56px, 7vw, 90px);
+    line-height: 0.95;
+    letter-spacing: -0.07em;
+    font-weight: 600;
+}
+
+.page-hero p {
+    max-width: 650px;
+    margin: 25px 0 0;
+
+    color: var(--text-on-dark-muted);
+    font-size: 17px;
+}
+
+
+/* =========================================================
+   CHEMISFREE CATALOGUE — EDITORIAL INDEX
+   ========================================================= */
+
+
+/* ---------------------------------------------------------
+   Catalogue hero
+   --------------------------------------------------------- */
+
+.catalogue-hero {
+    background: var(--ink);
+    color: var(--text-on-dark);
+    border-bottom: 1px solid var(--line-dark);
+}
+
+.catalogue-hero .container {
+    padding-top: 28px;
+    padding-bottom: 85px;
+}
+
 .catalogue-hero-top {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    padding-bottom: 20px;
+    align-items: center;
+
+    padding-bottom: 22px;
+
     border-bottom: 1px solid var(--line-dark);
 }
 
 .catalogue-label {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 14px;
+
     font-family: var(--font-mono);
     font-size: 9px;
-    line-height: 1;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    letter-spacing: 0.12em;
     color: var(--text-on-dark-muted);
 }
 
@@ -947,73 +991,79 @@ button {
 
 .catalogue-index {
     font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.08em;
+    font-size: 9px;
+    letter-spacing: 0.12em;
     color: var(--text-on-dark-muted);
 }
 
 .catalogue-hero-content {
     display: grid;
-    grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.7fr);
+    grid-template-columns: minmax(0, 1.3fr) minmax(300px, 0.7fr);
     gap: 80px;
-    align-items: end;
-    padding-top: 75px;
+
+    padding-top: 78px;
 }
 
 .catalogue-hero-content h1 {
     margin: 0;
+
     font-family: var(--font-display);
-    font-size: clamp(64px, 9vw, 128px);
-    line-height: 0.88;
-    letter-spacing: -0.075em;
+    font-size: clamp(72px, 9vw, 132px);
+    line-height: 0.84;
+    letter-spacing: -0.085em;
     font-weight: 600;
 }
 
 .catalogue-hero-description {
-    max-width: 390px;
-    padding-bottom: 7px;
+    align-self: end;
+    max-width: 460px;
 }
 
 .catalogue-hero-description p {
-    margin: 0 0 35px;
+    margin: 0;
+
     color: var(--text-on-dark-muted);
-    font-size: 16px;
+    font-size: 17px;
     line-height: 1.65;
 }
 
 .catalogue-scroll-hint {
-    display: inline-block;
+    display: block;
+    margin-top: 35px;
+
     font-family: var(--font-mono);
     font-size: 9px;
-    letter-spacing: 0.09em;
-    color: var(--lime);
+    letter-spacing: 0.12em;
+    color: var(--violet-light);
 }
 
 
-/* =========================================================
-   CATALOGUE CONTENT
-   ========================================================= */
+/* ---------------------------------------------------------
+   Catalogue main section
+   --------------------------------------------------------- */
 
 .catalogue-section {
-    padding: 70px 0 110px;
+    padding: 70px 0 120px;
     background: var(--paper);
 }
 
 
-/* =========================================================
-   SEARCH
-   ========================================================= */
+/* ---------------------------------------------------------
+   Search
+   --------------------------------------------------------- */
 
 .catalogue-search {
-    margin-bottom: 42px;
+    max-width: 900px;
+    margin-bottom: 45px;
 }
 
 .catalogue-search > label {
     display: block;
     margin-bottom: 12px;
+
     font-family: var(--font-mono);
     font-size: 9px;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--text-muted);
 }
@@ -1024,23 +1074,28 @@ button {
 
 .catalogue-search-field input {
     width: 100%;
-    min-height: 70px;
-    padding: 0 65px 0 22px;
+    height: 68px;
+
+    padding: 0 60px 0 20px;
+
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
+
     background: var(--white);
     color: var(--text);
-    font-family: var(--font-display);
-    font-size: 25px;
-    letter-spacing: -0.025em;
+
+    font-family: var(--font-body);
+    font-size: 17px;
+
     outline: none;
+
     transition:
         border-color 180ms ease,
         box-shadow 180ms ease;
 }
 
 .catalogue-search-field input::placeholder {
-    color: #aaaab0;
+    color: #999aa1;
 }
 
 .catalogue-search-field input:focus {
@@ -1050,27 +1105,29 @@ button {
 
 .search-symbol {
     position: absolute;
+    right: 22px;
     top: 50%;
-    right: 23px;
+
     transform: translateY(-50%);
+
     font-family: var(--font-mono);
     font-size: 18px;
     color: var(--violet);
-    pointer-events: none;
 }
 
 
-/* =========================================================
-   FILTERS
-   ========================================================= */
+/* ---------------------------------------------------------
+   Filter bar
+   --------------------------------------------------------- */
 
 .catalogue-filter-bar {
     display: grid;
-    grid-template-columns: 1.3fr 1.1fr 1.1fr 0.9fr auto;
+    grid-template-columns: 1.4fr 1fr 1fr 0.8fr auto;
     gap: 10px;
-    align-items: end;
-    margin-bottom: 55px;
-    padding-bottom: 30px;
+
+    padding: 20px 0;
+
+    border-top: 1px solid var(--line);
     border-bottom: 1px solid var(--line);
 }
 
@@ -1080,47 +1137,54 @@ button {
 
 .filter-control label {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 7px;
+
     font-family: var(--font-mono);
     font-size: 8px;
-    letter-spacing: 0.09em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--text-muted);
 }
 
 .filter-control select {
     width: 100%;
-    min-height: 44px;
+    height: 44px;
+
     padding: 0 32px 0 12px;
+
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
-    background: var(--white);
+
+    background: var(--paper-light);
     color: var(--text);
-    font-family: var(--font-body);
-    font-size: 13px;
+
+    font-size: 12px;
+
     outline: none;
-    cursor: pointer;
-    transition:
-        border-color 180ms ease,
-        box-shadow 180ms ease;
 }
 
 .filter-control select:focus {
     border-color: var(--violet);
-    box-shadow: 0 0 0 3px rgba(115, 87, 255, 0.08);
 }
 
 .filter-clear {
-    min-height: 44px;
-    padding: 0 17px;
+    align-self: end;
+
+    height: 44px;
+
+    padding: 0 16px;
+
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
+
     background: transparent;
     color: var(--text-muted);
-    font-family: var(--font-body);
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
+
+    font-family: var(--font-mono);
+    font-size: 8px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+
     transition:
         border-color 180ms ease,
         color 180ms ease,
@@ -1129,157 +1193,127 @@ button {
 
 .filter-clear:hover {
     border-color: var(--violet);
-    background: var(--white);
     color: var(--violet);
+    background: rgba(115, 87, 255, 0.04);
 }
 
 
-/* =========================================================
-   RESULTS HEADER
-   ========================================================= */
+/* ---------------------------------------------------------
+   Results header
+   --------------------------------------------------------- */
 
 .catalogue-results-header {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    margin-bottom: 18px;
+    align-items: center;
+
+    padding: 30px 0 18px;
 }
 
 .catalogue-results-count {
     display: flex;
     align-items: center;
-    gap: 9px;
-}
+    gap: 10px;
 
-.results-marker {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--violet);
-}
-
-#result-count,
-.catalogue-results-note {
     font-family: var(--font-mono);
     font-size: 9px;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-}
-
-#result-count {
-    color: var(--text);
-}
-
-.catalogue-results-note {
     color: var(--text-muted);
 }
 
+.results-marker {
+    width: 6px;
+    height: 6px;
 
-/* =========================================================
-   TOOL GRID
-   ========================================================= */
+    display: inline-block;
+
+    border-radius: 50%;
+    background: var(--lime);
+
+    box-shadow: 0 0 0 3px rgba(199, 243, 107, 0.18);
+}
+
+.catalogue-results-note {
+    font-family: var(--font-mono);
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    color: #a0a0a5;
+}
+
+
+/* ---------------------------------------------------------
+   Tool grid
+   --------------------------------------------------------- */
 
 .tools-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+
+    border-top: 1px solid var(--line);
+    border-left: 1px solid var(--line);
 }
+
+
+/* ---------------------------------------------------------
+   Tool card
+   --------------------------------------------------------- */
 
 .tool-card {
     position: relative;
+
+    min-height: 315px;
+
     display: flex;
     flex-direction: column;
-    min-height: 310px;
-    padding: 24px;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-md);
-    background: var(--white);
+
+    padding: 28px 30px 24px;
+
+    border: 0;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    border-radius: 0;
+
+    background: transparent;
+
+    box-shadow: none;
+
     transition:
-        transform 180ms ease,
-        border-color 180ms ease,
+        background 180ms ease,
         box-shadow 180ms ease;
 }
 
 .tool-card:hover {
-    transform: translateY(-3px);
-    border-color: #b9b7c8;
-    box-shadow: var(--shadow-soft);
+    background: var(--white);
+    border-color: var(--line);
+    box-shadow: inset 0 0 0 1px rgba(115, 87, 255, 0.04);
 }
 
-.tool-type {
-    margin-bottom: 13px;
-    font-family: var(--font-mono);
-    font-size: 8px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--violet);
+.tool-card:nth-child(4n + 1) {
+    background: rgba(115, 87, 255, 0.025);
 }
 
-.tool-card h3 {
-    margin: 0;
-    font-family: var(--font-display);
-    font-size: 24px;
-    line-height: 1.1;
-    letter-spacing: -0.04em;
-    font-weight: 600;
-}
-
-.tool-description {
-    margin: 13px 0 20px;
-    color: var(--text-muted);
-    font-size: 13px;
-    line-height: 1.6;
-}
-
-.tool-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: auto;
-    padding-top: 15px;
-}
-
-.tool-meta span {
-    padding: 5px 8px;
-    border: 1px solid var(--line);
-    font-family: var(--font-mono);
-    font-size: 8px;
-    letter-spacing: 0.04em;
-    color: var(--text-muted);
-}
-
-.tool-card-bottom {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    margin-top: 20px;
-    padding-top: 15px;
-    border-top: 1px solid var(--line);
-}
-
-.tool-link {
-    font-size: 11px;
-    font-weight: 600;
-}
-
-.tool-link:hover {
-    color: var(--violet);
+.tool-card:nth-child(4n + 1):hover {
+    background: var(--white);
 }
 
 
-/* =========================================================
-   STATUS BADGES
-   ========================================================= */
+/* Status */
 
 .tool-status {
-    display: inline-flex;
+    order: 0;
+
     align-self: flex-start;
-    margin-bottom: 14px;
-    padding: 5px 8px;
-    border-radius: 3px;
+
+    margin: 0 0 22px;
+    padding: 5px 7px;
+
+    border-radius: 2px;
+
     font-family: var(--font-mono);
-    font-size: 8px;
-    letter-spacing: 0.07em;
+    font-size: 7px;
+    letter-spacing: 0.09em;
     text-transform: uppercase;
 }
 
@@ -1299,56 +1333,198 @@ button {
 }
 
 
-/* =========================================================
-   NO RESULTS
-   ========================================================= */
+/* Type */
+
+.tool-type {
+    order: 1;
+
+    margin-bottom: 9px;
+
+    font-family: var(--font-mono);
+    font-size: 8px;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--violet);
+}
+
+
+/* Name */
+
+.tool-card h3 {
+    order: 2;
+
+    margin: 0;
+
+    font-family: var(--font-display);
+    font-size: 29px;
+    line-height: 1.05;
+    letter-spacing: -0.05em;
+    font-weight: 600;
+}
+
+
+/* Description */
+
+.tool-description {
+    order: 3;
+
+    max-width: 570px;
+
+    margin: 13px 0 0;
+
+    color: var(--text-muted);
+
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+
+/* Metadata */
+
+.tool-meta {
+    order: 4;
+
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+
+    margin-top: auto;
+    padding-top: 28px;
+}
+
+.tool-meta span {
+    padding: 5px 7px;
+
+    border: 1px solid var(--line);
+
+    font-family: var(--font-mono);
+    font-size: 7px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+
+/* Bottom links */
+
+.tool-card-bottom {
+    order: 5;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    margin-top: 20px;
+    padding-top: 14px;
+
+    border-top: 1px solid var(--line);
+}
+
+.tool-link {
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.tool-link:first-child {
+    color: var(--text);
+}
+
+.tool-link:first-child::after {
+    content: " ↗";
+    color: var(--violet);
+}
+
+.tool-link:last-child {
+    color: var(--text-muted);
+}
+
+.tool-link:hover {
+    color: var(--violet);
+}
+
+
+/* ---------------------------------------------------------
+   No results
+   --------------------------------------------------------- */
 
 .no-results {
-    padding: 90px 20px;
-    border-top: 1px solid var(--line);
+    padding: 110px 20px;
+
+    border: 1px solid var(--line);
+
     text-align: center;
 }
 
 .no-results-number {
     display: block;
     margin-bottom: 20px;
+
     font-family: var(--font-mono);
     font-size: 10px;
-    letter-spacing: 0.1em;
-    color: var(--text-muted);
+    letter-spacing: 0.12em;
+    color: var(--violet);
 }
 
 .no-results h3 {
-    margin: 0 0 9px;
+    margin: 0;
+
     font-family: var(--font-display);
-    font-size: 32px;
-    letter-spacing: -0.04em;
+    font-size: 38px;
+    line-height: 1;
+    letter-spacing: -0.05em;
 }
 
 .no-results p {
-    margin: 0 0 22px;
+    margin: 15px 0 25px;
+
     color: var(--text-muted);
-    font-size: 14px;
 }
 
+.no-results button,
 #clear-filters-empty {
     min-height: 42px;
+
     padding: 0 16px;
+
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
+
     background: transparent;
-    color: var(--text);
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition:
-        border-color 180ms ease,
-        color 180ms ease;
+
+    font-family: var(--font-mono);
+    font-size: 8px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
 }
 
+.no-results button:hover,
 #clear-filters-empty:hover {
     border-color: var(--violet);
     color: var(--violet);
+}
+
+
+/* ---------------------------------------------------------
+   Donate navigation
+   --------------------------------------------------------- */
+
+.nav-donate {
+    padding: 9px 14px !important;
+
+    border: 1px solid var(--lime);
+
+    color: var(--lime) !important;
+
+    border-radius: 3px;
+}
+
+.nav-donate::after {
+    display: none !important;
+}
+
+.nav-donate:hover {
+    background: var(--lime);
+    color: var(--ink) !important;
 }
 
 
@@ -1553,19 +1729,15 @@ button {
 
     .catalogue-hero-content {
         grid-template-columns: 1fr;
-        gap: 35px;
-    }
-
-    .catalogue-hero-description {
-        max-width: 520px;
+        gap: 50px;
     }
 
     .catalogue-filter-bar {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(2, 1fr);
     }
 
     .filter-clear {
-        width: 100%;
+        width: fit-content;
     }
 
     .tools-grid {
@@ -1699,45 +1871,47 @@ button {
         flex-wrap: wrap;
     }
 
-    /* Catalogue */
-    .catalogue-hero {
-        padding: 30px 0 60px;
+    .catalogue-hero .container {
+        padding-top: 20px;
+        padding-bottom: 65px;
+    }
+
+    .catalogue-hero-top {
+        align-items: flex-start;
     }
 
     .catalogue-label {
-        gap: 7px;
-        font-size: 8px;
-    }
-
-    .catalogue-index {
-        font-size: 9px;
+        flex-wrap: wrap;
+        gap: 8px;
     }
 
     .catalogue-hero-content {
-        padding-top: 55px;
+        padding-top: 60px;
     }
 
     .catalogue-hero-content h1 {
-        font-size: clamp(58px, 17vw, 90px);
+        font-size: clamp(65px, 18vw, 105px);
     }
 
     .catalogue-hero-description p {
-        font-size: 15px;
+        font-size: 16px;
     }
 
     .catalogue-section {
-        padding: 50px 0 80px;
+        padding: 55px 0 85px;
     }
 
     .catalogue-search-field input {
-        min-height: 60px;
-        font-size: 20px;
+        height: 60px;
+        font-size: 15px;
     }
 
     .catalogue-filter-bar {
         grid-template-columns: 1fr;
-        gap: 12px;
-        margin-bottom: 40px;
+    }
+
+    .filter-clear {
+        width: 100%;
     }
 
     .catalogue-results-header {
@@ -1754,7 +1928,7 @@ button {
     }
 
     .tool-card {
-        min-height: 285px;
+        min-height: 280px;
     }
 
     .tool-detail {
@@ -1796,6 +1970,6 @@ button {
     }
 
     .catalogue-hero-content h1 {
-        font-size: 58px;
+        font-size: 64px;
     }
 }
