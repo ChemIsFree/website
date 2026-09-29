@@ -47,7 +47,7 @@ function initializeCatalogue() {
     const categorySelect = document.getElementById("category-filter");
     const typeSelect = document.getElementById("type-filter");
     const accessSelect = document.getElementById("access-filter");
-    const sortSelect = document.getElementById("sort");
+    const sortSelect = document.getElementById("sort-tools");
     const clearButton = document.getElementById("clear-filters");
 
     const update = () => {
