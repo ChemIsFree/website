@@ -4,7 +4,7 @@ from pathlib import Path
 import yaml
 
 
-TOOLS_FILE = Path("catalogue/data/tools.yaml")
+TOOLS_FILE = Path("../catalogue/data/tools.yaml")
 OUTPUT_FILE = Path("data/tools.json")
 
 
