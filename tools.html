@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Explore Tools — ChemIsFree</title>
+
+    <meta
+        name="description"
+        content="Explore the ChemIsFree catalogue of chemistry, drug discovery, molecular modelling, machine learning and laboratory tools."
+    >
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<header class="site-header">
+
+    <div class="container nav-container">
+
+        <a href="index.html" class="logo">
+            <span class="logo-mark">C</span>
+            <span>ChemIsFree</span>
+        </a>
+
+        <nav class="navigation">
+
+            <a href="tools.html">
+                Explore Tools
+            </a>
+
+            <a href="index.html#categories">
+                Categories
+            </a>
+
+            <a href="about.html">
+                About
+            </a>
+
+            <a href="contribute.html"
+               class="nav-button">
+                Suggest a Tool
+            </a>
+
+        </nav>
+
+    </div>
+
+</header>
+
+
+<main>
+
+    <!-- PAGE HEADER -->
+
+    <section class="page-hero">
+
+        <div class="container">
+
+            <div class="section-label">
+                CHEMISFREE CATALOGUE
+            </div>
+
+            <h1>
+                Explore the tools.
+            </h1>
+
+            <p>
+                Discover software, databases, workflows, datasets
+                and other resources for chemistry and drug discovery.
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <!-- CATALOGUE -->
+
+    <section class="catalogue">
+
+        <div class="container">
+
+            <div class="catalogue-layout">
+
+                <!-- FILTERS -->
+
+                <aside class="filters">
+
+                    <div class="filter-header">
+                        <strong>Filter</strong>
+
+                        <button
+                            id="clear-filters"
+                            type="button">
+                            Clear
+                        </button>
+                    </div>
+
+
+                    <div class="filter-group">
+
+                        <label for="search">
+                            Search
+                        </label>
+
+                        <input
+                            id="search"
+                            type="search"
+                            placeholder="Search tools..."
+                        >
+
+                    </div>
+
+
+                    <div class="filter-group">
+
+                        <label for="category-filter">
+                            Category
+                        </label>
+
+                        <select id="category-filter">
+
+                            <option value="">
+                                All categories
+                            </option>
+
+                            <option value="cheminformatics">
+                                Cheminformatics
+                            </option>
+
+                            <option value="molecular-modelling">
+                                Molecular Modelling
+                            </option>
+
+                            <option value="drug-discovery">
+                                Drug Discovery
+                            </option>
+
+                            <option value="machine-learning">
+                                Machine Learning
+                            </option>
+
+                            <option value="data-and-databases">
+                                Data & Databases
+                            </option>
+
+                            <option value="visualization">
+                                Visualization
+                            </option>
+
+                            <option value="laboratory">
+                                Laboratory
+                            </option>
+
+                            <option value="utilities-and-workflows">
+                                Utilities & Workflows
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="filter-group">
+
+                        <label for="type-filter">
+                            Type
+                        </label>
+
+                        <select id="type-filter">
+
+                            <option value="">
+                                All types
+                            </option>
+
+                            <option value="software">
+                                Software
+                            </option>
+
+                            <option value="library">
+                                Library
+                            </option>
+
+                            <option value="database">
+                                Database
+                            </option>
+
+                            <option value="dataset">
+                                Dataset
+                            </option>
+
+                            <option value="web-tool">
+                                Web Tool
+                            </option>
+
+                            <option value="web-service">
+                                Web Service
+                            </option>
+
+                            <option value="workflow">
+                                Workflow
+                            </option>
+
+                            <option value="platform">
+                                Platform
+                            </option>
+
+                            <option value="resource">
+                                Resource
+                            </option>
+
+                            <option value="tutorial">
+                                Tutorial
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="filter-group">
+
+                        <label for="access-filter">
+                            Access
+                        </label>
+
+                        <select id="access-filter">
+
+                            <option value="">
+                                All access types
+                            </option>
+
+                            <option value="free">
+                                Free
+                            </option>
+
+                            <option value="free-tier">
+                                Free tier
+                            </option>
+
+                            <option value="open-data">
+                                Open data
+                            </option>
+
+                            <option value="public">
+                                Public
+                            </option>
+
+                            <option value="paid">
+                                Paid
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </aside>
+
+
+                <!-- RESULTS -->
+
+                <div class="catalogue-results">
+
+                    <div class="results-header">
+
+                        <div>
+                            <span id="result-count">
+                                Loading catalogue...
+                            </span>
+                        </div>
+
+                        <select id="sort-tools">
+
+                            <option value="name">
+                                Name
+                            </option>
+
+                            <option value="category">
+                                Category
+                            </option>
+
+                            <option value="type">
+                                Type
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div
+                        id="tools-grid"
+                        class="tools-grid">
+
+                    </div>
+
+
+                    <div
+                        id="no-results"
+                        class="no-results"
+                        hidden>
+
+                        <h3>
+                            No tools found
+                        </h3>
+
+                        <p>
+                            Try changing your search or filters.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<footer class="site-footer">
+
+    <div class="container footer-content">
+
+        <div>
+
+            <a href="index.html"
+               class="logo footer-logo">
+
+                <span class="logo-mark">C</span>
+                <span>ChemIsFree</span>
+
+            </a>
+
+            <p>
+                Open tools. Open knowledge. Open chemistry.
+            </p>
+
+        </div>
+
+
+        <div class="footer-links">
+
+            <a href="tools.html">
+                Explore Tools
+            </a>
+
+            <a href="contribute.html">
+                Suggest a Tool
+            </a>
+
+            <a href="about.html">
+                About
+            </a>
+
+            <a href="https://github.com/ChemIsFree">
+                GitHub
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <div class="container footer-bottom">
+
+        <span>
+            © 2026 ChemIsFree
+        </span>
+
+        <span>
+            Community-driven • Open access
+        </span>
+
+    </div>
+
+</footer>
+
+
+<script src="js/app.js"></script>
+
+</body>
+</html>
