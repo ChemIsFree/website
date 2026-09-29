@@ -45,6 +45,7 @@ async function loadTools() {
             document.getElementById("no-results");
 
         if (noResults) {
+
             noResults.hidden = false;
 
             noResults.innerHTML = `
@@ -110,7 +111,13 @@ function initializeCatalogue() {
 
                 tool.description,
 
-                ...(tool.developers || [])
+                ...(tool.developers || []),
+
+                ...(tool.languages || []),
+
+                ...(tool.interface || []),
+
+                ...(tool.category || [])
 
             ]
                 .filter(Boolean)
@@ -149,7 +156,9 @@ function initializeCatalogue() {
         });
 
 
+        // -------------------------------------------------
         // Sorting
+        // -------------------------------------------------
 
         if (sort === "category") {
 
@@ -265,10 +274,11 @@ function populateFilters() {
         document.getElementById("access-filter");
 
 
-    if (!categorySelect ||
+    if (
+        !categorySelect ||
         !typeSelect ||
-        !accessSelect) {
-
+        !accessSelect
+    ) {
         return;
     }
 
@@ -442,8 +452,14 @@ function createToolCard(tool) {
         "#";
 
 
+    const statusBadge =
+        createStatusBadge(tool);
+
+
     return `
         <article class="tool-card">
+
+            ${statusBadge}
 
             <div class="tool-type">
                 ${formatLabel(
@@ -480,6 +496,15 @@ function createToolCard(tool) {
 
                 <a
                     class="tool-link"
+                    href="tool.html?id=${encodeURIComponent(
+                        tool.id || ""
+                    )}"
+                >
+                    View tool →
+                </a>
+
+                <a
+                    class="tool-link"
                     href="${escapeAttribute(website)}"
                     target="_blank"
                     rel="noopener noreferrer"
@@ -491,6 +516,50 @@ function createToolCard(tool) {
 
         </article>
     `;
+}
+
+
+// ---------------------------------------------------------
+// ChemIsFree status badge
+// ---------------------------------------------------------
+
+function createStatusBadge(tool) {
+
+    const status =
+        tool.chemisfree_status || "curated-resource";
+
+
+    if (status === "chemisfree-project") {
+
+        return `
+            <div class="tool-status tool-status-own">
+                ChemIsFree Project
+            </div>
+        `;
+    }
+
+
+    if (status === "community-project") {
+
+        return `
+            <div class="tool-status tool-status-community">
+                Community Project
+            </div>
+        `;
+    }
+
+
+    if (status === "archived") {
+
+        return `
+            <div class="tool-status tool-status-archived">
+                Archived
+            </div>
+        `;
+    }
+
+
+    return "";
 }
 
 
