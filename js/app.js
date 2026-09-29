@@ -6,7 +6,9 @@ let tools = [];
 // ---------------------------------------------------------
 
 async function loadTools() {
+
     try {
+
         const response = await fetch("data/tools.json");
 
         if (!response.ok) {
@@ -18,19 +20,39 @@ async function loadTools() {
         initializeCatalogue();
 
     } catch (error) {
-        console.error("Could not load ChemIsFree catalogue:", error);
 
-        const grid = document.getElementById("tools-grid");
+        console.error(
+            "Could not load ChemIsFree catalogue:",
+            error
+        );
+
+        const grid =
+            document.getElementById("tools-grid");
+
+        const count =
+            document.getElementById("result-count");
 
         if (grid) {
-            grid.innerHTML = `
-                <div class="no-results">
-                    <h3>Catalogue temporarily unavailable</h3>
-                    <p>
-                        The ChemIsFree catalogue could not be loaded.
-                        Please try again later.
-                    </p>
-                </div>
+            grid.innerHTML = "";
+        }
+
+        if (count) {
+            count.textContent =
+                "Catalogue unavailable";
+        }
+
+        const noResults =
+            document.getElementById("no-results");
+
+        if (noResults) {
+            noResults.hidden = false;
+
+            noResults.innerHTML = `
+                <h3>Catalogue temporarily unavailable</h3>
+                <p>
+                    The ChemIsFree catalogue could not be loaded.
+                    Please try again later.
+                </p>
             `;
         }
     }
@@ -43,46 +65,80 @@ async function loadTools() {
 
 function initializeCatalogue() {
 
-    const searchInput = document.getElementById("search");
-    const categorySelect = document.getElementById("category-filter");
-    const typeSelect = document.getElementById("type-filter");
-    const accessSelect = document.getElementById("access-filter");
-    const sortSelect = document.getElementById("sort-tools");
-    const clearButton = document.getElementById("clear-filters");
+    const searchInput =
+        document.getElementById("search");
+
+    const categorySelect =
+        document.getElementById("category-filter");
+
+    const typeSelect =
+        document.getElementById("type-filter");
+
+    const accessSelect =
+        document.getElementById("access-filter");
+
+    const sortSelect =
+        document.getElementById("sort-tools");
+
+    const clearButton =
+        document.getElementById("clear-filters");
+
 
     const update = () => {
 
-        const search = searchInput.value.toLowerCase().trim();
-        const category = categorySelect.value;
-        const type = typeSelect.value;
-        const access = accessSelect.value;
-        const sort = sortSelect.value;
+        const search =
+            searchInput?.value.toLowerCase().trim() || "";
+
+        const category =
+            categorySelect?.value || "";
+
+        const type =
+            typeSelect?.value || "";
+
+        const access =
+            accessSelect?.value || "";
+
+        const sort =
+            sortSelect?.value || "name";
+
 
         let filtered = tools.filter(tool => {
 
             const searchableText = [
+
                 tool.name,
+
                 tool.description,
+
                 ...(tool.developers || [])
+
             ]
+                .filter(Boolean)
                 .join(" ")
                 .toLowerCase();
+
 
             const matchesSearch =
                 !search ||
                 searchableText.includes(search);
 
+
             const matchesCategory =
                 !category ||
-                (tool.category || []).includes(category);
+                (tool.category || [])
+                    .includes(category);
+
 
             const matchesType =
                 !type ||
                 tool.type === type;
 
+
             const matchesAccess =
                 !access ||
-                (tool.access || []).includes(access);
+                (tool.access || [])
+                    .includes(access);
+
 
             return (
                 matchesSearch &&
@@ -92,46 +148,109 @@ function initializeCatalogue() {
             );
         });
 
-        if (sort === "name-desc") {
-            filtered.sort((a, b) =>
-                b.name.localeCompare(a.name)
-            );
+
+        // Sorting
+
+        if (sort === "category") {
+
+            filtered.sort((a, b) => {
+
+                const categoryA =
+                    (a.category || [""])
+                        .join("");
+
+                const categoryB =
+                    (b.category || [""])
+                        .join("");
+
+                return categoryA.localeCompare(categoryB);
+            });
+
+        } else if (sort === "type") {
+
+            filtered.sort((a, b) => {
+
+                return (a.type || "")
+                    .localeCompare(b.type || "");
+            });
+
         } else {
-            filtered.sort((a, b) =>
-                a.name.localeCompare(b.name)
-            );
+
+            filtered.sort((a, b) => {
+
+                return (a.name || "")
+                    .localeCompare(b.name || "");
+            });
         }
+
 
         renderTools(filtered);
     };
 
 
-    searchInput?.addEventListener("input", update);
-    categorySelect?.addEventListener("change", update);
-    typeSelect?.addEventListener("change", update);
-    accessSelect?.addEventListener("change", update);
-    sortSelect?.addEventListener("change", update);
+    searchInput?.addEventListener(
+        "input",
+        update
+    );
+
+    categorySelect?.addEventListener(
+        "change",
+        update
+    );
+
+    typeSelect?.addEventListener(
+        "change",
+        update
+    );
+
+    accessSelect?.addEventListener(
+        "change",
+        update
+    );
+
+    sortSelect?.addEventListener(
+        "change",
+        update
+    );
 
 
-    clearButton?.addEventListener("click", () => {
+    clearButton?.addEventListener(
+        "click",
+        () => {
 
-        searchInput.value = "";
-        categorySelect.value = "";
-        typeSelect.value = "";
-        accessSelect.value = "";
-        sortSelect.value = "name-asc";
+            if (searchInput) {
+                searchInput.value = "";
+            }
 
-        update();
-    });
+            if (categorySelect) {
+                categorySelect.value = "";
+            }
+
+            if (typeSelect) {
+                typeSelect.value = "";
+            }
+
+            if (accessSelect) {
+                accessSelect.value = "";
+            }
+
+            if (sortSelect) {
+                sortSelect.value = "name";
+            }
+
+            update();
+        }
+    );
 
 
     populateFilters();
+
     update();
 }
 
 
 // ---------------------------------------------------------
-// Filters
+// Populate filters
 // ---------------------------------------------------------
 
 function populateFilters() {
@@ -146,6 +265,14 @@ function populateFilters() {
         document.getElementById("access-filter");
 
 
+    if (!categorySelect ||
+        !typeSelect ||
+        !accessSelect) {
+
+        return;
+    }
+
+
     const categories = new Set();
     const types = new Set();
     const accesses = new Set();
@@ -153,16 +280,16 @@ function populateFilters() {
 
     tools.forEach(tool => {
 
-        (tool.category || []).forEach(category =>
-            categories.add(category)
+        (tool.category || []).forEach(
+            category => categories.add(category)
         );
 
         if (tool.type) {
             types.add(tool.type);
         }
 
-        (tool.access || []).forEach(access =>
-            accesses.add(access)
+        (tool.access || []).forEach(
+            access => accesses.add(access)
         );
     });
 
@@ -171,12 +298,21 @@ function populateFilters() {
         .sort()
         .forEach(category => {
 
-            categorySelect?.insertAdjacentHTML(
-                "beforeend",
-                `<option value="${escapeAttribute(category)}">
-                    ${formatLabel(category)}
-                </option>`
-            );
+            if (
+                !categorySelect.querySelector(
+                    `option[value="${escapeAttribute(category)}"]`
+                )
+            ) {
+
+                categorySelect.insertAdjacentHTML(
+                    "beforeend",
+                    `
+                    <option value="${escapeAttribute(category)}">
+                        ${formatLabel(category)}
+                    </option>
+                    `
+                );
+            }
         });
 
 
@@ -184,12 +320,21 @@ function populateFilters() {
         .sort()
         .forEach(type => {
 
-            typeSelect?.insertAdjacentHTML(
-                "beforeend",
-                `<option value="${escapeAttribute(type)}">
-                    ${formatLabel(type)}
-                </option>`
-            );
+            if (
+                !typeSelect.querySelector(
+                    `option[value="${escapeAttribute(type)}"]`
+                )
+            ) {
+
+                typeSelect.insertAdjacentHTML(
+                    "beforeend",
+                    `
+                    <option value="${escapeAttribute(type)}">
+                        ${formatLabel(type)}
+                    </option>
+                    `
+                );
+            }
         });
 
 
@@ -197,12 +342,21 @@ function populateFilters() {
         .sort()
         .forEach(access => {
 
-            accessSelect?.insertAdjacentHTML(
-                "beforeend",
-                `<option value="${escapeAttribute(access)}">
-                    ${formatLabel(access)}
-                </option>`
-            );
+            if (
+                !accessSelect.querySelector(
+                    `option[value="${escapeAttribute(access)}"]`
+                )
+            ) {
+
+                accessSelect.insertAdjacentHTML(
+                    "beforeend",
+                    `
+                    <option value="${escapeAttribute(access)}">
+                        ${formatLabel(access)}
+                    </option>
+                    `
+                );
+            }
         });
 }
 
@@ -223,13 +377,18 @@ function renderTools(filteredTools) {
         document.getElementById("no-results");
 
 
-    if (!grid) return;
+    if (!grid) {
+        return;
+    }
 
 
     if (count) {
+
         count.textContent =
             `${filteredTools.length} tool${
-                filteredTools.length === 1 ? "" : "s"
+                filteredTools.length === 1
+                    ? ""
+                    : "s"
             }`;
     }
 
@@ -239,7 +398,7 @@ function renderTools(filteredTools) {
         grid.innerHTML = "";
 
         if (noResults) {
-            noResults.style.display = "block";
+            noResults.hidden = false;
         }
 
         return;
@@ -247,77 +406,91 @@ function renderTools(filteredTools) {
 
 
     if (noResults) {
-        noResults.style.display = "none";
+        noResults.hidden = true;
     }
 
 
-    grid.innerHTML = filteredTools.map(tool => {
-
-        const category =
-            (tool.category || []).length
-                ? formatLabel(tool.category[0])
-                : "Other";
-
-
-        const website =
-            tool.website ||
-            tool.repository ||
-            tool.documentation ||
-            "#";
+    grid.innerHTML =
+        filteredTools
+            .map(tool => createToolCard(tool))
+            .join("");
+}
 
 
-        const access =
-            (tool.access || []).length
-                ? formatLabel(tool.access[0])
-                : "Unknown";
+// ---------------------------------------------------------
+// Tool card
+// ---------------------------------------------------------
+
+function createToolCard(tool) {
+
+    const category =
+        (tool.category || []).length
+            ? formatLabel(tool.category[0])
+            : "Other";
 
 
-        return `
-            <article class="tool-card">
+    const access =
+        (tool.access || []).length
+            ? formatLabel(tool.access[0])
+            : "Unknown";
 
-                <div class="tool-type">
-                    ${formatLabel(tool.type || "resource")}
-                </div>
 
-                <h3>
-                    ${escapeHtml(tool.name)}
-                </h3>
+    const website =
+        tool.website ||
+        tool.repository ||
+        tool.documentation ||
+        "#";
 
-                <p class="tool-description">
-                    ${escapeHtml(
-                        tool.description || "No description available."
-                    )}
-                </p>
 
-                <div class="tool-meta">
+    return `
+        <article class="tool-card">
 
-                    <span>
-                        ${access}
-                    </span>
+            <div class="tool-type">
+                ${formatLabel(
+                    tool.type || "resource"
+                )}
+            </div>
 
-                    <span>
-                        ${category}
-                    </span>
+            <h3>
+                ${escapeHtml(
+                    tool.name || "Unnamed resource"
+                )}
+            </h3>
 
-                </div>
+            <p class="tool-description">
+                ${escapeHtml(
+                    tool.description ||
+                    "No description available."
+                )}
+            </p>
 
-                <div class="tool-card-bottom">
+            <div class="tool-meta">
 
-                    <a
-                        class="tool-link"
-                        href="${escapeAttribute(website)}"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                    >
-                        Visit resource →
-                    </a>
+                <span>
+                    ${access}
+                </span>
 
-                </div>
+                <span>
+                    ${category}
+                </span>
 
-            </article>
-        `;
+            </div>
 
-    }).join("");
+            <div class="tool-card-bottom">
+
+                <a
+                    class="tool-link"
+                    href="${escapeAttribute(website)}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    Visit resource →
+                </a>
+
+            </div>
+
+        </article>
+    `;
 }
 
 
@@ -327,11 +500,15 @@ function renderTools(filteredTools) {
 
 function formatLabel(value) {
 
-    if (!value) return "";
+    if (!value) {
+        return "";
+    }
 
-    return value
+    return String(value)
         .replace(/-/g, " ")
-        .replace(/\b\w/g, letter => letter.toUpperCase());
+        .replace(/\b\w/g, letter =>
+            letter.toUpperCase()
+        );
 }
 
 
