@@ -1390,29 +1390,62 @@ p {
 }
 
 .tool-detail-header {
-    max-width: 850px;
+    max-width: 820px;
     margin-bottom: 3rem;
 }
 
+.tool-detail-header .tool-status {
+    margin-bottom: 1rem;
+}
+
+.tool-detail-header .tool-type {
+    margin-bottom: 0.65rem;
+
+    color: var(--accent-dark);
+
+    font-size: 0.78rem;
+    font-weight: 700;
+
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
 .tool-detail-header h1 {
-    margin: 0.35rem 0 1rem;
-    font-size: clamp(2.2rem, 5vw, 3.6rem);
+    margin: 0 0 1rem;
+
+    color: var(--text);
+
+    font-size: clamp(2.4rem, 5vw, 4rem);
+    font-weight: 750;
     line-height: 1.05;
-    letter-spacing: -0.035em;
+    letter-spacing: -0.04em;
 }
 
 .tool-detail-description {
     max-width: 760px;
+
     margin: 0;
+
     color: var(--muted);
+
     font-size: 1.15rem;
     line-height: 1.75;
 }
 
+
+/* ---------------------------------------------------------
+   Layout
+   --------------------------------------------------------- */
+
 .tool-detail-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 340px;
-    gap: 3rem;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        340px;
+
+    gap: 3.5rem;
+
     align-items: start;
 }
 
@@ -1420,9 +1453,15 @@ p {
     min-width: 0;
 }
 
+
+/* ---------------------------------------------------------
+   Main content sections
+   --------------------------------------------------------- */
+
 .tool-section {
-    padding: 0 0 2.5rem;
+    padding-bottom: 2.5rem;
     margin-bottom: 2.5rem;
+
     border-bottom: 1px solid var(--border);
 }
 
@@ -1432,64 +1471,107 @@ p {
 
 .tool-section h2 {
     margin: 0 0 1rem;
+
+    color: var(--text);
+
     font-size: 1.35rem;
+    font-weight: 700;
+
     letter-spacing: -0.02em;
 }
 
 .tool-section p {
     margin: 0;
+
     color: var(--muted);
+
+    font-size: 1rem;
     line-height: 1.8;
 }
 
+
+/* ---------------------------------------------------------
+   Resource links
+   --------------------------------------------------------- */
+
 .tool-external-links {
     display: flex;
+
     flex-wrap: wrap;
+
     gap: 0.75rem;
 }
 
 .external-link {
     display: inline-flex;
+
     align-items: center;
+    justify-content: center;
+
+    min-height: 42px;
+
     padding: 0.7rem 1rem;
 
     border: 1px solid var(--border);
     border-radius: 8px;
 
     background: var(--surface);
+
     color: var(--text);
 
-    font-weight: 600;
+    font-size: 0.9rem;
+    font-weight: 650;
+
     text-decoration: none;
 
     transition:
         border-color 0.2s ease,
         color 0.2s ease,
+        background 0.2s ease,
         transform 0.2s ease;
 }
 
 .external-link:hover {
     border-color: var(--accent);
+
+    background: var(--accent-light);
+
     color: var(--accent-dark);
+
     transform: translateY(-1px);
 }
 
+
+/* ---------------------------------------------------------
+   Citation
+   --------------------------------------------------------- */
+
 .tool-citation {
-    padding: 1.1rem 1.25rem;
+    padding: 1.2rem 1.3rem;
 
     border-left: 3px solid var(--accent);
-    background: var(--accent-light);
-
     border-radius: 0 8px 8px 0;
+
+    background: var(--accent-light);
 }
 
 .tool-citation p {
     color: var(--text);
+
+    font-size: 0.9rem;
+    line-height: 1.7;
 }
+
+
+/* ---------------------------------------------------------
+   Sidebar
+   --------------------------------------------------------- */
 
 .tool-detail-sidebar {
     display: flex;
+
     flex-direction: column;
+
     gap: 1rem;
 
     position: sticky;
@@ -1499,9 +1581,10 @@ p {
 .tool-info-card {
     padding: 1.5rem;
 
-    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
+
+    background: var(--surface);
 
     box-shadow: var(--shadow);
 }
@@ -1509,53 +1592,68 @@ p {
 .tool-info-card h2 {
     margin: 0 0 1.25rem;
 
+    color: var(--text);
+
     font-size: 1.05rem;
-    letter-spacing: -0.01em;
+    font-weight: 700;
 }
 
 .tool-info-card dl {
     display: flex;
+
     flex-direction: column;
-    gap: 1rem;
+
+    gap: 1.1rem;
 
     margin: 0;
 }
 
 .tool-info-card dl > div {
-    display: grid;
+    display: flex;
+
+    flex-direction: column;
+
     gap: 0.3rem;
 }
 
 .tool-info-card dt {
+    margin: 0;
+
     color: var(--muted);
 
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 700;
 
+    letter-spacing: 0.07em;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
 }
 
 .tool-info-card dd {
     margin: 0;
 
     color: var(--text);
-    font-size: 0.95rem;
+
+    font-size: 0.92rem;
     line-height: 1.5;
 }
 
+
+/* ---------------------------------------------------------
+   Primary resource button
+   --------------------------------------------------------- */
+
 .tool-primary-button {
     width: 100%;
+
     justify-content: center;
+
     text-align: center;
 }
 
-.tool-loading {
-    padding: 4rem 0;
 
-    color: var(--muted);
-    text-align: center;
-}
+/* ---------------------------------------------------------
+   Breadcrumb
+   --------------------------------------------------------- */
 
 #tool-breadcrumb {
     font-size: 0.9rem;
@@ -1563,7 +1661,10 @@ p {
 
 #tool-breadcrumb a {
     color: var(--muted);
+
     text-decoration: none;
+
+    transition: color 0.2s ease;
 }
 
 #tool-breadcrumb a:hover {
@@ -1572,14 +1673,28 @@ p {
 
 
 /* ---------------------------------------------------------
-   Tool detail responsive layout
+   Loading
+   --------------------------------------------------------- */
+
+.tool-loading {
+    padding: 4rem 0;
+
+    color: var(--muted);
+
+    text-align: center;
+}
+
+
+/* ---------------------------------------------------------
+   Responsive
    --------------------------------------------------------- */
 
 @media (max-width: 900px) {
 
     .tool-detail-layout {
         grid-template-columns: 1fr;
-        gap: 2rem;
+
+        gap: 2.5rem;
     }
 
     .tool-detail-sidebar {
@@ -1596,11 +1711,11 @@ p {
     }
 
     .tool-detail-header {
-        margin-bottom: 2rem;
+        margin-bottom: 2.25rem;
     }
 
     .tool-detail-header h1 {
-        font-size: 2.3rem;
+        font-size: 2.4rem;
     }
 
     .tool-detail-description {
