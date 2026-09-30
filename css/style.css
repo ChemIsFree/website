@@ -45,8 +45,8 @@
     --shadow-soft: 0 12px 40px rgba(16, 17, 22, 0.08);
 
     /* Typography */
-    --font-display: "Manrope", sans-serif;
-    --font-body: "DM Sans", sans-serif;
+    --font-display: "DM Mono", sans-serif;
+    --font-body: "DM Mono", sans-serif;
     --font-mono: "DM Mono", monospace;
 }
 
