@@ -9,7 +9,8 @@ async function loadTools() {
 
     try {
 
-        const response = await fetch("data/tools.json");
+        const response =
+            await fetch("data/tools.json");
 
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
@@ -50,6 +51,7 @@ async function loadTools() {
 
             noResults.innerHTML = `
                 <h3>Catalogue temporarily unavailable</h3>
+
                 <p>
                     The ChemIsFree catalogue could not be loaded.
                     Please try again later.
@@ -61,7 +63,7 @@ async function loadTools() {
 
 
 // ---------------------------------------------------------
-// Catalogue
+// Catalogue initialization
 // ---------------------------------------------------------
 
 function initializeCatalogue() {
@@ -84,11 +86,30 @@ function initializeCatalogue() {
     const clearButton =
         document.getElementById("clear-filters");
 
+    const clearEmptyButton =
+        document.getElementById("clear-filters-empty");
+
+
+    // Remove obsolete access options.
+    // ChemIsFree currently exposes only Free and Open Source.
+
+    normalizeAccessFilter();
+
+
+    populateFilters();
+
+
+    // Read URL parameters before first render.
+
+    applyUrlState();
+
 
     const update = () => {
 
         const search =
-            searchInput?.value.toLowerCase().trim() || "";
+            searchInput?.value
+                .toLowerCase()
+                .trim() || "";
 
         const category =
             categorySelect?.value || "";
@@ -103,97 +124,79 @@ function initializeCatalogue() {
             sortSelect?.value || "name";
 
 
-        let filtered = tools.filter(tool => {
+        let filtered =
+            tools.filter(tool => {
 
-            const searchableText = [
+                const searchableText = [
 
-                tool.name,
+                    tool.name,
 
-                tool.description,
+                    tool.description,
 
-                ...(tool.developers || []),
+                    ...(tool.developers || []),
 
-                ...(tool.languages || []),
+                    ...(tool.interface || []),
 
-                ...(tool.interface || []),
+                    ...(tool.category || []),
 
-                ...(tool.category || [])
+                    ...(tool.tasks || []),
 
-            ]
-                .filter(Boolean)
-                .join(" ")
-                .toLowerCase();
+                    tool.type
 
-
-            const matchesSearch =
-                !search ||
-                searchableText.includes(search);
+                ]
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase();
 
 
-            const matchesCategory =
-                !category ||
-                (tool.category || [])
-                    .includes(category);
+                const matchesSearch =
+                    !search ||
+                    searchableText.includes(search);
 
 
-            const matchesType =
-                !type ||
-                tool.type === type;
+                const matchesCategory =
+                    !category ||
+                    (tool.category || [])
+                        .includes(category);
 
 
-            const matchesAccess =
-                !access ||
-                (tool.access || [])
-                    .includes(access);
+                const matchesType =
+                    !type ||
+                    tool.type === type;
 
 
-            return (
-                matchesSearch &&
-                matchesCategory &&
-                matchesType &&
-                matchesAccess
-            );
-        });
+                const matchesAccess =
+                    matchesAccessFilter(
+                        tool,
+                        access
+                    );
 
 
-        // -------------------------------------------------
-        // Sorting
-        // -------------------------------------------------
-
-        if (sort === "category") {
-
-            filtered.sort((a, b) => {
-
-                const categoryA =
-                    (a.category || [""])
-                        .join("");
-
-                const categoryB =
-                    (b.category || [""])
-                        .join("");
-
-                return categoryA.localeCompare(categoryB);
+                return (
+                    matchesSearch &&
+                    matchesCategory &&
+                    matchesType &&
+                    matchesAccess
+                );
             });
 
-        } else if (sort === "type") {
 
-            filtered.sort((a, b) => {
-
-                return (a.type || "")
-                    .localeCompare(b.type || "");
-            });
-
-        } else {
-
-            filtered.sort((a, b) => {
-
-                return (a.name || "")
-                    .localeCompare(b.name || "");
-            });
-        }
+        sortTools(
+            filtered,
+            sort
+        );
 
 
         renderTools(filtered);
+
+
+        updateUrlState({
+            search,
+            category,
+            type,
+            access,
+            sort
+        });
     };
 
 
@@ -202,20 +205,24 @@ function initializeCatalogue() {
         update
     );
 
+
     categorySelect?.addEventListener(
         "change",
         update
     );
+
 
     typeSelect?.addEventListener(
         "change",
         update
     );
 
+
     accessSelect?.addEventListener(
         "change",
         update
     );
+
 
     sortSelect?.addEventListener(
         "change",
@@ -225,36 +232,74 @@ function initializeCatalogue() {
 
     clearButton?.addEventListener(
         "click",
-        () => {
-
-            if (searchInput) {
-                searchInput.value = "";
-            }
-
-            if (categorySelect) {
-                categorySelect.value = "";
-            }
-
-            if (typeSelect) {
-                typeSelect.value = "";
-            }
-
-            if (accessSelect) {
-                accessSelect.value = "";
-            }
-
-            if (sortSelect) {
-                sortSelect.value = "name";
-            }
-
-            update();
-        }
+        clearCatalogue
     );
 
 
-    populateFilters();
+    clearEmptyButton?.addEventListener(
+        "click",
+        clearCatalogue
+    );
+
 
     update();
+}
+
+
+// ---------------------------------------------------------
+// Access filter
+// ---------------------------------------------------------
+
+function normalizeAccessFilter() {
+
+    const accessSelect =
+        document.getElementById("access-filter");
+
+    if (!accessSelect) {
+        return;
+    }
+
+
+    accessSelect.innerHTML = `
+        <option value="">
+            All access types
+        </option>
+
+        <option value="free">
+            Free
+        </option>
+
+        <option value="open-source">
+            Open Source
+        </option>
+    `;
+}
+
+
+function matchesAccessFilter(tool, access) {
+
+    if (!access) {
+        return true;
+    }
+
+
+    if (access === "free") {
+
+        return (
+            tool.access || []
+        ).includes("free");
+    }
+
+
+    if (access === "open-source") {
+
+        return (
+            tool.source_available === true
+        );
+    }
+
+
+    return false;
 }
 
 
@@ -270,59 +315,69 @@ function populateFilters() {
     const typeSelect =
         document.getElementById("type-filter");
 
-    const accessSelect =
-        document.getElementById("access-filter");
-
-
-    if (
-        !categorySelect ||
-        !typeSelect ||
-        !accessSelect
-    ) {
+    if (!categorySelect || !typeSelect) {
         return;
     }
 
 
-    const categories = new Set();
-    const types = new Set();
-    const accesses = new Set();
+    const categories =
+        new Set();
+
+    const types =
+        new Set();
 
 
     tools.forEach(tool => {
 
-        (tool.category || []).forEach(
-            category => categories.add(category)
-        );
+        (tool.category || [])
+            .forEach(category => {
+                categories.add(category);
+            });
+
 
         if (tool.type) {
             types.add(tool.type);
         }
-
-        (tool.access || []).forEach(
-            access => accesses.add(access)
-        );
     });
+
+
+    // Remove all dynamically populated options first.
+    // This prevents duplicates if initialization happens again.
+
+    categorySelect
+        .querySelectorAll(
+            "option:not(:first-child)"
+        )
+        .forEach(option => {
+            option.remove();
+        });
+
+
+    typeSelect
+        .querySelectorAll(
+            "option:not(:first-child)"
+        )
+        .forEach(option => {
+            option.remove();
+        });
 
 
     [...categories]
         .sort()
         .forEach(category => {
 
-            if (
-                !categorySelect.querySelector(
-                    `option[value="${escapeAttribute(category)}"]`
-                )
-            ) {
+            const option =
+                document.createElement("option");
 
-                categorySelect.insertAdjacentHTML(
-                    "beforeend",
-                    `
-                    <option value="${escapeAttribute(category)}">
-                        ${formatLabel(category)}
-                    </option>
-                    `
-                );
-            }
+            option.value =
+                category;
+
+            option.textContent =
+                formatLabel(category);
+
+            categorySelect.appendChild(
+                option
+            );
         });
 
 
@@ -330,44 +385,299 @@ function populateFilters() {
         .sort()
         .forEach(type => {
 
-            if (
-                !typeSelect.querySelector(
-                    `option[value="${escapeAttribute(type)}"]`
-                )
-            ) {
+            const option =
+                document.createElement("option");
 
-                typeSelect.insertAdjacentHTML(
-                    "beforeend",
-                    `
-                    <option value="${escapeAttribute(type)}">
-                        ${formatLabel(type)}
-                    </option>
-                    `
-                );
-            }
+            option.value =
+                type;
+
+            option.textContent =
+                formatLabel(type);
+
+            typeSelect.appendChild(
+                option
+            );
+        });
+}
+
+
+// ---------------------------------------------------------
+// Sorting
+// ---------------------------------------------------------
+
+function sortTools(filtered, sort) {
+
+    if (sort === "category") {
+
+        filtered.sort((a, b) => {
+
+            const categoryA =
+                (a.category || [])
+                    .join(" ");
+
+            const categoryB =
+                (b.category || [])
+                    .join(" ");
+
+            return categoryA.localeCompare(
+                categoryB
+            );
         });
 
+        return;
+    }
 
-    [...accesses]
-        .sort()
-        .forEach(access => {
 
-            if (
-                !accessSelect.querySelector(
-                    `option[value="${escapeAttribute(access)}"]`
-                )
-            ) {
+    if (sort === "type") {
 
-                accessSelect.insertAdjacentHTML(
-                    "beforeend",
-                    `
-                    <option value="${escapeAttribute(access)}">
-                        ${formatLabel(access)}
-                    </option>
-                    `
-                );
-            }
+        filtered.sort((a, b) => {
+
+            return (
+                a.type || ""
+            ).localeCompare(
+                b.type || ""
+            );
         });
+
+        return;
+    }
+
+
+    filtered.sort((a, b) => {
+
+        return (
+            a.name || ""
+        ).localeCompare(
+            b.name || ""
+        );
+    });
+}
+
+
+// ---------------------------------------------------------
+// URL state
+// ---------------------------------------------------------
+
+function applyUrlState() {
+
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+
+    const searchInput =
+        document.getElementById("search");
+
+    const categorySelect =
+        document.getElementById("category-filter");
+
+    const typeSelect =
+        document.getElementById("type-filter");
+
+    const accessSelect =
+        document.getElementById("access-filter");
+
+    const sortSelect =
+        document.getElementById("sort-tools");
+
+
+    const search =
+        params.get("search") || "";
+
+    const category =
+        params.get("category") || "";
+
+    const type =
+        params.get("type") || "";
+
+    const access =
+        params.get("access") || "";
+
+    const sort =
+        params.get("sort") || "name";
+
+
+    if (searchInput) {
+        searchInput.value =
+            search;
+    }
+
+
+    if (
+        category &&
+        categorySelect?.querySelector(
+            `option[value="${escapeAttribute(category)}"]`
+        )
+    ) {
+        categorySelect.value =
+            category;
+    }
+
+
+    if (
+        type &&
+        typeSelect?.querySelector(
+            `option[value="${escapeAttribute(type)}"]`
+        )
+    ) {
+        typeSelect.value =
+            type;
+    }
+
+
+    if (
+        access &&
+        accessSelect?.querySelector(
+            `option[value="${escapeAttribute(access)}"]`
+        )
+    ) {
+        accessSelect.value =
+            access;
+    }
+
+
+    if (
+        sort &&
+        sortSelect?.querySelector(
+            `option[value="${escapeAttribute(sort)}"]`
+        )
+    ) {
+        sortSelect.value =
+            sort;
+    }
+}
+
+
+function updateUrlState(state) {
+
+    const params =
+        new URLSearchParams();
+
+
+    if (state.search) {
+        params.set(
+            "search",
+            state.search
+        );
+    }
+
+
+    if (state.category) {
+        params.set(
+            "category",
+            state.category
+        );
+    }
+
+
+    if (state.type) {
+        params.set(
+            "type",
+            state.type
+        );
+    }
+
+
+    if (state.access) {
+        params.set(
+            "access",
+            state.access
+        );
+    }
+
+
+    if (
+        state.sort &&
+        state.sort !== "name"
+    ) {
+        params.set(
+            "sort",
+            state.sort
+        );
+    }
+
+
+    const query =
+        params.toString();
+
+
+    const newUrl =
+        query
+            ? `${window.location.pathname}?${query}`
+            : window.location.pathname;
+
+
+    window.history.replaceState(
+        {},
+        "",
+        newUrl
+    );
+}
+
+
+// ---------------------------------------------------------
+// Clear filters
+// ---------------------------------------------------------
+
+function clearCatalogue() {
+
+    const searchInput =
+        document.getElementById("search");
+
+    const categorySelect =
+        document.getElementById("category-filter");
+
+    const typeSelect =
+        document.getElementById("type-filter");
+
+    const accessSelect =
+        document.getElementById("access-filter");
+
+    const sortSelect =
+        document.getElementById("sort-tools");
+
+
+    if (searchInput) {
+        searchInput.value = "";
+    }
+
+
+    if (categorySelect) {
+        categorySelect.value = "";
+    }
+
+
+    if (typeSelect) {
+        typeSelect.value = "";
+    }
+
+
+    if (accessSelect) {
+        accessSelect.value = "";
+    }
+
+
+    if (sortSelect) {
+        sortSelect.value = "name";
+    }
+
+
+    window.history.replaceState(
+        {},
+        "",
+        window.location.pathname
+    );
+
+
+    renderTools(
+        [...tools].sort((a, b) =>
+            (a.name || "")
+                .localeCompare(
+                    b.name || ""
+                )
+        )
+    );
 }
 
 
@@ -405,10 +715,12 @@ function renderTools(filteredTools) {
 
     if (filteredTools.length === 0) {
 
-        grid.innerHTML = "";
+        grid.innerHTML =
+            "";
 
         if (noResults) {
-            noResults.hidden = false;
+            noResults.hidden =
+                false;
         }
 
         return;
@@ -416,13 +728,14 @@ function renderTools(filteredTools) {
 
 
     if (noResults) {
-        noResults.hidden = true;
+        noResults.hidden =
+            true;
     }
 
 
     grid.innerHTML =
         filteredTools
-            .map(tool => createToolCard(tool))
+            .map(createToolCard)
             .join("");
 }
 
@@ -435,14 +748,14 @@ function createToolCard(tool) {
 
     const category =
         (tool.category || []).length
-            ? formatLabel(tool.category[0])
+            ? formatLabel(
+                tool.category[0]
+            )
             : "Other";
 
 
     const access =
-        (tool.access || []).length
-            ? formatLabel(tool.access[0])
-            : "Unknown";
+        getDisplayAccess(tool);
 
 
     const website =
@@ -469,7 +782,8 @@ function createToolCard(tool) {
 
             <h3>
                 ${escapeHtml(
-                    tool.name || "Unnamed resource"
+                    tool.name ||
+                    "Unnamed resource"
                 )}
             </h3>
 
@@ -505,7 +819,9 @@ function createToolCard(tool) {
 
                 <a
                     class="tool-link"
-                    href="${escapeAttribute(website)}"
+                    href="${escapeAttribute(
+                        website
+                    )}"
                     target="_blank"
                     rel="noopener noreferrer"
                 >
@@ -520,16 +836,44 @@ function createToolCard(tool) {
 
 
 // ---------------------------------------------------------
+// Display access
+// ---------------------------------------------------------
+
+function getDisplayAccess(tool) {
+
+    if (
+        (tool.access || [])
+            .includes("free")
+    ) {
+        return "Free";
+    }
+
+
+    if (
+        tool.source_available === true
+    ) {
+        return "Open Source";
+    }
+
+
+    return "Unknown";
+}
+
+
+// ---------------------------------------------------------
 // ChemIsFree status badge
 // ---------------------------------------------------------
 
 function createStatusBadge(tool) {
 
     const status =
-        tool.chemisfree_status || "curated-resource";
+        tool.chemisfree_status ||
+        "curated-resource";
 
 
-    if (status === "chemisfree-project") {
+    if (
+        status === "chemisfree-project"
+    ) {
 
         return `
             <div class="tool-status tool-status-own">
@@ -539,7 +883,9 @@ function createStatusBadge(tool) {
     }
 
 
-    if (status === "community-project") {
+    if (
+        status === "community-project"
+    ) {
 
         return `
             <div class="tool-status tool-status-community">
@@ -549,7 +895,9 @@ function createStatusBadge(tool) {
     }
 
 
-    if (status === "archived") {
+    if (
+        status === "archived"
+    ) {
 
         return `
             <div class="tool-status tool-status-archived">
@@ -573,6 +921,7 @@ function formatLabel(value) {
         return "";
     }
 
+
     return String(value)
         .replace(/-/g, " ")
         .replace(/\b\w/g, letter =>
@@ -584,21 +933,48 @@ function formatLabel(value) {
 function escapeHtml(value) {
 
     return String(value || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
 }
 
 
 function escapeAttribute(value) {
 
     return String(value || "")
-        .replace(/&/g, "&amp;")
-        .replace(/"/g, "&quot;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        );
 }
 
 
