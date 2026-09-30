@@ -3086,3 +3086,455 @@ button {
     .tool-task-tags { gap: 6px; }
     .tool-task-tag { font-size: 7px; }
 }
+
+/* =========================================================
+   CONTRIBUTION PAGE
+   ========================================================= */
+
+.contribute-hero {
+    background: var(--ink);
+    color: var(--text-on-dark);
+    border-bottom: 1px solid var(--line-dark);
+}
+
+.contribute-hero .container {
+    padding-top: 28px;
+    padding-bottom: 95px;
+}
+
+.contribute-topline {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--line-dark);
+}
+
+.contribute-label {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--text-on-dark-muted);
+}
+
+.contribute-label span:first-child {
+    color: var(--lime);
+}
+
+.contribute-index {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--text-on-dark-muted);
+}
+
+.contribute-hero-grid {
+    display: grid;
+    grid-template-columns:
+        minmax(0, 1.2fr)
+        minmax(320px, 0.65fr);
+
+    gap: 90px;
+
+    padding-top: 80px;
+}
+
+.contribute-eyebrow {
+    margin: 0 0 14px;
+
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--lime);
+}
+
+.contribute-hero h1 {
+    margin: 0;
+
+    font-family: var(--font-display);
+    font-size: clamp(64px, 8vw, 118px);
+    line-height: 0.86;
+    letter-spacing: -0.08em;
+    font-weight: 500;
+}
+
+.contribute-hero-intro {
+    align-self: end;
+    max-width: 500px;
+}
+
+.contribute-hero-intro p {
+    margin: 0 0 20px;
+
+    color: var(--text-on-dark-muted);
+    font-size: 16px;
+    line-height: 1.7;
+}
+
+.contribute-primary-button {
+    margin-top: 18px;
+}
+
+.contribute-note {
+    display: block;
+    margin-top: 14px;
+
+    font-family: var(--font-mono);
+    font-size: 8px;
+    line-height: 1.5;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+
+    color: var(--text-on-dark-muted);
+}
+
+
+/* ---------------------------------------------------------
+   Process
+   --------------------------------------------------------- */
+
+.contribute-process {
+    padding: 125px 0;
+    background: var(--paper);
+    border-bottom: 1px solid var(--line);
+}
+
+.contribute-section-heading {
+    margin-bottom: 65px;
+}
+
+.contribute-section-heading .eyebrow {
+    color: var(--violet);
+}
+
+.contribute-section-heading h2 {
+    margin: 0;
+
+    font-family: var(--font-display);
+    font-size: clamp(48px, 6vw, 78px);
+    line-height: 0.92;
+    letter-spacing: -0.07em;
+    font-weight: 500;
+}
+
+.contribute-steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+
+    border-top: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+}
+
+.contribute-step {
+    min-height: 300px;
+
+    padding: 24px;
+
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+}
+
+.contribute-step-number {
+    display: block;
+    margin-bottom: 65px;
+
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--violet);
+}
+
+.contribute-step h3 {
+    margin: 0 0 13px;
+
+    font-family: var(--font-display);
+    font-size: 25px;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    font-weight: 500;
+}
+
+.contribute-step p {
+    margin: 0;
+
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+
+/* ---------------------------------------------------------
+   Guidance
+   --------------------------------------------------------- */
+
+.contribute-guidance {
+    padding: 125px 0;
+
+    background:
+        linear-gradient(
+            to bottom,
+            rgba(115, 87, 255, 0.035),
+            transparent 400px
+        );
+
+    border-bottom: 1px solid var(--line);
+}
+
+.contribute-guidance-grid {
+    display: grid;
+    grid-template-columns:
+        minmax(0, 0.9fr)
+        minmax(0, 1fr);
+
+    gap: 110px;
+}
+
+.contribute-guidance .eyebrow {
+    color: var(--violet);
+}
+
+.contribute-guidance h2 {
+    margin: 0;
+
+    font-family: var(--font-display);
+    font-size: clamp(48px, 6vw, 76px);
+    line-height: 0.92;
+    letter-spacing: -0.07em;
+    font-weight: 500;
+}
+
+.contribute-guidance-copy > p {
+    margin: 0 0 20px;
+
+    color: var(--text-muted);
+    font-size: 16px;
+    line-height: 1.75;
+}
+
+.contribute-checklist {
+    margin-top: 40px;
+
+    border-top: 1px solid var(--line);
+}
+
+.contribute-checklist > div {
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    gap: 15px;
+
+    padding: 14px 0;
+
+    border-bottom: 1px solid var(--line);
+}
+
+.contribute-checklist span {
+    font-family: var(--font-mono);
+    color: var(--lime-dark, var(--violet));
+}
+
+.contribute-checklist p {
+    margin: 0;
+
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+
+/* ---------------------------------------------------------
+   Before submission
+   --------------------------------------------------------- */
+
+.contribute-before {
+    padding: 125px 0;
+    background: var(--paper-light);
+}
+
+.contribute-before-header {
+    margin-bottom: 60px;
+}
+
+.contribute-before-header .eyebrow {
+    color: var(--violet);
+}
+
+.contribute-before-header h2 {
+    margin: 0;
+
+    font-family: var(--font-display);
+    font-size: clamp(48px, 6vw, 76px);
+    line-height: 0.92;
+    letter-spacing: -0.07em;
+    font-weight: 500;
+}
+
+.contribute-before-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+
+    border-top: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+}
+
+.contribute-before-item {
+    display: grid;
+    grid-template-columns: 35px 1fr;
+    gap: 15px;
+
+    min-height: 245px;
+    padding: 25px;
+
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+}
+
+.contribute-before-item > span {
+    font-family: var(--font-mono);
+    font-size: 8px;
+    letter-spacing: 0.08em;
+    color: var(--violet);
+}
+
+.contribute-before-item h3 {
+    margin: 0 0 12px;
+
+    font-family: var(--font-display);
+    font-size: 22px;
+    line-height: 1;
+    letter-spacing: -0.035em;
+    font-weight: 500;
+}
+
+.contribute-before-item p {
+    margin: 0;
+
+    max-width: 460px;
+
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.contribute-before-item .text-link {
+    margin-top: 25px;
+}
+
+
+/* ---------------------------------------------------------
+   Final CTA
+   --------------------------------------------------------- */
+
+.contribute-cta {
+    padding: 120px 0;
+
+    background: var(--ink);
+    color: var(--text-on-dark);
+
+    border-top: 1px solid var(--line-dark);
+}
+
+.contribute-cta-grid {
+    display: grid;
+    grid-template-columns: 90px minmax(0, 700px);
+    gap: 50px;
+}
+
+.contribute-cta-number {
+    padding-top: 10px;
+
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--lime);
+}
+
+.contribute-cta .eyebrow {
+    color: var(--violet-light);
+}
+
+.contribute-cta h2 {
+    margin: 0;
+
+    font-family: var(--font-display);
+    font-size: clamp(56px, 7vw, 92px);
+    line-height: 0.9;
+    letter-spacing: -0.075em;
+    font-weight: 500;
+}
+
+.contribute-cta .button {
+    margin-top: 38px;
+}
+
+
+/* ---------------------------------------------------------
+   Responsive
+   --------------------------------------------------------- */
+
+@media (max-width: 1000px) {
+
+    .contribute-hero-grid,
+    .contribute-guidance-grid {
+        grid-template-columns: 1fr;
+        gap: 55px;
+    }
+
+    .contribute-steps {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+
+@media (max-width: 700px) {
+
+    .contribute-hero .container {
+        padding-bottom: 65px;
+    }
+
+    .contribute-label span:nth-child(2),
+    .contribute-label span:nth-child(3) {
+        display: none;
+    }
+
+    .contribute-hero-grid {
+        padding-top: 60px;
+        gap: 45px;
+    }
+
+    .contribute-hero h1 {
+        font-size: clamp(58px, 17vw, 88px);
+    }
+
+    .contribute-process,
+    .contribute-guidance,
+    .contribute-before {
+        padding: 85px 0;
+    }
+
+    .contribute-steps {
+        grid-template-columns: 1fr;
+    }
+
+    .contribute-step {
+        min-height: 230px;
+    }
+
+    .contribute-step-number {
+        margin-bottom: 45px;
+    }
+
+    .contribute-before-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .contribute-cta {
+        padding: 85px 0;
+    }
+
+    .contribute-cta-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+}
