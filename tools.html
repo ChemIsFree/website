@@ -1,511 +1,153 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Explore Tools — ChemIsFree</title>
-
-    <meta
-        name="description"
-        content="Find open chemistry, drug discovery, molecular modelling, machine learning and laboratory applications."
-    >
-
-    <link
-        rel="stylesheet"
-        href="css/style.css?v=6"
-    >
-
+    <meta name="description" content="Find open chemistry, drug discovery, molecular modelling, machine learning and laboratory applications.">
+    <link rel="stylesheet" href="css/style.css?v=7">
 </head>
-
-
 <body>
-
-
 <header class="site-header">
-
     <div class="container header-inner">
-
-        <a
-            href="index.html"
-            class="site-wordmark"
-        >
-            <span class="wordmark-main">
-                ChemIsFree
-            </span>
-
+        <a href="index.html" class="site-wordmark">
+            <span class="wordmark-main">ChemIsFree</span>
             <span class="wordmark-dot"></span>
         </a>
-
-
         <nav class="main-nav">
-
-            <a href="tools.html">
-                Explore
-            </a>
-
-            <a href="index.html#categories">
-                Categories
-            </a>
-
-            <a href="about.html">
-                About
-            </a>
-
-            <a href="contribute.html">
-                Contribute
-            </a>
-
-            <a
-                href="#"
-                class="nav-donate"
-            >
-                Donate
-            </a>
-
+            <a href="tools.html">Explore</a>
+            <a href="index.html#categories">Categories</a>
+            <a href="about.html">About</a>
+            <a href="contribute.html">Contribute</a>
+            <a href="#" class="nav-donate">Donate</a>
         </nav>
-
     </div>
-
 </header>
 
-
-
 <main>
-
-
-    <!-- =====================================================
-         CATALOGUE HERO
-         ===================================================== -->
-
     <section class="catalogue-hero">
-
         <div class="container">
-
             <div class="catalogue-hero-top">
-
                 <div class="catalogue-label">
-
-                    <span>
-                        CHEMISFREE
-                    </span>
-
-                    <span>
-                        /
-                    </span>
-
-                    <span>
-                        THE OPEN CHEMISTRY INDEX
-                    </span>
-
+                    <span>CHEMISFREE</span>
+                    <span>/</span>
+                    <span>THE OPEN CHEMISTRY INDEX</span>
                 </div>
-
-
-                <div class="catalogue-index">
-                    001
-                </div>
-
+                <div class="catalogue-index">001</div>
             </div>
-
-
             <div class="catalogue-hero-content">
-
-                <h1>
-                    Find<br>
-                    the tool.
-                </h1>
-
-
+                <h1>Find<br>the tool.</h1>
                 <div class="catalogue-hero-description">
-
-                    <p>
-                        Discover applications for specific chemistry
-                        and drug-discovery tasks, grouped by what they
-                        help you do.
-                    </p>
-
-
-                    <span class="catalogue-scroll-hint">
-                        SEARCH THE INDEX ↓
-                    </span>
-
+                    <p>Discover applications for specific chemistry and drug-discovery tasks, grouped by what they help you do.</p>
+                    <span class="catalogue-scroll-hint">SEARCH THE INDEX ↓</span>
                 </div>
-
             </div>
-
         </div>
-
     </section>
-
-
-
-    <!-- =====================================================
-         CATALOGUE
-         ===================================================== -->
 
     <section class="catalogue-section">
-
         <div class="container">
-
-
-            <!-- SEARCH -->
-
             <div class="catalogue-search">
-
-                <label for="search">
-                    Search the catalogue
-                </label>
-
-
+                <label for="search">Search the catalogue</label>
                 <div class="catalogue-search-field">
-
-                    <input
-                        id="search"
-                        type="search"
-                        placeholder="What are you trying to do?"
-                        autocomplete="off"
-                    >
-
-
-                    <span class="search-symbol">
-                        /
-                    </span>
-
+                    <input id="search" type="search" placeholder="What are you trying to do?" autocomplete="off">
+                    <span class="search-symbol">/</span>
                 </div>
-
             </div>
-
-
-
-            <!-- FILTERS -->
 
             <div class="catalogue-filter-bar">
-
                 <div class="filter-control">
-
-                    <label for="domain-filter">
-                        Area
-                    </label>
-
+                    <label for="domain-filter">Area</label>
                     <select id="domain-filter">
-
-                        <option value="">
-                            All areas
-                        </option>
-
+                        <option value="">All areas</option>
                     </select>
-
                 </div>
-
-
                 <div class="filter-control">
-
-                    <label for="task-filter">
-                        Task
-                    </label>
-
+                    <label for="task-filter">Task</label>
                     <select id="task-filter">
-
-                        <option value="">
-                            All tasks
-                        </option>
-
+                        <option value="">All tasks</option>
                     </select>
-
                 </div>
-
-
                 <div class="filter-control">
-
-                    <label for="interface-filter">
-                        Interface
-                    </label>
-
+                    <label for="interface-filter">Interface</label>
                     <select id="interface-filter">
-
-                        <option value="">
-                            All interfaces
-                        </option>
-
-                        <option value="gui-web">
-                            GUI / Web
-                        </option>
-
-                        <option value="cli">
-                            Command Line
-                        </option>
-
-                        <option value="programmatic">
-                            Programmatic
-                        </option>
-
+                        <option value="">All interfaces</option>
+                        <option value="gui-web">GUI / Web</option>
+                        <option value="cli">Command Line</option>
                     </select>
-
                 </div>
-
-
                 <div class="filter-control">
-
-                    <label for="access-filter">
-                        Access
-                    </label>
-
+                    <label for="access-filter">Access</label>
                     <select id="access-filter">
-
-                        <option value="">
-                            All access types
-                        </option>
-
-                        <option value="free">
-                            Free
-                        </option>
-
-                        <option value="open-source">
-                            Open Source
-                        </option>
-
+                        <option value="">All access types</option>
+                        <option value="free">Free</option>
+                        <option value="open-source">Open Source</option>
                     </select>
-
                 </div>
-
-
-                <button
-                    id="clear-filters"
-                    type="button"
-                    class="filter-clear"
-                >
-                    Clear filters
-                </button>
-
+                <button id="clear-filters" type="button" class="filter-clear">Clear filters</button>
             </div>
-
-
-
-            <!-- RESULTS HEADER -->
 
             <div class="catalogue-results-header">
-
                 <div class="catalogue-results-count">
-
                     <span class="results-marker"></span>
-
-                    <span id="result-count">
-                        Loading catalogue...
-                    </span>
-
+                    <span id="result-count">Loading catalogue...</span>
                 </div>
-
-
-                <div class="catalogue-results-note">
-                    APPLICATIONS FIRST · RESOURCES BELOW
-                </div>
-
+                <div class="catalogue-results-note">APPLICATIONS FIRST · RESOURCES BELOW</div>
             </div>
 
+            <div id="applications-catalogue" class="applications-catalogue"></div>
 
-
-            <!-- =================================================
-                 APPLICATIONS
-                 ================================================= -->
-
-            <div
-                id="applications-catalogue"
-                class="applications-catalogue"
-            ></div>
-
-
-
-            <!-- =================================================
-                 USEFUL RESOURCES
-                 ================================================= -->
-
-            <section
-                id="resources-catalogue"
-                class="resources-catalogue"
-            >
-
+            <section id="resources-catalogue" class="resources-catalogue">
                 <div class="resources-intro">
-
                     <div>
-
-                        <p class="eyebrow">
-                            USEFUL RESOURCES
-                        </p>
-
-                        <h2>
-                            The supporting<br>
-                            layer.
-                        </h2>
-
+                        <p class="eyebrow">USEFUL RESOURCES</p>
+                        <h2>The supporting<br>layer.</h2>
                     </div>
-
-
-                    <p>
-                        Libraries, databases and other resources that
-                        support chemistry and drug-discovery workflows.
-                    </p>
-
+                    <p>Libraries, databases and other resources that support chemistry and drug-discovery workflows.</p>
                 </div>
-
-
-                <div
-                    id="resources-content"
-                    class="resources-content"
-                ></div>
-
+                <div id="resources-content" class="resources-content"></div>
             </section>
 
-
-
-            <!-- =================================================
-                 NO RESULTS
-                 ================================================= -->
-
-            <div
-                id="no-results"
-                class="no-results"
-                hidden
-            >
-
-                <span class="no-results-number">
-                    000
-                </span>
-
-
-                <h3>
-                    Nothing found.
-                </h3>
-
-
-                <p>
-                    Try changing your search or filters.
-                </p>
-
-
-                <button
-                    id="clear-filters-empty"
-                    type="button"
-                >
-                    Reset catalogue
-                </button>
-
+            <div id="no-results" class="no-results" hidden>
+                <span class="no-results-number">000</span>
+                <h3>Nothing found.</h3>
+                <p>Try changing your search or filters.</p>
+                <button id="clear-filters-empty" type="button">Reset catalogue</button>
             </div>
-
         </div>
-
     </section>
-
-
 </main>
 
-
-
 <footer class="site-footer">
-
     <div class="container footer-inner">
-
         <div class="footer-brand">
-
-            <a
-                href="index.html"
-                class="footer-wordmark"
-            >
-                ChemIsFree<span>.</span>
-            </a>
-
-            <p>
-                Open chemistry.<br>
-                Open knowledge.
-            </p>
-
+            <a href="index.html" class="footer-wordmark">ChemIsFree<span>.</span></a>
+            <p>Open chemistry.<br>Open knowledge.</p>
         </div>
-
-
         <div class="footer-links">
-
             <div>
-
-                <span>
-                    EXPLORE
-                </span>
-
-                <a href="tools.html">
-                    Tools
-                </a>
-
-                <a href="index.html#categories">
-                    Categories
-                </a>
-
+                <span>EXPLORE</span>
+                <a href="tools.html">Tools</a>
+                <a href="index.html#categories">Categories</a>
             </div>
-
-
             <div>
-
-                <span>
-                    COMMUNITY
-                </span>
-
-                <a href="about.html">
-                    About
-                </a>
-
-                <a href="contribute.html">
-                    Suggest a Tool
-                </a>
-
-                <a href="#">
-                    Donate
-                </a>
-
+                <span>COMMUNITY</span>
+                <a href="about.html">About</a>
+                <a href="contribute.html">Suggest a Tool</a>
+                <a href="#">Donate</a>
             </div>
-
-
             <div>
-
-                <span>
-                    CODE
-                </span>
-
-                <a
-                    href="https://github.com/ChemIsFree"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                    GitHub ↗
-                </a>
-
+                <span>CODE</span>
+                <a href="https://github.com/ChemIsFree" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
             </div>
-
         </div>
-
     </div>
-
-
     <div class="container footer-bottom">
-
-        <span>
-            © 2026 ChemIsFree
-        </span>
-
-        <span>
-            Community-driven • Open access
-        </span>
-
+        <span>© 2026 ChemIsFree</span>
+        <span>Community-driven • Open access</span>
     </div>
-
 </footer>
 
-
-
-<script src="js/app.js?v=4"></script>
-
+<script src="js/app.js?v=7"></script>
 </body>
-
 </html>
