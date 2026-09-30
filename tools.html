@@ -1,30 +1,48 @@
 <!DOCTYPE html>
-
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>Explore Tools — ChemIsFree</title>
 
     <meta
         name="description"
-        content="Explore the ChemIsFree catalogue of chemistry, drug discovery, molecular modelling, machine learning and laboratory tools."
+        content="Find open chemistry, drug discovery, molecular modelling, machine learning and laboratory applications."
     >
 
-    <link rel="stylesheet" href="css/style.css?v=5">
+    <link
+        rel="stylesheet"
+        href="css/style.css?v=6"
+    >
+
 </head>
 
+
 <body>
+
 
 <header class="site-header">
 
     <div class="container header-inner">
 
-        <a href="index.html" class="site-wordmark">
-            <span class="wordmark-main">ChemIsFree</span>
+        <a
+            href="index.html"
+            class="site-wordmark"
+        >
+            <span class="wordmark-main">
+                ChemIsFree
+            </span>
+
             <span class="wordmark-dot"></span>
         </a>
+
 
         <nav class="main-nav">
 
@@ -44,9 +62,10 @@
                 Contribute
             </a>
 
-            <!-- PayPal link will be added here later -->
-            <a href="#"
-               class="nav-donate">
+            <a
+                href="#"
+                class="nav-donate"
+            >
                 Donate
             </a>
 
@@ -56,9 +75,14 @@
 
 </header>
 
+
+
 <main>
 
-    <!-- PAGE INTRO -->
+
+    <!-- =====================================================
+         CATALOGUE HERO
+         ===================================================== -->
 
     <section class="catalogue-hero">
 
@@ -67,10 +91,21 @@
             <div class="catalogue-hero-top">
 
                 <div class="catalogue-label">
-                    <span>CHEMISFREE</span>
-                    <span>/</span>
-                    <span>THE OPEN CHEMISTRY INDEX</span>
+
+                    <span>
+                        CHEMISFREE
+                    </span>
+
+                    <span>
+                        /
+                    </span>
+
+                    <span>
+                        THE OPEN CHEMISTRY INDEX
+                    </span>
+
                 </div>
+
 
                 <div class="catalogue-index">
                     001
@@ -82,16 +117,19 @@
             <div class="catalogue-hero-content">
 
                 <h1>
-                    Explore<br>
-                    the tools.
+                    Find<br>
+                    the tool.
                 </h1>
+
 
                 <div class="catalogue-hero-description">
 
                     <p>
-                        Software, databases, workflows, datasets and
-                        other resources for chemistry and drug discovery.
+                        Discover applications for specific chemistry
+                        and drug-discovery tasks, grouped by what they
+                        help you do.
                     </p>
+
 
                     <span class="catalogue-scroll-hint">
                         SEARCH THE INDEX ↓
@@ -106,7 +144,10 @@
     </section>
 
 
-    <!-- CATALOGUE -->
+
+    <!-- =====================================================
+         CATALOGUE
+         ===================================================== -->
 
     <section class="catalogue-section">
 
@@ -121,14 +162,16 @@
                     Search the catalogue
                 </label>
 
+
                 <div class="catalogue-search-field">
 
                     <input
                         id="search"
                         type="search"
-                        placeholder="Search by name, description, category, language..."
+                        placeholder="What are you trying to do?"
                         autocomplete="off"
                     >
+
 
                     <span class="search-symbol">
                         /
@@ -139,52 +182,21 @@
             </div>
 
 
-            <!-- FILTER BAR -->
+
+            <!-- FILTERS -->
 
             <div class="catalogue-filter-bar">
 
                 <div class="filter-control">
 
-                    <label for="category-filter">
-                        Category
+                    <label for="domain-filter">
+                        Area
                     </label>
 
-                    <select id="category-filter">
+                    <select id="domain-filter">
 
                         <option value="">
-                            All categories
-                        </option>
-
-                        <option value="cheminformatics">
-                            Cheminformatics
-                        </option>
-
-                        <option value="molecular-modelling">
-                            Molecular Modelling
-                        </option>
-
-                        <option value="drug-discovery">
-                            Drug Discovery
-                        </option>
-
-                        <option value="machine-learning">
-                            Machine Learning
-                        </option>
-
-                        <option value="data-and-databases">
-                            Data &amp; Databases
-                        </option>
-
-                        <option value="visualization">
-                            Visualization
-                        </option>
-
-                        <option value="laboratory">
-                            Laboratory
-                        </option>
-
-                        <option value="utilities-and-workflows">
-                            Utilities &amp; Workflows
+                            All areas
                         </option>
 
                     </select>
@@ -194,54 +206,43 @@
 
                 <div class="filter-control">
 
-                    <label for="type-filter">
-                        Type
+                    <label for="task-filter">
+                        Task
                     </label>
 
-                    <select id="type-filter">
+                    <select id="task-filter">
 
                         <option value="">
-                            All types
+                            All tasks
                         </option>
 
-                        <option value="software">
-                            Software
+                    </select>
+
+                </div>
+
+
+                <div class="filter-control">
+
+                    <label for="interface-filter">
+                        Interface
+                    </label>
+
+                    <select id="interface-filter">
+
+                        <option value="">
+                            All interfaces
                         </option>
 
-                        <option value="library">
-                            Library
+                        <option value="gui-web">
+                            GUI / Web
                         </option>
 
-                        <option value="database">
-                            Database
+                        <option value="cli">
+                            Command Line
                         </option>
 
-                        <option value="dataset">
-                            Dataset
-                        </option>
-
-                        <option value="web-tool">
-                            Web Tool
-                        </option>
-
-                        <option value="web-service">
-                            Web Service
-                        </option>
-
-                        <option value="workflow">
-                            Workflow
-                        </option>
-
-                        <option value="platform">
-                            Platform
-                        </option>
-
-                        <option value="resource">
-                            Resource
-                        </option>
-
-                        <option value="tutorial">
-                            Tutorial
+                        <option value="programmatic">
+                            Programmatic
                         </option>
 
                     </select>
@@ -265,45 +266,8 @@
                             Free
                         </option>
 
-                        <option value="free-tier">
-                            Free tier
-                        </option>
-
-                        <option value="open-data">
-                            Open data
-                        </option>
-
-                        <option value="public">
-                            Public
-                        </option>
-
-                        <option value="paid">
-                            Paid
-                        </option>
-
-                    </select>
-
-                </div>
-
-
-                <div class="filter-control filter-sort">
-
-                    <label for="sort-tools">
-                        Sort
-                    </label>
-
-                    <select id="sort-tools">
-
-                        <option value="name">
-                            Name
-                        </option>
-
-                        <option value="category">
-                            Category
-                        </option>
-
-                        <option value="type">
-                            Type
+                        <option value="open-source">
+                            Open Source
                         </option>
 
                     </select>
@@ -314,11 +278,13 @@
                 <button
                     id="clear-filters"
                     type="button"
-                    class="filter-clear">
+                    class="filter-clear"
+                >
                     Clear filters
                 </button>
 
             </div>
+
 
 
             <!-- RESULTS HEADER -->
@@ -335,43 +301,97 @@
 
                 </div>
 
+
                 <div class="catalogue-results-note">
-                    COMMUNITY INDEX
+                    APPLICATIONS FIRST · RESOURCES BELOW
                 </div>
 
             </div>
 
 
-            <!-- RESULTS -->
+
+            <!-- =================================================
+                 APPLICATIONS
+                 ================================================= -->
 
             <div
-                id="tools-grid"
-                class="tools-grid">
-            </div>
+                id="applications-catalogue"
+                class="applications-catalogue"
+            ></div>
 
 
-            <!-- NO RESULTS -->
+
+            <!-- =================================================
+                 USEFUL RESOURCES
+                 ================================================= -->
+
+            <section
+                id="resources-catalogue"
+                class="resources-catalogue"
+            >
+
+                <div class="resources-intro">
+
+                    <div>
+
+                        <p class="eyebrow">
+                            USEFUL RESOURCES
+                        </p>
+
+                        <h2>
+                            The supporting<br>
+                            layer.
+                        </h2>
+
+                    </div>
+
+
+                    <p>
+                        Libraries, databases and other resources that
+                        support chemistry and drug-discovery workflows.
+                    </p>
+
+                </div>
+
+
+                <div
+                    id="resources-content"
+                    class="resources-content"
+                ></div>
+
+            </section>
+
+
+
+            <!-- =================================================
+                 NO RESULTS
+                 ================================================= -->
 
             <div
                 id="no-results"
                 class="no-results"
-                hidden>
+                hidden
+            >
 
                 <span class="no-results-number">
                     000
                 </span>
 
+
                 <h3>
                     Nothing found.
                 </h3>
+
 
                 <p>
                     Try changing your search or filters.
                 </p>
 
+
                 <button
                     id="clear-filters-empty"
-                    type="button">
+                    type="button"
+                >
                     Reset catalogue
                 </button>
 
@@ -381,7 +401,10 @@
 
     </section>
 
+
 </main>
+
+
 
 <footer class="site-footer">
 
@@ -389,7 +412,10 @@
 
         <div class="footer-brand">
 
-            <a href="index.html" class="footer-wordmark">
+            <a
+                href="index.html"
+                class="footer-wordmark"
+            >
                 ChemIsFree<span>.</span>
             </a>
 
@@ -404,7 +430,10 @@
         <div class="footer-links">
 
             <div>
-                <span>EXPLORE</span>
+
+                <span>
+                    EXPLORE
+                </span>
 
                 <a href="tools.html">
                     Tools
@@ -418,7 +447,10 @@
 
 
             <div>
-                <span>COMMUNITY</span>
+
+                <span>
+                    COMMUNITY
+                </span>
 
                 <a href="about.html">
                     About
@@ -436,12 +468,16 @@
 
 
             <div>
-                <span>CODE</span>
+
+                <span>
+                    CODE
+                </span>
 
                 <a
                     href="https://github.com/ChemIsFree"
                     target="_blank"
-                    rel="noopener noreferrer">
+                    rel="noopener noreferrer"
+                >
                     GitHub ↗
                 </a>
 
@@ -466,8 +502,10 @@
 
 </footer>
 
-<script src="js/app.js?v=3"></script>
+
+
+<script src="js/app.js?v=4"></script>
 
 </body>
+
 </html>
-```
