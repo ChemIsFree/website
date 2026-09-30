@@ -5,15 +5,22 @@ from pathlib import Path
 import yaml
 
 
-TOOLS_FILE = Path("../catalogue/data/tools.yaml")
-OUTPUT_FILE = Path("data/tools.json")
+# ---------------------------------------------------------
+# Input / output files
+# ---------------------------------------------------------
 
+TOOLS_FILE = Path("../catalogue/data/tools.yaml")
+TAXONOMY_FILE = Path("../catalogue/data/taxonomy.yaml")
+
+TOOLS_OUTPUT = Path("data/tools.json")
+TAXONOMY_OUTPUT = Path("data/taxonomy.json")
+
+
+# ---------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------
 
 def make_json_serializable(value):
-    """
-    Convert YAML-specific Python objects into JSON-compatible values.
-    """
-
     if isinstance(value, (date, datetime)):
         return value.isoformat()
 
@@ -32,35 +39,82 @@ def make_json_serializable(value):
     return value
 
 
-def main():
-
-    if not TOOLS_FILE.exists():
+def load_yaml(path):
+    if not path.exists():
         raise FileNotFoundError(
-            f"Catalogue file not found: {TOOLS_FILE}"
+            f"Catalogue file not found: {path}"
         )
 
-    with TOOLS_FILE.open("r", encoding="utf-8") as handle:
-        data = yaml.safe_load(handle)
+    with path.open(
+        "r",
+        encoding="utf-8"
+    ) as handle:
+        return yaml.safe_load(handle)
 
-    tools = data.get("tools", [])
 
-    tools = make_json_serializable(tools)
-
-    OUTPUT_FILE.parent.mkdir(
+def write_json(path, data):
+    path.parent.mkdir(
         parents=True,
         exist_ok=True
     )
 
-    with OUTPUT_FILE.open("w", encoding="utf-8") as handle:
+    with path.open(
+        "w",
+        encoding="utf-8"
+    ) as handle:
         json.dump(
-            tools,
+            make_json_serializable(data),
             handle,
             indent=2,
             ensure_ascii=False
         )
 
-    print(f"Generated {OUTPUT_FILE}")
-    print(f"Catalogue contains {len(tools)} tools.")
+
+# ---------------------------------------------------------
+# Main
+# ---------------------------------------------------------
+
+def main():
+
+    # Load tools
+    tools_data = load_yaml(TOOLS_FILE)
+
+    tools = tools_data.get(
+        "tools",
+        []
+    )
+
+    write_json(
+        TOOLS_OUTPUT,
+        tools
+    )
+
+
+    # Load taxonomy
+    taxonomy_data = load_yaml(TAXONOMY_FILE)
+
+    write_json(
+        TAXONOMY_OUTPUT,
+        taxonomy_data
+    )
+
+
+    print(
+        f"Generated {TOOLS_OUTPUT}"
+    )
+
+    print(
+        f"Catalogue contains {len(tools)} tools."
+    )
+
+    print(
+        f"Generated {TAXONOMY_OUTPUT}"
+    )
+
+    print(
+        f"Taxonomy contains "
+        f"{len(taxonomy_data.get('domains', {}))} domains."
+    )
 
 
 if __name__ == "__main__":
