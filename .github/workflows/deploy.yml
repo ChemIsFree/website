@@ -1,28 +1,48 @@
 name: Build and Deploy ChemIsFree Website
 
 on:
+
+  # Normal website changes
   push:
     branches:
       - main
 
+  # Catalogue changes coming from ChemIsFree/tools
+  repository_dispatch:
+    types:
+      - catalogue-updated
+
+  # Manual emergency rebuild
   workflow_dispatch:
+
 
 permissions:
   contents: read
   pages: write
   id-token: write
 
+
 jobs:
 
   build:
+
     runs-on: ubuntu-latest
 
     steps:
+
+      # -----------------------------------------------------
+      # Checkout website
+      # -----------------------------------------------------
 
       - name: Checkout website
         uses: actions/checkout@v6
         with:
           path: website
+
+
+      # -----------------------------------------------------
+      # Checkout catalogue
+      # -----------------------------------------------------
 
       - name: Checkout tools catalogue
         uses: actions/checkout@v6
@@ -30,34 +50,69 @@ jobs:
           repository: ChemIsFree/tools
           path: catalogue
 
+
+      # -----------------------------------------------------
+      # Python
+      # -----------------------------------------------------
+
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: "3.x"
 
+
+      # -----------------------------------------------------
+      # Dependencies
+      # -----------------------------------------------------
+
       - name: Install PyYAML
         run: pip install pyyaml
 
+
+      # -----------------------------------------------------
+      # Build catalogue JSON
+      # -----------------------------------------------------
+
       - name: Build catalogue JSON
         working-directory: website
-        run: python scripts/build_catalogue.py
+        run: |
+          python scripts/build_catalogue.py
+
+
+      # -----------------------------------------------------
+      # Configure GitHub Pages
+      # -----------------------------------------------------
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
+
+
+      # -----------------------------------------------------
+      # Upload website
+      # -----------------------------------------------------
 
       - name: Upload website
         uses: actions/upload-pages-artifact@v4
         with:
           path: website
 
+
+  # ---------------------------------------------------------
+  # Deploy
+  # ---------------------------------------------------------
+
   deploy:
+
     needs: build
 
     runs-on: ubuntu-latest
 
     environment:
+
       name: github-pages
+
       url: ${{ steps.deployment.outputs.page_url }}
+
 
     steps:
 
