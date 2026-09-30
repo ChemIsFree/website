@@ -1,176 +1,74 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tool — ChemIsFree</title>
-
-    <link
-        rel="stylesheet"
-        href="css/style.css"
-    >
-
+    <link rel="stylesheet" href="css/style.css?v=8">
 </head>
-
-
 <body>
-
-    <!-- =====================================================
-         HEADER
-         ===================================================== -->
-
-    <header class="site-header">
-
-        <div class="container header-inner">
-
-            <a
-                href="index.html"
-                class="logo"
-            >
-
-                <span class="logo-mark">
-                    C
-                </span>
-
-                <span class="logo-text">
-                    ChemIsFree
-                </span>
-
-            </a>
-
-
-            <nav class="main-nav">
-
-                <a href="tools.html">
-                    Explore Tools
-                </a>
-
-                <a href="index.html#categories">
-                    Categories
-                </a>
-
-                <a href="about.html">
-                    About
-                </a>
-
-                <a href="contribute.html">
-                    Suggest a Tool
-                </a>
-
-            </nav>
-
-        </div>
-
-    </header>
-
-
-    <!-- =====================================================
-         MAIN
-         ===================================================== -->
-
-    <main>
-
-        <section class="page-hero">
-
-            <div class="container">
-
-                <div id="tool-breadcrumb">
-                    <a href="tools.html">
-                        ← Back to catalogue
-                    </a>
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <section class="tool-detail">
-
-            <div class="container">
-
-                <div id="tool-content">
-
-                    <div class="tool-loading">
-                        Loading tool...
-                    </div>
-
-                </div>
-
-            </div>
-
-        </section>
-
-    </main>
-
-
-    <!-- =====================================================
-         FOOTER
-         ===================================================== -->
-
-    <footer class="site-footer">
-
+<header class="site-header">
+    <div class="container header-inner">
+        <a href="index.html" class="site-wordmark">
+            <span class="wordmark-main">ChemIsFree</span>
+            <span class="wordmark-dot"></span>
+        </a>
+        <nav class="main-nav">
+            <a href="tools.html">Explore</a>
+            <a href="index.html#categories">Categories</a>
+            <a href="about.html">About</a>
+            <a href="contribute.html">Contribute</a>
+        </nav>
+    </div>
+</header>
+<main>
+    <section class="tool-detail-hero">
         <div class="container">
-
-            <div class="footer-inner">
-
-                <div>
-
-                    <strong>
-                        ChemIsFree
-                    </strong>
-
-                    <p>
-                        Open chemistry. Open knowledge.
-                    </p>
-
-                </div>
-
-
-                <div class="footer-links">
-
-                    <a href="tools.html">
-                        Explore Tools
-                    </a>
-
-                    <a href="contribute.html">
-                        Suggest a Tool
-                    </a>
-
-                    <a href="about.html">
-                        About
-                    </a>
-
-                    <a
-                        href="https://github.com/ChemIsFree"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                    >
-                        GitHub
-                    </a>
-
-                </div>
-
+            <div class="tool-detail-topline">
+                <a href="tools.html" class="tool-back-link">← Back to catalogue</a>
+                <span class="tool-detail-index">TOOL / 001</span>
             </div>
-
+            <div id="tool-hero-content">
+                <div class="tool-loading">Loading tool...</div>
+            </div>
         </div>
-
-    </footer>
-
-
-    <!-- =====================================================
-         JAVASCRIPT
-         ===================================================== -->
-
-    <script src="js/tool.js?v=1"></script>
-
+    </section>
+    <section class="tool-detail-body">
+        <div class="container">
+            <div id="tool-content">
+                <div class="tool-loading">Loading tool...</div>
+            </div>
+        </div>
+    </section>
+</main>
+<footer class="site-footer">
+    <div class="container footer-inner">
+        <div class="footer-brand">
+            <a href="index.html" class="footer-wordmark">ChemIsFree<span>.</span></a>
+            <p>Open chemistry.<br>Open knowledge.</p>
+        </div>
+        <div class="footer-links">
+            <div>
+                <span>EXPLORE</span>
+                <a href="tools.html">Tools</a>
+                <a href="index.html#categories">Categories</a>
+            </div>
+            <div>
+                <span>COMMUNITY</span>
+                <a href="about.html">About</a>
+                <a href="contribute.html">Suggest a Tool</a>
+            </div>
+            <div>
+                <span>CODE</span>
+                <a href="https://github.com/ChemIsFree" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+            </div>
+        </div>
+    </div>
+    <div class="container footer-bottom">
+        <span>© 2026 ChemIsFree</span>
+        <span>Community-driven • Open access</span>
+    </div>
+</footer>
+<script src="js/tool.js?v=3"></script>
 </body>
-
 </html>
