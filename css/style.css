@@ -4246,3 +4246,201 @@ button {
         gap: 12px;
     }
 }
+
+
+
+/* Compact catalogue cards: keep the metadata inline and reduce excess vertical space. */
+.application-domain > .application-grid {
+    gap: 10px;
+    margin-top: 26px;
+}
+
+.application-card {
+    min-height: 0;
+    padding: 18px 20px 16px;
+    border-width: 1px;
+    border-left-width: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.application-card.has-gui-interface {
+    border-color: var(--violet);
+    border-left-color: var(--violet);
+}
+
+.application-card.has-programmatic-interface {
+    border-color: var(--lime);
+    border-left-color: var(--lime);
+}
+
+/* If a tool has any GUI/Web interface, all four edges use the GUI purple. */
+.application-card.has-gui-interface.has-programmatic-interface,
+.application-card.has-both-interfaces {
+    border-color: var(--violet);
+}
+
+.application-card-topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    column-gap: 12px;
+    row-gap: 6px;
+    margin: 0 0 10px;
+    min-height: 19px;
+}
+
+.application-card-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    min-width: 0;
+}
+
+.application-card .tool-type {
+    margin: 0;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 8px;
+    line-height: 1.2;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
+.application-card-meta-divider {
+    color: var(--text-muted);
+    font-size: 9px;
+}
+
+.application-interface-tags {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin: 0;
+}
+
+.application-interface-tag {
+    padding: 3px 5px;
+    font-size: 7px;
+    line-height: 1.1;
+}
+
+.application-card.has-gui-interface .tool-type {
+    color: var(--violet);
+}
+
+.application-card.has-programmatic-interface .tool-type {
+    color: #71831c;
+}
+
+.application-card.has-gui-interface.has-programmatic-interface .tool-type,
+.application-card.has-both-interfaces .tool-type {
+    color: var(--violet);
+}
+
+.application-card .tool-status {
+    position: static;
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 4px 6px;
+    font-size: 7px;
+    line-height: 1.15;
+    letter-spacing: 0.06em;
+}
+
+.application-card h3 {
+    margin: 0;
+    font-size: clamp(21px, 2vw, 25px);
+    line-height: 1.05;
+    letter-spacing: -0.045em;
+}
+
+.application-card .tool-description {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    margin: 9px 0 0;
+    max-width: 600px;
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.application-card-bottom-meta {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 13px;
+}
+
+.application-card .application-task-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 0;
+    min-width: 0;
+}
+
+.application-card .application-task-tags span {
+    padding: 3px 5px;
+    font-size: 6px;
+    line-height: 1.25;
+}
+
+.application-card .application-task-tags .application-task-more {
+    color: var(--violet);
+    border-color: transparent;
+    padding-left: 2px;
+    padding-right: 2px;
+}
+
+.application-card-access {
+    flex: 0 0 auto;
+    margin-left: auto;
+    padding-top: 3px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 7px;
+    line-height: 1.3;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-align: right;
+}
+
+.application-card .tool-card-bottom {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: space-between;
+    margin-top: auto;
+    padding-top: 15px;
+}
+
+.application-card .tool-card-bottom .tool-link {
+    font-size: 8px;
+}
+
+@media (max-width: 900px) {
+    .application-card {
+        padding: 16px;
+    }
+}
+
+@media (max-width: 700px) {
+    .application-card {
+        padding: 18px;
+    }
+
+    .application-card-topline {
+        align-items: flex-start;
+    }
+
+    .application-card-bottom-meta {
+        flex-wrap: wrap;
+    }
+}
