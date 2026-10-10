@@ -4460,3 +4460,77 @@ button {
 .tool-interface-confidence-note strong {
     color: var(--ink);
 }
+
+/* Beginner-oriented workflow planner controls and quick-start guidance */
+.planner-guidance-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+    margin: 24px 0 10px;
+}
+
+.planner-guidance-field {
+    min-width: 0;
+}
+
+.planner-guidance-field .planner-field-title {
+    display: block;
+    margin: 0 0 10px;
+    line-height: 1.45;
+}
+
+.planner-guidance-help {
+    max-width: 850px;
+    margin: 8px 0 0;
+}
+
+.planner-tool-rec-role {
+    margin: 0 0 10px;
+    color: var(--violet);
+    font-family: var(--font-mono);
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    line-height: 1.5;
+    text-transform: uppercase;
+}
+
+.planner-tool-quickstart {
+    margin-top: 13px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.65;
+}
+
+.planner-tool-quickstart strong {
+    color: var(--ink);
+}
+
+.planner-beginner-note,
+.planner-length-note {
+    margin: 22px 0 0;
+    padding: 15px 18px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.36);
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+.planner-beginner-note strong,
+.planner-length-note strong {
+    color: var(--ink);
+}
+
+.planner-length-note {
+    border-left: 3px solid var(--violet);
+}
+
+@media (max-width: 700px) {
+    .planner-guidance-options {
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+}
+
