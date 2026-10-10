@@ -337,7 +337,23 @@ function rankWorkflowTools(config) {
 
 function interfaceSummary(tool) {
     const items = Array.isArray(tool.interface) ? tool.interface : [];
-    return items.length ? items.map(titleLabel).join(" · ") : "Interface not specified";
+    if (!items.length) return "Interface not specified";
+
+    const gui = items.includes("gui");
+    const web = items.includes("web");
+    const cli = items.includes("cli");
+    const programmatic = items.filter(function(value) {
+        return ["python", "r", "c++", "java", "api", "notebook", "mcp"].includes(String(value).toLowerCase());
+    });
+    const labels = [];
+
+    if (gui && web) labels.push("GUI / Web");
+    else if (gui) labels.push("GUI");
+    else if (web) labels.push("Web");
+    if (cli) labels.push("CLI");
+    if (programmatic.length) labels.push("Programmatic");
+    if (!labels.length) labels.push(items.map(titleLabel).join(" · "));
+    return [...new Set(labels)].join(" + ");
 }
 
 function platformNote(tool, selectedOS) {
@@ -363,12 +379,18 @@ function makeToolCard(tool, selectedOS) {
     const detailUrl = "tool.html?id=" + encodeURIComponent(tool.id || "");
     const official = tool.website || tool.repository || tool.documentation || "";
     const typeText = titleLabel(tool.type || tool.catalogue || "resource");
+    const classification = tool.interface_classification;
+    const confidenceText = classification && classification.confidence && classification.confidence !== "high"
+        ? "Interface classification: " + (classification.confidence === "low" ? "provisional" : "inferred")
+        : "";
+
     return '<article class="planner-tool-rec">' +
         '<h4>' + escapeWorkflowHtml(tool.name || "Unnamed tool") + '</h4>' +
         '<p>' + escapeWorkflowHtml(tool.description || "No catalogue description available.") + '</p>' +
         '<div class="planner-tool-rec-meta">' + escapeWorkflowHtml(typeText) + ' · ' +
             escapeWorkflowHtml(interfaceSummary(tool)) + '<br>' +
-            escapeWorkflowHtml(platformNote(tool, selectedOS)) + '</div>' +
+            escapeWorkflowHtml(platformNote(tool, selectedOS)) +
+            (confidenceText ? '<br>' + escapeWorkflowHtml(confidenceText) : '') + '</div>' +
         '<div class="planner-tool-rec-links">' +
             '<a href="' + escapeWorkflowHtml(detailUrl) + '">ChemIsFree details ↗</a>' +
             (official ? '<a href="' + escapeWorkflowHtml(official) + '" target="_blank" rel="noopener noreferrer">Official resource ↗</a>' : '') +
