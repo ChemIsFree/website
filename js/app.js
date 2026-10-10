@@ -447,6 +447,7 @@ function createResourceCard(tool) {
             </div>
             <h4>${escapeHtml(tool.name || "Unnamed resource")}</h4>
             <p>${escapeHtml(tool.description || "No description available.")}</p>
+            ${tool.chemisfree_status === "registry-listed" ? '<p class="resource-source-note">REGISTRY IMPORT · REVIEW PENDING</p>' : ""}
             ${taskLabels.length ? `
                 <div class="resource-tags">
                     ${taskLabels.map(label => `<span>${escapeHtml(label)}</span>`).join("")}
