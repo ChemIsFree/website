@@ -191,9 +191,9 @@ function getCardInterfaceInfo(tool) {
         className: "interface-tag-programmatic"
     });
 
+    // GUI/Web takes precedence for the overall card colour when both modes exist.
     let cardClass = "interface-unspecified";
-    if (gui && programmatic) cardClass = "has-both-interfaces";
-    else if (gui) cardClass = "has-gui-interface";
+    if (gui) cardClass = "has-gui-interface";
     else if (programmatic) cardClass = "has-programmatic-interface";
 
     return { gui, programmatic, labels, cardClass };
@@ -306,11 +306,13 @@ function createApplicationCard(tool, domainId) {
     const detailUrl = "tool.html?id=" + encodeURIComponent(tool.id || "");
     const interfaceInfo = getCardInterfaceInfo(tool);
 
-    const taskLabels = deduplicateTaskLabels(
+    const allTaskLabels = deduplicateTaskLabels(
         getToolTasks(tool)
             .filter(taskId => taxonomy.domains?.[domainId]?.tasks?.some(task => task.id === taskId))
             .map(getTaskName)
     );
+    const visibleTaskLabels = allTaskLabels.slice(0, 3);
+    const hiddenTaskCount = Math.max(0, allTaskLabels.length - visibleTaskLabels.length);
 
     const interfaceTags = interfaceInfo.labels.map(item =>
         '<span class="application-interface-tag ' + item.className + '">' +
@@ -318,27 +320,33 @@ function createApplicationCard(tool, domainId) {
         '</span>'
     ).join("");
 
+    const taskTags = visibleTaskLabels.map(label =>
+        '<span>' + escapeHtml(label) + '</span>'
+    ).join("") + (hiddenTaskCount
+        ? '<span class="application-task-more">+' + hiddenTaskCount + ' more</span>'
+        : "");
+
     return (
         '<article class="tool-card application-card ' + interfaceInfo.cardClass + '">' +
             '<a class="card-detail-hitarea" href="' + escapeAttribute(detailUrl) +
                 '" aria-label="Open ' + escapeAttribute(tool.name || "tool") + ' details"></a>' +
-            statusBadge +
             '<div class="application-card-topline">' +
-                '<div class="tool-type">' + escapeHtml(formatLabel(tool.type || "software")) + '</div>' +
+                '<div class="application-card-meta">' +
+                    '<span class="tool-type">' + escapeHtml(formatLabel(tool.type || "software")) + '</span>' +
+                    (interfaceTags ? '<span class="application-card-meta-divider" aria-hidden="true">/</span>' + interfaceTags : '') +
+                '</div>' +
+                (statusBadge || '') +
             '</div>' +
             '<h3>' + escapeHtml(tool.name || "Unnamed application") + '</h3>' +
-            '<div class="application-interface-tags">' +
-                (interfaceTags || '<span class="application-interface-tag interface-tag-unknown">INTERFACE NOT SPECIFIED</span>') +
-            '</div>' +
             '<p class="tool-description">' + escapeHtml(tool.description || "No description available.") + '</p>' +
-            (taskLabels.length
-                ? '<div class="application-task-tags">' +
-                    taskLabels.map(label => '<span>' + escapeHtml(label) + '</span>').join("") +
+            (taskTags
+                ? '<div class="application-card-bottom-meta">' +
+                    '<div class="application-task-tags">' + taskTags + '</div>' +
+                    '<span class="application-card-access">' + escapeHtml(access) + '</span>' +
                   '</div>'
-                : '') +
-            '<div class="tool-meta"><span>' + escapeHtml(access) + '</span></div>' +
+                : '<div class="application-card-bottom-meta"><span class="application-card-access">' + escapeHtml(access) + '</span></div>') +
             '<div class="tool-card-bottom">' +
-                '<a class="tool-link" href="' + escapeAttribute(detailUrl) + '">Tool details ↗</a>' +
+                '<a class="tool-link" href="' + escapeAttribute(detailUrl) + '">Details ↗</a>' +
                 (website
                     ? '<a class="tool-link" href="' + escapeAttribute(website) + '" target="_blank" rel="noopener noreferrer">Official resource ↗</a>'
                     : '') +
