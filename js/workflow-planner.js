@@ -115,7 +115,7 @@
             items.indexOf("c++") !== -1 || items.indexOf("java") !== -1 || items.indexOf("notebook") !== -1;
     }
     function hasOpenSource(tool) {
-        if (tool.source_available === true) return true;
+        // Source files alone do not establish an open-source licence.
         return asArray(tool.access).indexOf("open-source") !== -1 &&
             /^(MIT|Apache-2\.0|BSD-2-Clause|BSD-3-Clause|GPL-2\.0|GPL-3\.0|AGPL-3\.0|LGPL-2\.1|LGPL-3\.0|MPL-2\.0|AFL-3\.0|Artistic-2\.0|Unlicense)$/i.test(String(tool.license || ""));
     }
@@ -124,6 +124,8 @@
         return platforms.indexOf("linux") !== -1 || platforms.indexOf("windows") !== -1 || platforms.indexOf("macos") !== -1;
     }
     function fitsStrictPreferences(tool, prefs) {
+        // This planner must never suggest an entry not explicitly marked as free access.
+        if (asArray(tool.access).indexOf("free") === -1) return false;
         var gui = hasGuiWeb(tool);
         var cli = hasCli(tool);
         if (prefs.interface === "gui-only" && (!gui || (cli && !gui))) return false;
