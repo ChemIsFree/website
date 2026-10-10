@@ -127,17 +127,28 @@ function createInformationCard(tool) {
 
 function createAvailabilityCard(tool) {
     const interfaces = getInterfaceLabels(tool);
+    const classification = tool.interface_classification;
+    let confidenceNote = "";
 
-    return `
-        <div class="tool-info-card">
-            <div class="tool-info-card-heading"><span>02</span><h2>Availability</h2></div>
-            <dl>
-                ${createDefinition("Platforms", (tool.platforms || []).map(formatLabel).join(", ") || "Not specified")}
-                ${createDefinition("Interfaces", interfaces.join(" + ") || "Not specified")}
-                ${createDefinition("Languages", (tool.languages || []).join(", ") || "Not specified")}
-            </dl>
-        </div>
-    `;
+    if (classification && classification.confidence && classification.confidence !== "high") {
+        const confidenceLabel = classification.confidence === "low"
+            ? "Provisional interface classification."
+            : "Inferred interface classification.";
+        confidenceNote =
+            '<p class="tool-interface-confidence-note"><strong>' +
+            escapeHtml(confidenceLabel) + '</strong> ' +
+            escapeHtml(classification.reason || "Check the official documentation to confirm the available interface.") +
+            '</p>';
+    }
+
+    return '<div class="tool-info-card">' +
+        '<div class="tool-info-card-heading"><span>02</span><h2>Availability</h2></div>' +
+        '<dl>' +
+            createDefinition("Platforms", (tool.platforms || []).map(formatLabel).join(", ") || "Not specified") +
+            createDefinition("Interfaces", interfaces.join(" + ") || "Not specified") +
+            createDefinition("Languages", (tool.languages || []).join(", ") || "Not specified") +
+        '</dl>' + confidenceNote +
+    '</div>';
 }
 
 function createDefinition(label, value) {
@@ -222,12 +233,35 @@ function hasGuiOrWeb(tool) {
 function hasCli(tool) { return (tool.interface || []).includes("cli"); }
 
 function getInterfaceLabels(tool) {
+    const values = (Array.isArray(tool.interface) ? tool.interface : [])
+        .map(value => String(value).toLowerCase().trim())
+        .filter(Boolean);
     const labels = [];
-    const interfaces = tool.interface || [];
-    if (interfaces.includes("gui") && interfaces.includes("web")) labels.push("GUI + Web");
-    else if (interfaces.includes("gui")) labels.push("GUI");
-    else if (interfaces.includes("web")) labels.push("Web");
-    if (hasCli(tool)) labels.push("CLI");
+
+    const gui = values.includes("gui");
+    const web = values.includes("web");
+    const cli = values.includes("cli");
+    const programmingModes = values.filter(value =>
+        ["python", "r", "c++", "java", "api", "notebook", "mcp"].includes(value)
+    );
+
+    if (gui && web) labels.push("GUI + Web");
+    else if (gui) labels.push("GUI");
+    else if (web) labels.push("Web");
+
+    if (cli) labels.push("CLI");
+
+    if (programmingModes.length) {
+        if (programmingModes.includes("api") && programmingModes.length === 1) {
+            labels.push("API");
+        } else {
+            labels.push("Programmatic (" + programmingModes.map(formatLabel).join(", ") + ")");
+        }
+    }
+
+    const known = new Set(["gui", "web", "cli", "python", "r", "c++", "java", "api", "notebook", "mcp"]);
+    if (values.some(value => !known.has(value))) labels.push("Other");
+
     return labels;
 }
 
