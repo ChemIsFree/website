@@ -20,6 +20,31 @@ try {
         return count && !/loading catalogue/i.test(count.textContent);
     });
 
+    // The catalogue opens in a curated view, while every entry remains one click away.
+    await page.waitForFunction(() => document.querySelector("#applications-catalogue")?.dataset.viewMode === "featured");
+    const featuredDomainCounts = await page.locator(".application-domain").evaluateAll(domains =>
+        domains.map(domain => ({
+            name: domain.querySelector("h2")?.textContent.trim() || "unknown",
+            count: domain.querySelectorAll(".application-card").length
+        }))
+    );
+    if (featuredDomainCounts.some(domain => domain.count > 20)) {
+        throw new Error("A featured category exceeds 20 application cards: " + JSON.stringify(featuredDomainCounts));
+    }
+    const featuredCardCount = await page.locator(".application-card, .resource-card").count();
+    if (!(await page.locator(".application-card h3").filter({ hasText: /^CataList$/i }).count())) {
+        throw new Error("ChemIsFree-native CataList was not surfaced in the featured view.");
+    }
+    await page.locator("#catalogue-view-toggle").click();
+    await page.waitForFunction(() => document.querySelector("#applications-catalogue")?.dataset.viewMode === "all");
+    const fullCardCount = await page.locator(".application-card, .resource-card").count();
+    if (fullCardCount <= featuredCardCount) {
+        throw new Error("Full-index toggle did not reveal more records than the featured view.");
+    }
+    await page.locator("#catalogue-view-toggle").click();
+    await page.waitForFunction(() => document.querySelector("#applications-catalogue")?.dataset.viewMode === "featured");
+
+    // Searching automatically expands to the complete index, not only the shortlist.
     await page.locator("#search").fill("GNINA");
     await page.waitForFunction(() => {
         const cards = [...document.querySelectorAll(".application-card h3")];
@@ -95,6 +120,7 @@ try {
     if (pageErrors.length) throw new Error("Browser page errors: " + pageErrors.join(" | "));
     console.log("BROWSER SMOKE TEST PASSED");
     console.log("Homepage catalogue count: " + homeCount);
+    console.log("Featured view: curated category limits, CataList priority, and full-index toggle passed");
     console.log("Search and tool details: GNINA found; explicit open-source label checked");
     console.log("Access filter: free-web-only GPCRdb correctly excluded from open-source filter");
     console.log("Planner catalogue status: " + plannerCount);
