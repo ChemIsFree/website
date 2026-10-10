@@ -11,6 +11,7 @@ The website build expects that repository to be checked out beside this reposito
 - `catalogue/data/tools.yaml` — hand-maintained ChemIsFree entries.
 - `catalogue/data/taxonomy.yaml` — research domains and task tags.
 - `catalogue/data/assayer_free_registry.json` — the free/open Assayer subset with upstream provenance and access/licence notes.
+- `catalogue/data/featured_tools.yaml` — the ordered editorial shortlist shown by default in each category. The complete catalogue remains available through search, filters, and the full-index toggle.
 
 Run the build from the website repository root:
 
@@ -19,7 +20,9 @@ python -m pip install pyyaml
 python scripts/build_catalogue.py
 ```
 
-This generates `data/tools.json` and `data/taxonomy.json`. The generated JSON files are build outputs; edit the YAML and the supplemental registry, not the generated files.
+This generates `data/tools.json`, `data/taxonomy.json`, and `data/featured_tools.json`. The generated JSON files are build outputs; edit the YAML and the supplemental registry, not the generated files.
+
+The featured shortlist is maintained separately from tool records and references existing IDs. The pre-launch validator checks that each category contains 5–20 valid picks, every featured ID exists, and each pick is assigned to the category where it is shown. The shortlist affects the default browse view only; it does not remove records from search or the workflow planner.
 
 ## Workflow planner
 
