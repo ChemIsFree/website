@@ -57,3 +57,28 @@ jobs:
           grep -q 'js/workflow-planner.js' workflow-planner.html
           grep -q 'workflow-planner.html' index.html
           grep -q 'id="catalogue-count-stat"' index.html
+
+      - name: Install browser test dependency
+        working-directory: website
+        run: npm install --no-save --no-package-lock playwright
+
+      - name: Install Chromium
+        working-directory: website
+        run: npx playwright install --with-deps chromium
+
+      - name: Start local static server
+        working-directory: website
+        run: |
+          python -m http.server 4173 --bind 127.0.0.1 > /tmp/chemisfree-http.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:4173/index.html > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/chemisfree-http.log
+          exit 1
+
+      - name: Browser smoke test
+        working-directory: website
+        run: node scripts/smoke_test.mjs
