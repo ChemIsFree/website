@@ -4163,3 +4163,20 @@ button {
     font-size: 8px !important;
     letter-spacing: .06em;
 }
+
+.planner-copy-fallback {
+    display: block;
+    width: 100%;
+    min-height: 230px;
+    margin-top: 18px;
+    padding: 15px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--paper-light);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.6;
+    resize: vertical;
+}
+.planner-copy-fallback[hidden] { display: none !important; }
