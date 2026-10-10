@@ -4,6 +4,7 @@
     var catalogue = [];
     var taxonomy = { domains: {}, resources: {} };
     var latestPlanText = "";
+    var customOrder = [];
     var MAX_CUSTOM_TASKS = 8;
 
     var templates = {
@@ -208,9 +209,11 @@
         };
     }
     function getCustomTasks() {
-        return Array.from(document.querySelectorAll("[data-custom-task]:checked")).map(function (el) {
+        return customOrder.map(function (id) {
+            var el = document.querySelector('[data-custom-task][value="' + id.replace(/"/g, '\\\"') + '"]');
+            if (!el || !el.checked) return null;
             return { id: el.value, name: el.getAttribute("data-task-name") || label(el.value), tasks: [el.value], detail: "A custom step based on the selected catalogue task. Check that its output is suitable for the next step." };
-        });
+        }).filter(Boolean);
     }
     function buildStages(prefs) {
         if (prefs.goal === "custom") return getCustomTasks();
@@ -240,9 +243,46 @@
         });
         target.innerHTML = html;
         target.querySelectorAll("[data-custom-task]").forEach(function (checkbox) {
-            checkbox.addEventListener("change", updateCustomTaskCount);
+            checkbox.addEventListener("change", function () {
+                if (checkbox.checked && customOrder.indexOf(checkbox.value) === -1) customOrder.push(checkbox.value);
+                if (!checkbox.checked) customOrder = customOrder.filter(function (id) { return id !== checkbox.value; });
+                updateCustomTaskCount();
+                renderCustomOrder();
+            });
         });
         updateCustomTaskCount();
+        renderCustomOrder();
+    }
+    function renderCustomOrder() {
+        var target = byId("custom-task-order");
+        if (!target) return;
+        if (!customOrder.length) {
+            target.innerHTML = '<p class="planner-order-empty">Selected steps will appear here in sequence.</p>';
+            return;
+        }
+        var html = '<p class="planner-order-heading">WORKFLOW ORDER</p><ol>';
+        customOrder.forEach(function (id, index) {
+            var checkbox = document.querySelector('[data-custom-task][value="' + id.replace(/"/g, '\\\"') + '"]');
+            var name = checkbox ? checkbox.getAttribute("data-task-name") : label(id);
+            html += '<li><span>' + esc(name) + '</span><div class="planner-order-controls">' +
+                '<button type="button" data-order-move="up" data-order-id="' + esc(id) + '"' + (index === 0 ? ' disabled' : '') + ' aria-label="Move ' + esc(name) + ' earlier">↑</button>' +
+                '<button type="button" data-order-move="down" data-order-id="' + esc(id) + '"' + (index === customOrder.length - 1 ? ' disabled' : '') + ' aria-label="Move ' + esc(name) + ' later">↓</button>' +
+                '</div></li>';
+        });
+        html += '</ol>';
+        target.innerHTML = html;
+        target.querySelectorAll("[data-order-move]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                var id = button.getAttribute("data-order-id");
+                var index = customOrder.indexOf(id);
+                var next = button.getAttribute("data-order-move") === "up" ? index - 1 : index + 1;
+                if (index < 0 || next < 0 || next >= customOrder.length) return;
+                var swap = customOrder[index];
+                customOrder[index] = customOrder[next];
+                customOrder[next] = swap;
+                renderCustomOrder();
+            });
+        });
     }
     function updateCustomTaskCount() {
         var checked = Array.from(document.querySelectorAll("[data-custom-task]:checked"));
@@ -357,7 +397,9 @@
         byId("planner-experience").value = "mixed";
         byId("planner-context").value = "";
         document.querySelectorAll("[data-custom-task]").forEach(function (checkbox) { checkbox.checked = false; checkbox.disabled = false; });
+        customOrder = [];
         updateCustomTaskCount();
+        renderCustomOrder();
         updateCustomVisibility();
         byId("planner-form-message").textContent = "";
         byId("planner-results").innerHTML = '<div class="planner-empty-state"><span class="planner-step-number">READY / 01</span><h2>Your toolchain will appear here.</h2><p>Choose a research objective, set your practical constraints, and build a plan to see recommended tools for each step.</p></div>';
