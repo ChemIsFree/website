@@ -378,6 +378,7 @@
         latestPlanText = summaryLines.join("\n");
         results.innerHTML = html;
         byId("planner-copy-row").hidden = false;
+        byId("planner-copy-fallback").hidden = true;
         if (formMessage) formMessage.textContent = "Plan built from " + catalogue.length + " catalogue records.";
         results.scrollIntoView({ behavior: "smooth", block: "start" });
     }
@@ -406,6 +407,8 @@
         byId("planner-form-message").textContent = "";
         byId("planner-results").innerHTML = '<div class="planner-empty-state"><span class="planner-step-number">READY / 01</span><h2>Your toolchain will appear here.</h2><p>Choose a research objective, set your practical constraints, and build a plan to see recommended tools for each step.</p></div>';
         byId("planner-copy-row").hidden = true;
+        byId("planner-copy-fallback").hidden = true;
+        byId("planner-copy-fallback").value = "";
         latestPlanText = "";
     }
     function copyText(text) {
@@ -447,8 +450,14 @@
         try {
             await copyText(latestPlanText);
             status.textContent = "Workflow summary copied.";
+            byId("planner-copy-fallback").hidden = true;
         } catch (error) {
-            status.textContent = "Could not copy automatically; select and copy the plan manually.";
+            var fallback = byId("planner-copy-fallback");
+            fallback.value = latestPlanText;
+            fallback.hidden = false;
+            fallback.focus();
+            fallback.select();
+            status.textContent = "Automatic copy is unavailable. The summary is ready to copy from the text box below.";
         }
     });
     loadData();
