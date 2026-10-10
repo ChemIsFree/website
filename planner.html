@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Workflow Planner — ChemIsFree</title>
     <meta name="description" content="Build a step-by-step medicinal chemistry workflow by combining tools and methods around your project stage and research objectives.">
-    <link rel="stylesheet" href="css/style.css?v=13">
+    <link rel="stylesheet" href="css/style.css?v=14">
 </head>
 <body>
 <header class="site-header">
@@ -69,6 +69,26 @@
                         </select>
                     </div>
                 </div>
+
+                <div class="planner-guidance-options">
+                    <div class="planner-guidance-field">
+                        <label for="planner-experience" class="planner-field-title">How familiar are you with computational chemistry?</label>
+                        <select id="planner-experience" name="experience" class="planner-select">
+                            <option value="new" selected>New to it — explain the basics</option>
+                            <option value="some">Some experience with scientific software</option>
+                            <option value="comfortable">Comfortable with Python or command line</option>
+                        </select>
+                    </div>
+                    <div class="planner-guidance-field">
+                        <label for="planner-tool-style" class="planner-field-title">Preferred tool style</label>
+                        <select id="planner-tool-style" name="tool-style" class="planner-select">
+                            <option value="visual-first" selected>Browser / desktop apps first (no coding)</option>
+                            <option value="mixed">A mix of visual and technical tools</option>
+                            <option value="programmatic">Command line / programming is fine</option>
+                        </select>
+                    </div>
+                </div>
+                <p class="planner-field-help planner-guidance-help">The planner favours tools that match your experience and flags when a step may need installation, command-line use, or programming support.</p>
 
                 <fieldset class="planner-fieldset">
                     <legend>Where are you in the project?</legend>
@@ -251,6 +271,6 @@
     </div>
 </footer>
 
-<script src="js/planner.js?v=3"></script>
+<script src="js/planner.js?v=4"></script>
 </body>
 </html>
