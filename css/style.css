@@ -4444,3 +4444,19 @@ button {
         flex-wrap: wrap;
     }
 }
+
+
+/* Interface classification provenance on the tool detail page. */
+.tool-interface-confidence-note {
+    margin: 14px 0 0;
+    padding: 11px 13px;
+    border-left: 2px solid var(--lime);
+    background: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.tool-interface-confidence-note strong {
+    color: var(--ink);
+}
