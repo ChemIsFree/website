@@ -21,8 +21,11 @@
 
         <nav class="main-nav">
             <a href="tools.html">Explore</a>
+            <a href="workflow-planner.html">Planner</a>
+            <a href="index.html#categories">Categories</a>
             <a href="about.html">About</a>
             <a href="contribute.html">Contribute</a>
+            <a href="#" class="nav-donate" title="Donation link will be added before launch">Donate</a>
         </nav>
 
     </div>
@@ -161,8 +164,8 @@
                 <div class="stats">
 
                     <div class="stat">
-                        <strong>15+</strong>
-                        <span>Catalogue entries</span>
+                        <strong id="catalogue-count-stat">Loading…</strong>
+                        <span>Free catalogue entries</span>
                     </div>
 
                     <div class="stat">
@@ -183,6 +186,20 @@
 
     </section>
 
+
+    <section class="workflow-feature">
+        <div class="container workflow-feature-grid">
+            <div>
+                <p class="eyebrow">FROM QUESTION TO TOOLCHAIN</p>
+                <h2>Build a workflow that fits your research.</h2>
+            </div>
+            <div class="workflow-feature-copy">
+                <p>Choose a research objective, set your operating system, interface, and compute constraints, and receive a transparent sequence of free tools with alternatives for each step.</p>
+                <p>The planner uses catalogue metadata and local ranking rules—no paid API or AI service.</p>
+                <a href="workflow-planner.html" class="button button-primary">Open the workflow planner <span>↗</span></a>
+            </div>
+        </div>
+    </section>
 
     <!-- CATALOGUE DOMAINS -->
 
@@ -453,4 +470,5 @@
 
 
 </body>
+<script src="js/home.js?v=1"></script>
 </html>
