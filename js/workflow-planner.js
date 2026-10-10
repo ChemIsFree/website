@@ -131,15 +131,11 @@
         if (asArray(tool.access).indexOf("free") === -1) return false;
         var gui = hasGuiWeb(tool);
         var cli = hasCli(tool);
-        if (prefs.interface === "gui-only" && (!gui || (cli && !gui))) return false;
+        if (prefs.interface === "gui-only" && !gui) return false;
         if (prefs.interface === "cli-only" && !cli) return false;
         if (prefs.access === "oss-only" && !hasOpenSource(tool)) return false;
         if (prefs.access === "web-only" && interfaceSet(tool).indexOf("web") === -1) return false;
         var platforms = asArray(tool.platforms).map(function (x) { return String(x).toLowerCase(); });
-        var explicitDesktopPlatform = platforms.some(function (platform) {
-            return ["linux", "windows", "macos", "desktop"].indexOf(platform) !== -1;
-        });
-        var browserOnly = platforms.indexOf("web") !== -1 && !explicitDesktopPlatform;
         if (prefs.os !== "any" && osKnown(tool) && platforms.indexOf(prefs.os) === -1 && platforms.indexOf("desktop") === -1) return false;
         if (prefs.compute === "standard" && String(tool.gpu || "").toLowerCase() === "required") return false;
         return true;
@@ -404,6 +400,11 @@
         var prefs = getPrefs();
         if (prefs.goal === "custom" && !getCustomTasks().length) {
             byId("planner-form-message").textContent = "Select at least one task for a custom workflow.";
+            byId("planner-results").innerHTML = '<div class="planner-empty-state"><h2>Add at least one task.</h2><p>Select tasks in the custom workflow panel and build the plan again.</p></div>';
+            byId("planner-copy-row").hidden = true;
+            byId("planner-copy-fallback").hidden = true;
+            byId("planner-copy-fallback").value = "";
+            latestPlanText = "";
             return;
         }
         renderPlan(prefs);
