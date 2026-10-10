@@ -3538,3 +3538,711 @@ button {
         gap: 20px;
     }
 }
+
+
+
+/* ---------------------------------------------------------
+   Interface-aware catalogue cards and full-card navigation
+   --------------------------------------------------------- */
+
+.application-domain > .application-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    border: 0;
+    margin-top: 34px;
+}
+
+.application-card {
+    position: relative;
+    min-height: 300px;
+    border: 1px solid var(--line);
+    border-left-width: 4px;
+    padding: 24px 26px 22px;
+    background: rgba(255, 255, 255, 0.24);
+    transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.application-card.has-gui-interface {
+    border-color: var(--violet);
+    border-left-width: 4px;
+}
+
+.application-card.has-programmatic-interface {
+    border-color: var(--lime);
+    border-left-width: 4px;
+}
+
+.application-card.has-both-interfaces {
+    border-color: var(--violet);
+    border-left-color: var(--violet);
+    border-bottom: 3px solid var(--lime);
+}
+
+.application-card.interface-unspecified {
+    border-color: var(--line);
+}
+
+.application-card:hover {
+    background: var(--white);
+    transform: translateY(-2px);
+}
+
+.application-card .card-detail-hitarea,
+.resource-card .card-detail-hitarea {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: block;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.application-card .tool-status {
+    position: relative;
+    z-index: 2;
+}
+
+.application-card .application-card-topline {
+    margin-bottom: 12px;
+}
+
+.application-interface-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 14px 0 15px;
+}
+
+.application-interface-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 7px;
+    border: 1px solid currentColor;
+    font-family: var(--font-mono);
+    font-size: 7px;
+    letter-spacing: 0.08em;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
+.interface-tag-gui {
+    color: var(--violet);
+}
+
+.interface-tag-programmatic {
+    color: #71831c;
+}
+
+.interface-tag-unknown {
+    color: var(--text-muted);
+    border-color: var(--line);
+}
+
+.application-card.has-gui-interface .tool-type {
+    color: var(--violet);
+}
+
+.application-card.has-programmatic-interface .tool-type {
+    color: #71831c;
+}
+
+.application-card.has-both-interfaces .tool-type {
+    color: var(--violet);
+}
+
+.application-card .tool-card-bottom,
+.resource-card .resource-card-bottom {
+    position: relative;
+    z-index: 2;
+}
+
+.application-card .tool-card-bottom a,
+.resource-card .resource-card-bottom a {
+    position: relative;
+    z-index: 2;
+}
+
+.resource-card {
+    position: relative;
+    border-top: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+}
+
+.resource-card .resource-card-bottom {
+    margin-top: auto;
+    padding-top: 18px;
+}
+
+@media (max-width: 700px) {
+    .application-domain > .application-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+}
+
+/* ---------------------------------------------------------
+   Workflow planner
+   --------------------------------------------------------- */
+
+.planner-hero {
+    background: var(--ink);
+    color: var(--text-on-dark);
+    border-bottom: 1px solid var(--line-dark);
+}
+
+.planner-hero .container {
+    padding-top: 26px;
+    padding-bottom: 88px;
+}
+
+.planner-hero-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--line-dark);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--text-on-dark-muted);
+    text-transform: uppercase;
+}
+
+.planner-hero-top strong {
+    color: var(--lime);
+    font-weight: 400;
+}
+
+.planner-hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.75fr);
+    gap: 90px;
+    align-items: end;
+    padding-top: 74px;
+}
+
+.planner-hero h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(58px, 7.5vw, 104px);
+    line-height: 0.9;
+    letter-spacing: -0.075em;
+    font-weight: 500;
+}
+
+.planner-hero h1 em {
+    color: var(--lime);
+    font-weight: 400;
+}
+
+.planner-hero-copy p {
+    margin: 0 0 18px;
+    max-width: 540px;
+    color: var(--text-on-dark-muted);
+    font-size: 15px;
+    line-height: 1.75;
+}
+
+.planner-hero-copy .planner-hero-note {
+    margin-top: 28px;
+    color: var(--violet-light);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.planner-builder {
+    padding: 88px 0 110px;
+    background: var(--paper);
+}
+
+.planner-section-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(280px, 0.65fr);
+    gap: 55px;
+    align-items: end;
+    margin-bottom: 42px;
+}
+
+.planner-section-heading .eyebrow {
+    color: var(--violet);
+}
+
+.planner-section-heading h2 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(42px, 5.5vw, 70px);
+    line-height: 0.93;
+    letter-spacing: -0.065em;
+    font-weight: 500;
+}
+
+.planner-section-heading > p {
+    margin: 0;
+    max-width: 540px;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.75;
+}
+
+.planner-form {
+    border-top: 1px solid var(--line);
+}
+
+.planner-operating-system {
+    display: grid;
+    grid-template-columns: minmax(190px, 0.35fr) minmax(0, 1fr);
+    gap: 28px;
+    align-items: center;
+    padding: 24px 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.planner-field-title,
+.planner-fieldset legend {
+    font-family: var(--font-display);
+    font-size: 23px;
+    line-height: 1.05;
+    letter-spacing: -0.035em;
+    font-weight: 500;
+}
+
+.planner-field-help {
+    margin: 8px 0 0;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.planner-select {
+    width: 100%;
+    max-width: 420px;
+    min-height: 48px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 0;
+    background: var(--white);
+    color: var(--ink);
+    font: inherit;
+}
+
+.planner-fieldset {
+    min-width: 0;
+    padding: 34px 0 38px;
+    margin: 0;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.planner-fieldset legend {
+    padding: 0;
+    margin-bottom: 8px;
+}
+
+.planner-fieldset > .planner-field-help {
+    margin-bottom: 22px;
+}
+
+.planner-stage-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.planner-stage-option,
+.planner-objective-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    min-width: 0;
+    padding: 17px 16px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.42);
+    cursor: pointer;
+    transition: border-color 160ms ease, background 160ms ease;
+}
+
+.planner-stage-option:hover,
+.planner-objective-option:hover {
+    border-color: var(--violet);
+    background: var(--white);
+}
+
+.planner-stage-option:has(input:checked),
+.planner-objective-option:has(input:checked) {
+    border-color: var(--violet);
+    background: var(--white);
+    box-shadow: inset 3px 0 0 var(--violet);
+}
+
+.planner-stage-option input,
+.planner-objective-option input {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    margin: 2px 0 0;
+    accent-color: var(--violet);
+}
+
+.planner-choice-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.planner-choice-copy strong {
+    font-size: 13px;
+    line-height: 1.35;
+    font-weight: 600;
+}
+
+.planner-choice-copy small {
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.55;
+}
+
+.planner-objective-group {
+    margin-top: 0;
+}
+
+.planner-objectives-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.planner-objective-option {
+    min-height: 104px;
+}
+
+.planner-objective-option input {
+    accent-color: #71831c;
+}
+
+.planner-objective-option:has(input:checked) {
+    border-color: #71831c;
+    box-shadow: inset 3px 0 0 var(--lime);
+}
+
+.planner-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 18px;
+    padding-top: 28px;
+}
+
+.planner-form-actions .button {
+    border: 0;
+    cursor: pointer;
+}
+
+.planner-reset {
+    padding: 12px 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.planner-reset:hover {
+    color: var(--violet);
+}
+
+.planner-form-note {
+    margin: 16px 0 0;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.planner-results {
+    margin-top: 72px;
+    scroll-margin-top: 30px;
+}
+
+.planner-results:empty {
+    display: none;
+}
+
+.planner-results-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 0.65fr);
+    gap: 40px;
+    align-items: end;
+    padding: 0 0 28px;
+    border-bottom: 1px solid var(--line);
+}
+
+.planner-results-heading .eyebrow {
+    color: var(--violet);
+}
+
+.planner-results-heading h2 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(38px, 5vw, 62px);
+    line-height: 0.94;
+    letter-spacing: -0.065em;
+    font-weight: 500;
+}
+
+.planner-results-heading > p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.planner-results-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+}
+
+.planner-workflow-step {
+    display: grid;
+    grid-template-columns: 80px minmax(0, 1fr);
+    gap: 28px;
+    padding: 34px 0 38px;
+    border-bottom: 1px solid var(--line);
+}
+
+.planner-step-number {
+    padding-top: 4px;
+    color: var(--violet);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+}
+
+.planner-step-content {
+    min-width: 0;
+}
+
+.planner-step-kicker {
+    margin: 0 0 11px;
+    color: #71831c;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.planner-step-content h3 {
+    margin: 0 0 12px;
+    font-family: var(--font-display);
+    font-size: clamp(25px, 3vw, 36px);
+    line-height: 1;
+    letter-spacing: -0.045em;
+    font-weight: 500;
+}
+
+.planner-step-intro {
+    max-width: 850px;
+    margin: 0 0 20px;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.75;
+}
+
+.planner-step-actions {
+    display: grid;
+    gap: 11px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: planner-action;
+}
+
+.planner-step-actions li {
+    display: grid;
+    grid-template-columns: 25px minmax(0, 1fr);
+    gap: 12px;
+    font-size: 13px;
+    line-height: 1.7;
+    counter-increment: planner-action;
+}
+
+.planner-step-actions li::before {
+    content: counter(planner-action, decimal-leading-zero);
+    padding-top: 2px;
+    color: var(--violet);
+    font-family: var(--font-mono);
+    font-size: 9px;
+}
+
+.planner-deliverable {
+    margin: 22px 0 0;
+    padding: 14px 17px;
+    border-left: 3px solid var(--lime);
+    background: rgba(255, 255, 255, 0.58);
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.65;
+}
+
+.planner-tool-recommendations {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 24px;
+}
+
+.planner-tool-rec {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.42);
+}
+
+.planner-tool-rec h4 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 20px;
+    line-height: 1.1;
+    letter-spacing: -0.035em;
+    font-weight: 500;
+}
+
+.planner-tool-rec p {
+    margin: 9px 0 0;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.planner-tool-rec-meta {
+    margin-top: 12px;
+    color: #71831c;
+    font-family: var(--font-mono);
+    font-size: 8px;
+    letter-spacing: 0.06em;
+    line-height: 1.55;
+    text-transform: uppercase;
+}
+
+.planner-tool-rec-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: auto;
+    padding-top: 17px;
+}
+
+.planner-tool-rec-links a {
+    color: var(--violet);
+    font-family: var(--font-mono);
+    font-size: 8px;
+    letter-spacing: 0.06em;
+    text-decoration: none;
+    text-transform: uppercase;
+}
+
+.planner-tool-rec-links a:hover {
+    text-decoration: underline;
+}
+
+.planner-coverage-note,
+.planner-empty-message,
+.planner-error-message {
+    margin-top: 22px;
+    padding: 17px 19px;
+    border-left: 3px solid var(--violet);
+    background: rgba(255, 255, 255, 0.58);
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+.planner-coverage-note strong {
+    color: var(--ink);
+}
+
+.planner-method-note {
+    margin-top: 32px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.7;
+}
+
+@media (max-width: 1000px) {
+    .planner-hero-grid,
+    .planner-section-heading,
+    .planner-results-heading {
+        grid-template-columns: 1fr;
+        gap: 28px;
+    }
+
+    .planner-stage-grid,
+    .planner-objectives-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .planner-tool-recommendations {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .planner-hero .container {
+        padding-bottom: 62px;
+    }
+
+    .planner-hero-grid {
+        padding-top: 54px;
+        gap: 32px;
+    }
+
+    .planner-hero h1 {
+        font-size: clamp(52px, 16vw, 80px);
+    }
+
+    .planner-builder {
+        padding: 66px 0 78px;
+    }
+
+    .planner-operating-system {
+        grid-template-columns: 1fr;
+        gap: 13px;
+    }
+
+    .planner-stage-grid,
+    .planner-objectives-grid,
+    .planner-tool-recommendations {
+        grid-template-columns: 1fr;
+    }
+
+    .planner-stage-option,
+    .planner-objective-option {
+        min-height: auto;
+    }
+
+    .planner-workflow-step {
+        grid-template-columns: 36px minmax(0, 1fr);
+        gap: 14px;
+        padding: 27px 0 30px;
+    }
+
+    .planner-results {
+        margin-top: 52px;
+    }
+
+    .planner-form-actions {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 12px;
+    }
+}
