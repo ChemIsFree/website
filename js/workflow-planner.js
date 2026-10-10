@@ -323,7 +323,8 @@
         var recordType = tool.chemisfree_status === "registry-listed" ? "Registry import · review pending" :
             tool.verification && tool.verification.status === "verified" ? "Verified catalogue record" : "Catalogue record";
         var license = tool.license && tool.license !== "Not specified" ? tool.license : "Licence not specified";
-        var access = asArray(tool.access).indexOf("open-source") !== -1 ? "Free · open-source-listed" : "Free access listed";
+        var access = hasOpenSource(tool) ? "Free · explicit open-source licence" :
+            tool.license === "Not specified" ? "Free access · licence unrecorded" : "Free access";
         var details = item.reasons.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join("");
         return '<article class="planner-tool-card">' +
             '<div class="planner-tool-topline"><span>' + (index === 0 ? "RECOMMENDED OPTION" : "ALTERNATIVE " + index) + '</span><span class="planner-score">' + Math.round(item.score) + ' MATCH</span></div>' +
