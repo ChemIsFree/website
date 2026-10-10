@@ -279,6 +279,7 @@ function renderApplications(applicationTools) {
 
         const guiApps = domainApplications.filter(tool => getPrimaryInterfaceGroup(tool) === "gui-web");
         const cliApps = domainApplications.filter(tool => getPrimaryInterfaceGroup(tool) === "cli");
+        const otherApps = domainApplications.filter(tool => getPrimaryInterfaceGroup(tool) === "other");
 
         html += `
             <section class="application-domain" data-domain="${escapeAttribute(domainId)}">
@@ -321,6 +322,20 @@ function renderApplications(applicationTools) {
             `;
         }
 
+        if (otherApps.length) {
+            html += `
+                <div class="application-interface-group application-interface-unclassified">
+                    <div class="interface-label">
+                        <span></span>
+                        INTERFACE NOT CLASSIFIED
+                    </div>
+                    <div class="application-grid">
+                        ${otherApps.map(tool => createApplicationCard(tool, domainId)).join("")}
+                    </div>
+                </div>
+            `;
+        }
+
         html += `</section>`;
     });
 
@@ -328,7 +343,7 @@ function renderApplications(applicationTools) {
 }
 
 function createApplicationCard(tool, domainId) {
-    const statusBadge = createStatusBadge(tool);
+    const statusBadge = tool.chemisfree_status === "registry-listed" ? "" : createStatusBadge(tool);
     const access = getDisplayAccess(tool);
     const website = tool.website || tool.repository || tool.documentation || "#";
     const interfaceLabels = getInterfaceLabels(tool);
@@ -369,6 +384,7 @@ function createApplicationCard(tool, domainId) {
 
             <div class="tool-meta">
                 <span>${escapeHtml(access)}</span>
+                ${tool.chemisfree_status === "registry-listed" ? '<span class="registry-review-note">REGISTRY IMPORT · REVIEW PENDING</span>' : ""}
             </div>
 
             <div class="tool-card-bottom">
