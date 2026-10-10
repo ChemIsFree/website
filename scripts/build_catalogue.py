@@ -14,9 +14,11 @@ import yaml
 TOOLS_FILE = Path("../catalogue/data/tools.yaml")
 TAXONOMY_FILE = Path("../catalogue/data/taxonomy.yaml")
 ASSAYER_FILE = Path("../catalogue/data/assayer_free_registry.json")
+FEATURED_FILE = Path("../catalogue/data/featured_tools.yaml")
 
 TOOLS_OUTPUT = Path("data/tools.json")
 TAXONOMY_OUTPUT = Path("data/taxonomy.json")
+FEATURED_OUTPUT = Path("data/featured_tools.json")
 
 
 def make_json_serializable(value):
@@ -116,14 +118,18 @@ def main():
     tools = primary_tools + imported_tools
 
     taxonomy_data = load_yaml(TAXONOMY_FILE)
+    featured_data = load_yaml(FEATURED_FILE)
     write_json(TOOLS_OUTPUT, tools)
     write_json(TAXONOMY_OUTPUT, taxonomy_data)
+    write_json(FEATURED_OUTPUT, featured_data)
 
     print(f"Generated {TOOLS_OUTPUT}")
     print(f"Catalogue contains {len(tools)} tools ({len(primary_tools)} hand-maintained; "
           f"{len(imported_tools)} imported; {skipped_duplicates} duplicate imports skipped).")
     print(f"Generated {TAXONOMY_OUTPUT}")
     print(f"Taxonomy contains {len(taxonomy_data.get('domains', {}))} domains.")
+    print(f"Generated {FEATURED_OUTPUT}")
+    print(f"Featured shortlist contains {len(featured_data.get('domains', {}))} category lists.")
     print("Imported records retain their source and access notes; upstream entries are not "
           "represented as independently verified by ChemIsFree.")
 
