@@ -4,283 +4,236 @@ let workflowTaxonomy = { domains: {}, resources: {} };
 const stageGuides = {
     "new-project": {
         title: "Start with a focused discovery brief",
-        intro: "At project start, make the biological and chemical question explicit before choosing a computational method.",
+        intro: "Define the decision you need to make before choosing software.",
         tasks: ["bioactivity-analysis", "binding-site-analysis", "structure-search"],
         tools: ["chembl", "pubchem", "pymol-open-source"],
         actions: [
-            "Write down the target identity, organism or isoform, intended biological mechanism, and the decision this workflow should support.",
-            "Record what is already known: available structures, reported ligands, assay endpoints, and any project-specific constraints.",
-            "Choose evidence streams that can answer the question. Ligand data, structural analysis, screening, and property prediction can be combined rather than treated as competing routes."
+            "Write the target, species/isoform, biological question, and what the next decision should be.",
+            "List what you already have: known compounds, assay data, protein structures, and practical constraints.",
+            "Start with the simplest evidence that can answer the question; use docking or machine learning only when the inputs justify it."
         ],
-        deliverable: "Deliverable: a one-page discovery brief listing the hypothesis, evidence available, unknowns, and criteria for advancing compounds."
+        deliverable: "Save a one-page brief with the question, available evidence, key assumptions, and criteria for advancing compounds."
     },
     "ligand-landscape": {
-        title: "Map the existing ligand and SAR landscape",
-        intro: "Use existing evidence to establish what is known, how reliable it is, and where a new design hypothesis could add value.",
+        title: "Map the known ligands and SAR",
+        intro: "Build a trustworthy view of the chemistry and activity already reported.",
         tasks: ["bioactivity-analysis", "data-curation", "scaffold-analysis", "qsar"],
-        tools: ["chembl", "rdkit", "pubchem"],
+        tools: ["chembl", "pubchem", "assayer-datawarrior", "knime"],
         actions: [
-            "Resolve the target and assay context before combining activity records. Keep endpoint, relation, units, organism, assay identifier, and citation with each measurement.",
-            "Standardize structures and identifiers, remove duplicates, and flag measurements that should not be compared directly (for example, different endpoints or incompatible assay formats).",
-            "Group compounds into series and inspect potency changes alongside structural changes and physicochemical properties. Treat apparent SAR as a hypothesis until assay comparability is checked."
+            "Search the target in ChEMBL and export structures, activity values, endpoint, units, assay details, target ID, and source.",
+            "Compare like with like: keep IC50, Ki, Kd and different assay systems separate unless you have a justified conversion.",
+            "Group related structures into series and check whether apparent potency trends are supported by comparable measurements."
         ],
-        deliverable: "Deliverable: a curated ligand table, a short series/scaffold summary, and a list of high-confidence SAR observations."
+        deliverable: "Save a traceable activity table and a short summary of the strongest, weakest, and most informative chemical series."
     },
     "hit-identification": {
         title: "Set up a hit-identification campaign",
-        intro: "Define the search space and use complementary evidence streams so that one scoring function does not decide which compounds reach testing.",
-        tasks: ["ligand-based-screening", "structure-based-screening", "molecular-docking", "structure-search"],
-        tools: ["zinc", "chembl", "rdkit", "gnina", "autodock-vina"],
+        intro: "Choose a manageable library and use more than one line of evidence to prioritize compounds.",
+        tasks: ["ligand-based-screening", "compound-library-search", "structure-based-screening", "molecular-docking"],
+        tools: ["chembl", "pubchem", "zinc", "gnina", "autodock-vina"],
         actions: [
-            "Define the screening source, target or reference ligands, acceptable chemical properties, known nuisance motifs, and the number of compounds that can realistically be tested.",
-            "Where known ligands exist, use their structures and SAR to guide analogue or similarity searches. In parallel, use a validated protein structure for structure-based prioritization when one is available.",
-            "Validate the workflow on known actives, decoys, or a redocking control when possible. Standardize outputs, remove duplicate structures, and rank compounds using several independent criteria rather than docking score alone."
+            "Define where compounds will come from, what counts as a useful hit, how many can be tested, and any hard property or chemistry limits.",
+            "If known ligands exist, start with similarity and analogue searches. If a suitable protein structure exists, consider docking as a second route.",
+            "Remove duplicates and retain a chemically diverse shortlist; check data quality, properties, pose plausibility, and availability—not just a score."
         ],
-        deliverable: "Deliverable: a ranked and deduplicated hit list with provenance, method-specific scores, and reasons for advancing each compound."
+        deliverable: "Save a ranked shortlist with structures, source IDs, the reason each compound was selected, and the next experimental check."
     },
     "hit-to-lead": {
-        title: "Turn initial hits into interpretable chemical series",
-        intro: "The aim is to move from isolated hits to a set of compounds that can support a reliable structure–activity hypothesis.",
+        title: "Turn hits into interpretable chemical series",
+        intro: "The goal is to understand which changes matter, not to optimize isolated scores.",
         tasks: ["bioactivity-analysis", "scaffold-analysis", "molecular-descriptors-properties", "qsar"],
-        tools: ["chembl", "rdkit", "pubchem", "deepchem"],
+        tools: ["chembl", "assayer-datawarrior", "pubchem", "knime"],
         actions: [
-            "Confirm the source and quality of each hit, then check whether related compounds, orthogonal assays, or independent reports support the activity.",
-            "Group hits into series, map substitutions against activity, and look for liabilities such as aggregation risk, reactive motifs, assay interference, or inconsistent potency across assay contexts.",
-            "Select a small, informative analogue set that tests the most important SAR hypothesis. Avoid changing many structural features at once if the aim is to learn from the next experiment."
+            "Confirm each hit and search for related compounds or independent evidence of activity.",
+            "Map potency and key properties across each series; flag inconsistent assays, likely artefacts, and missing data.",
+            "Choose a small set of analogues that tests one clear hypothesis at a time."
         ],
-        deliverable: "Deliverable: a validated hit set, series-level SAR map, and a proposed first analogue matrix with explicit hypotheses."
+        deliverable: "Save a series map and an analogue table stating the proposed change, expected effect, and experiment that would test it."
     },
     "lead-optimization": {
         title: "Make each lead-optimization cycle testable",
-        intro: "Tie proposed structural changes to a specific hypothesis about potency, selectivity, exposure, safety, or synthetic practicality.",
+        intro: "Prioritize the current limiting factor and design experiments that distinguish between explanations.",
         tasks: ["bioactivity-analysis", "qsar", "molecular-docking", "interaction-analysis", "molecular-descriptors-properties"],
-        tools: ["chembl", "rdkit", "deepchem", "pymol-open-source", "plip-protein-ligand-interaction-profiler"],
+        tools: ["chembl", "assayer-datawarrior", "pymol-open-source", "plip-protein-ligand-interaction-profiler"],
         actions: [
-            "Choose the current lead series and summarize potency, selectivity, key binding interactions, and the properties that currently limit progression.",
-            "Design matched analogue changes that test one rationale at a time. Where structure-based evidence exists, use it to explain a hypothesis, not as proof of binding or potency.",
-            "For each proposed analogue, combine available experimental SAR, model estimates, binding-mode plausibility, and property risks. Track the reason for each design so that new results can update the hypothesis."
+            "Summarize potency, selectivity, properties, and the main development risk for the current lead series.",
+            "Propose small, synthetically plausible changes. State the intended effect and avoid changing many structural features at once.",
+            "Use models and docking to refine hypotheses—not to replace measurements—and record uncertainty for each proposed analogue."
         ],
-        deliverable: "Deliverable: a prioritized analogue plan with a rationale, expected effect, main risk, and a clear experiment that could falsify each hypothesis."
+        deliverable: "Save a prioritized analogue plan linking each design to a rationale, main risk, and a test that could disprove the hypothesis."
     },
     "candidate-profiling": {
-        title: "Build a multi-parameter evidence matrix",
-        intro: "At candidate-profiling stage, decisions should reflect the balance of pharmacology, developability, and uncertainty—not a single best score.",
+        title: "Build a balanced candidate profile",
+        intro: "Separate what is measured, what is predicted, and what remains unknown.",
         tasks: ["molecular-descriptors-properties", "drug-likeness", "adme", "toxicity", "data-curation"],
-        tools: ["rdkit", "deepchem", "knime"],
+        tools: ["assayer-swissadme", "assayer-admetlab-3-0", "assayer-pkcsm", "knime"],
         actions: [
-            "Gather comparable evidence for potency, selectivity, physicochemical properties, permeability, solubility, metabolism, safety liabilities, and synthetic practicality.",
-            "Record the evidence source, assay/model version, uncertainty, and applicability limits for every value. Mark missing evidence explicitly instead of treating it as a favourable result.",
-            "Use a transparent decision matrix to identify which compounds are balanced, which risk is currently decisive, and which experiment would most efficiently reduce uncertainty."
+            "Compare potency, selectivity, solubility, permeability, metabolism, safety, and synthetic practicality using comparable evidence.",
+            "Label each value as experimental or predicted and record its source, model, uncertainty, and limitations.",
+            "Rank the remaining risks by impact and choose the experiment most likely to reduce uncertainty."
         ],
-        deliverable: "Deliverable: a candidate comparison table with explicit evidence gaps and a short, risk-based recommendation."
+        deliverable: "Save a compound comparison table with evidence gaps and a risk-based recommendation."
     }
 };
 
 const objectiveGuides = {
-    "target-context": {
-        order: 1,
-        kicker: "TARGET CONTEXT",
-        title: "Establish target and binding-site context",
-        intro: "Build a defensible view of the target before relying on a particular modelling method.",
-        tasks: ["binding-site-analysis", "protein-preparation", "molecular-visualization", "bioactivity-analysis"],
-        tools: ["pymol-open-source", "chembl", "pubchem", "biopython"],
+    "curation": {
+        order: 0, kicker: "DATA / STRUCTURE PREPARATION",
+        title: "Prepare a clean, traceable dataset",
+        intro: "Good inputs prevent avoidable errors later in the workflow.",
+        tasks: ["data-curation", "structure-conversion", "ligand-preparation", "bioactivity-analysis"],
+        tools: ["chembl", "pubchem", "assayer-datawarrior", "open-babel", "catalist"],
         actions: [
-            "Confirm the target identifier, species, isoform, construct, and intended biological mechanism. Keep target-level evidence separate from evidence for a specific assay or ligand.",
-            "Search for relevant ligand and activity records, and identify experimental structures or structural homologues if available. Check chain identity, construct differences, bound ligands, resolution, missing regions, and important cofactors.",
-            "Inspect the binding pocket and known ligand interactions in a molecular viewer. Record the residues and assumptions that will be used later in docking or analogue design.",
-            "List what remains unknown—for example, the relevant protein state, the selectivity mechanism, or whether a reported ligand is active in the project's assay context."
+            "Keep an untouched copy of the original files and retain compound IDs, SMILES, activity metadata, and source links.",
+            "Check missing structures, duplicate entries, stereochemistry, salts, units, and inconsistent endpoint labels before analysing the data.",
+            "Record every cleaning rule and exclusion; never silently discard a compound or measurement."
         ],
-        deliverable: "Deliverable: a target-and-pocket summary with evidence provenance and a short list of testable hypotheses."
+        deliverable: "A cleaned CSV/SDF plus the original files and a short log of what changed."
+    },
+    "target-context": {
+        order: 1, kicker: "TARGET CONTEXT",
+        title: "Establish the target and binding-site context",
+        intro: "Check the biological target before relying on a structure or model.",
+        tasks: ["binding-site-analysis", "protein-preparation", "molecular-visualization", "bioactivity-analysis"],
+        tools: ["pymol-open-source", "chembl", "pubchem", "assayer-proteinsplus-dogsitescorer"],
+        actions: [
+            "Confirm the target name, species, isoform, and intended mechanism; similar protein names do not guarantee the same binding site.",
+            "Search for experimental protein structures and known ligands. Check chain, construct, bound ligand, missing regions, and relevant cofactors.",
+            "Open a suitable structure in a molecular viewer and note the pocket and key residues. If no appropriate structure exists, do not proceed as though docking were validated."
+        ],
+        deliverable: "A target note with the selected structure or reason none is suitable, key references, and assumptions."
     },
     "ligand-landscape": {
-        order: 2,
-        kicker: "LIGAND DATA / SAR",
-        title: "Curate the known-ligand landscape",
-        intro: "A reliable SAR map starts with comparable bioactivity data and standardized structures.",
+        order: 2, kicker: "LIGAND DATA / SAR",
+        title: "Find and compare known ligands",
+        intro: "A useful SAR map starts with comparable experiments and traceable structures.",
         tasks: ["bioactivity-analysis", "data-curation", "scaffold-analysis", "qsar"],
-        tools: ["chembl", "pubchem", "rdkit", "deepchem"],
+        tools: ["chembl", "pubchem", "assayer-datawarrior", "knime", "rdkit"],
         actions: [
-            "Search ChEMBL using the target name and stable identifiers; export compound structures together with standard activity value, relation, units, endpoint, assay identifier, target identifier, and source citation.",
-            "Separate IC50, Ki, Kd, EC50, and other endpoints unless there is a justified conversion or modelling strategy. Inspect assay conditions and target confidence before merging records.",
-            "Standardize structures, preserve original identifiers, remove duplicate salts or equivalent representations using a documented policy, and flag conflicting or censored measurements.",
-            "Group compounds by scaffold or series and compare substitution changes against activity. Use plots and summaries to identify trends, outliers, and gaps rather than relying on a single potency ranking."
+            "In ChEMBL, search the target and verify the correct organism and target type before exporting activity records.",
+            "Filter to the endpoint and assay context relevant to your question; retain structures, units, assay IDs, and citations.",
+            "Group related compounds and compare substituent changes against potency and properties. Flag conflicting or censored values instead of treating them as exact numbers."
         ],
-        deliverable: "Deliverable: a traceable activity dataset and a series-level SAR summary suitable for screening, analogue design, or modelling."
+        deliverable: "A CSV of comparable activity data and a short series-level SAR summary."
     },
     "hit-identification": {
-        order: 3,
-        kicker: "HIT IDENTIFICATION",
-        title: "Combine search and screening evidence",
-        intro: "Choose a screening route based on the evidence available, then combine complementary routes where they add independent information.",
-        tasks: ["ligand-based-screening", "structure-based-screening", "molecular-docking", "structure-search"],
-        tools: ["zinc", "chembl", "rdkit", "gnina", "autodock-vina"],
+        order: 3, kicker: "HIT IDENTIFICATION",
+        title: "Find and prioritize candidate hits",
+        intro: "Use a simple search route first, then add more demanding calculations when the inputs are ready.",
+        tasks: ["ligand-based-screening", "compound-library-search", "structure-based-screening", "molecular-docking"],
+        tools: ["chembl", "pubchem", "zinc", "gnina", "autodock-vina"],
         actions: [
-            "Define the chemical space, library source, reference ligands, property limits, and experimental capacity. Keep a record of the query and database version.",
-            "If credible reference ligands exist, search for related structures or analogues and use the existing SAR to define prioritization rules. If a suitable target structure exists, consider docking as a parallel route.",
-            "Check controls and known actives before trusting scores. Collapse duplicates, inspect scaffold diversity, and rank using orthogonal evidence such as ligand similarity, docking pose quality, property flags, and data provenance.",
-            "Keep a route-specific record for each candidate so that a high score from one method is not mistaken for confirmation by another."
+            "Start with known active compounds or a defined chemical library; record the search terms and database version.",
+            "Search for similar compounds and purchasable analogues. Use docking only if you have a suitable protein structure and can validate the setup.",
+            "Inspect the top candidates, remove duplicates, retain scaffold diversity, and check availability and properties before proposing experiments."
         ],
-        deliverable: "Deliverable: a diverse, ranked hit shortlist with the evidence supporting each selected compound."
+        deliverable: "A diverse, ranked hit list with structures, source IDs, selection rationale, and validation needs."
     },
     "structure-based": {
-        order: 4,
-        kicker: "STRUCTURE-BASED MODELLING",
-        title: "Prepare, dock, and validate structures",
-        intro: "Docking is most useful when receptor preparation and controls are treated as part of the method, not as administrative details.",
+        order: 4, kicker: "STRUCTURE-BASED MODELLING",
+        title: "Dock compounds and review predicted poses",
+        intro: "Docking is a prioritization tool, not proof that a compound binds.",
         tasks: ["protein-preparation", "ligand-preparation", "molecular-docking", "structure-based-screening", "binding-site-analysis"],
-        tools: ["pymol-open-source", "open-babel", "gnina", "autodock-vina"],
+        tools: ["pymol-open-source", "gnina", "autodock-vina", "open-babel"],
         actions: [
-            "Select a structure appropriate to the biological target and binding hypothesis. Inspect construct, chain, ligand identity, relevant waters, cofactors, alternate conformations, and missing residues.",
-            "Prepare the receptor and ligands with explicit, recorded choices for protonation, hydrogens, charges, tautomer/stereochemistry, and treatment of waters or cofactors. Use a consistent preparation protocol across compounds.",
-            "Define the docking box from the co-crystallized ligand or a justified pocket definition. Redock a known ligand or use another suitable control before interpreting a virtual screen.",
-            "Run GNINA and/or AutoDock Vina with the settings recorded. Compare poses and score distributions, then inspect top poses in a molecular viewer; do not interpret small score differences as reliable affinity differences without validation."
+            "Choose an appropriate protein structure; when possible, use one with a bound ligand to define the binding site and validate the setup.",
+            "Prepare the protein and compound structures consistently, checking protonation, stereochemistry, cofactors, and file formats. Use a graphical/web workflow if available; command-line docking may need technical support.",
+            "Run a known-ligand control or redocking test before screening. Inspect top poses in a viewer and use several lines of evidence rather than small score differences."
         ],
-        deliverable: "Deliverable: a validated docking setup, saved structures and settings, and a pose-ranked set of candidates with caveats."
+        deliverable: "Prepared input files, recorded settings, a control result, and a pose-ranked shortlist with limitations."
     },
     "interactions": {
-        order: 5,
-        kicker: "POSE INTERPRETATION",
-        title: "Translate poses into interaction hypotheses",
-        intro: "Interaction analysis helps explain why a pose may be plausible and what a proposed analogue should test; it does not independently prove binding.",
+        order: 5, kicker: "POSE INTERPRETATION",
+        title: "Interpret protein–ligand interactions",
+        intro: "Use contacts to develop design hypotheses, not to claim binding or rank affinity by contact count.",
         tasks: ["interaction-analysis", "binding-site-analysis", "molecular-visualization", "three-dimensional-analysis"],
         tools: ["plip-protein-ligand-interaction-profiler", "pymol-open-source"],
         actions: [
-            "Run PLIP on carefully prepared protein–ligand complexes to obtain a consistent set of reported contacts, including hydrogen bonds and hydrophobic or aromatic interactions where applicable.",
-            "Inspect key contacts in PyMOL. Check donor/acceptor identity, geometry, protonation, steric conflicts, water mediation, and whether the residues belong to the biologically relevant chain or pocket.",
-            "Compare interaction patterns across a series and distinguish conserved anchors from contacts that differ between analogues. Do not equate a larger contact count with stronger affinity.",
-            "Convert the analysis into a design hypothesis—for example, a substituent vector to explore or a contact whose contribution should be tested experimentally."
+            "Upload a correctly prepared protein–ligand complex to PLIP when using its web service, then save the interaction report.",
+            "Inspect important contacts in PyMOL; check geometry, donor/acceptor identity, chain selection, waters, and possible clashes.",
+            "Compare related compounds and distinguish conserved interactions from contacts that change with substitution."
         ],
-        deliverable: "Deliverable: a reproducible interaction table or fingerprint plus annotated poses and a specific follow-up design hypothesis."
+        deliverable: "An interaction table or annotated image and one specific, testable analogue-design hypothesis."
     },
     "qsar": {
-        order: 6,
-        kicker: "QSAR / PREDICTIVE MODELLING",
-        title: "Build a validated activity model",
-        intro: "Model quality depends at least as much on endpoint curation and leakage-resistant validation as on the algorithm.",
+        order: 6, kicker: "QSAR / PREDICTIVE MODELLING",
+        title: "Build and check an activity model",
+        intro: "A model is only useful if the input data and evaluation are trustworthy.",
         tasks: ["qsar", "machine-learning", "data-curation", "molecular-descriptors-properties"],
-        tools: ["chembl", "rdkit", "deepchem"],
+        tools: ["assayer-datawarrior", "knime", "rdkit", "deepchem"],
         actions: [
-            "Define one modelling endpoint and curate a consistent dataset. Preserve measurement relations and assay metadata; do not mix incomparable endpoints or silently convert censored values.",
-            "Standardize molecular structures and calculate descriptors or fingerprints. Check class balance, duplicated structures, contradictory labels, series distribution, and data leakage before training.",
-            "Start with a transparent baseline, then compare more complex models. Use scaffold- or time-aware splits where appropriate and keep a genuinely held-out evaluation set.",
-            "Report metrics suited to the task, calibration or uncertainty where possible, and the model's applicability domain. Use permutation or y-randomization checks when appropriate to test whether the signal exceeds chance."
+            "Choose one endpoint and curate comparable activity measurements; check duplicates, conflicting labels, and class balance.",
+            "For a visual route, start with a GUI or KNIME workflow. RDKit and DeepChem are programming toolkits, not click-through prediction websites.",
+            "Evaluate on compounds withheld from model training, preferably using a scaffold-aware split; inspect errors and the chemical space where predictions are unreliable."
         ],
-        deliverable: "Deliverable: a reproducible modelling dataset, validated baseline, error analysis, and a clear statement of when predictions should not be trusted."
+        deliverable: "A documented dataset, validation results, error analysis, and an explicit statement of where the model should not be used."
     },
     "analogues": {
-        order: 7,
-        kicker: "ANALOGUE DESIGN",
-        title: "Turn SAR into a focused analogue plan",
-        intro: "Design compounds to test a chemical hypothesis, not simply to maximize a single computational score.",
-        tasks: ["scaffold-analysis", "structure-search", "ligand-based-screening", "molecular-descriptors-properties", "molecular-docking"],
-        tools: ["rdkit", "chembl", "pubchem", "zinc", "deepchem"],
+        order: 7, kicker: "ANALOGUE DESIGN",
+        title: "Design a focused analogue set",
+        intro: "Prefer interpretable, synthetically realistic changes over a long list of speculative molecules.",
+        tasks: ["scaffold-analysis", "structure-search", "ligand-based-screening", "molecular-descriptors-properties"],
+        tools: ["chembl", "pubchem", "zinc", "assayer-datawarrior", "catalist"],
         actions: [
-            "Choose a confirmed series and map the current structure–activity evidence. Identify the core features likely to be important and positions where changes are chemically and synthetically plausible.",
-            "Explore existing analogues or related scaffolds before proposing new molecules. Use compound and purchasable-compound resources to avoid rediscovering available chemistry.",
-            "Generate a small, interpretable set of substitutions or scaffold hops. For each design, state the intended change in binding, selectivity, or property and avoid changing too many variables at once.",
-            "Assess candidates with more than one lens—known SAR or a validated QSAR model, structural plausibility where justified, physicochemical properties, novelty, and expected synthetic effort."
+            "Identify the core scaffold and positions that can be changed without losing essential binding features.",
+            "Search known and purchasable analogues before generating new structures. Keep the core and change one region at a time where possible.",
+            "For each proposal, state the expected effect, property risk, and a plausible synthetic route; reject designs that are difficult to test or interpret."
         ],
-        deliverable: "Deliverable: an analogue matrix that links each proposed structure to a hypothesis, evidence, and experiment."
+        deliverable: "An analogue matrix showing structure, design hypothesis, expected benefit, synthetic concern, and experiment."
     },
     "de-novo": {
-        order: 8,
-        kicker: "GENERATIVE / DE NOVO DESIGN",
-        title: "Define constraints before generating molecules",
-        intro: "Generative design is most useful when the chemical and biological objectives are explicit and the output is independently validated.",
+        order: 8, kicker: "GENERATIVE DESIGN",
+        title: "Use molecular generation with explicit constraints",
+        intro: "Generated structures are starting ideas; they must pass chemical and experimental checks.",
         tasks: ["generative-chemistry", "machine-learning", "molecular-descriptors-properties", "structure-based-screening"],
-        tools: ["deepchem", "rdkit", "knime"],
+        tools: ["assayer-reinvent4", "synthemol", "crem-pharm", "deepchem"],
         actions: [
-            "Specify the intended binding mode or pharmacophore hypothesis, allowed chemistry, novelty requirements, and acceptable ranges for size, polarity, lipophilicity, and other project constraints.",
-            "Use a suitable generative approach or model workflow. DeepChem is a modelling toolkit in the current catalogue, not a turnkey de novo-design application; model selection, training, and validation remain project work.",
-            "Sanitize generated structures, check stereochemistry and duplicates, and assess novelty and chemical plausibility. Reject molecules that only exploit a scoring function or violate hard constraints.",
-            "Apply independent downstream checks—structural review or docking where relevant, property and ADMET assessment, and synthetic feasibility—before selecting molecules for synthesis."
+            "Define the core or pharmacophore to preserve, allowed substituent space, property limits, and synthetic constraints before generating molecules.",
+            "Check each output for valid chemistry, stereochemistry, duplicates, similarity to known compounds, and compatibility with the design goal.",
+            "Prioritize molecules with a credible route and independent supporting evidence; generation or docking scores alone are not sufficient."
         ],
-        deliverable: "Deliverable: a filtered, traceable set of generated ideas with the constraints, model, and rejection criteria recorded."
+        deliverable: "A small, filtered set of ideas with constraints, source/model, rejection criteria, and synthetic review notes."
     },
     "admet": {
-        order: 9,
-        kicker: "PROPERTY / ADMET ASSESSMENT",
-        title: "Assess properties and developability risks",
-        intro: "Property prediction should inform a balanced decision and identify the next experiment; no single descriptor or in-silico prediction is a substitute for evidence.",
+        order: 9, kicker: "PROPERTY / ADMET ASSESSMENT",
+        title: "Check physicochemical properties and ADMET risks",
+        intro: "Use predictions to identify risks and choose experiments; do not treat them as measurements.",
         tasks: ["physicochemical-properties", "molecular-descriptors-properties", "adme", "toxicity", "drug-likeness"],
-        tools: ["rdkit", "deepchem", "knime"],
+        tools: ["assayer-swissadme", "assayer-admetlab-3-0", "assayer-pkcsm", "assayer-protox-3-0", "rdkit"],
         actions: [
-            "Calculate a consistent baseline of molecular descriptors and flag clear liabilities. Record the exact structure and protonation/tautomer policy used for each compound.",
-            "For ADMET predictions, use a validated model with known endpoint, applicability domain, and uncertainty. The current ChemIsFree catalogue has no dedicated, turnkey ADMET predictor; RDKit supports descriptor calculation, while DeepChem is a toolkit for building or applying models rather than a ready-made prediction service.",
-            "For CNS projects, assess the relevant balance of lipophilicity, ionization, solubility, permeability, efflux, metabolic stability, and safety. Avoid interpreting molecular weight or a single drug-likeness rule as a complete BBB prediction.",
-            "Use predicted results to select orthogonal experimental checks and update a multi-parameter matrix. Preserve uncertainty and conflicting predictions instead of hiding them behind one composite score."
+            "Standardize the structure and calculate basic descriptors using the same convention for every compound.",
+            "Submit SMILES to a suitable web predictor where available; record model, endpoint, prediction, and any uncertainty or applicability warning.",
+            "Use the results to compare compounds and identify follow-up assays. For CNS projects, no single descriptor or web score establishes blood–brain barrier penetration."
         ],
-        deliverable: "Deliverable: a property-risk table with model provenance, uncertainty, and the next experimental checks."
+        deliverable: "A property-risk table separating measured values, predictions, missing data, and proposed follow-up experiments."
     },
     "synthesis": {
-        order: 10,
-        kicker: "SYNTHETIC FEASIBILITY",
-        title: "Check whether the design can be made",
-        intro: "Synthetic feasibility needs route-level chemistry and expert review, not just a numerical accessibility score.",
+        order: 10, kicker: "SYNTHETIC FEASIBILITY",
+        title: "Check whether the designs are practical to make",
+        intro: "A route predictor proposes possibilities; a chemist must assess whether the route is credible.",
         tasks: ["retrosynthesis", "route-planning", "reaction-prediction", "structure-conversion"],
-        tools: ["rdkit", "open-babel"],
+        tools: ["assayer-aizynthfinder", "synthemol", "open-babel"],
         actions: [
-            "Standardize the exact target structure, stereochemistry, salt form, and protecting-group assumptions before route planning.",
-            "Use a retrosynthesis or reaction-planning engine with documented reaction coverage, then compare plausible disconnections, starting-material availability, route length, selectivity, safety, and known reaction limitations.",
-            "Have a chemist check each proposed transformation and identify high-risk steps, unstable intermediates, or missing precedent. Treat algorithmic routes as proposals, not validated instructions.",
-            "Feed synthetic constraints back into analogue design so that a chemically attractive but impractical idea is not automatically prioritized."
+            "Confirm the exact target structure, stereochemistry, salt form, and intended substitution pattern.",
+            "Use a route-planning resource to explore disconnections and starting materials. Check whether its interface requires Python or command-line setup before investing time.",
+            "Review each proposed step for precedent, selectivity, safety, availability, and purification burden; ask a synthesis chemist to assess high-risk steps."
         ],
-        deliverable: "Deliverable: a reviewed route hypothesis with key risks and a feasible backup design.",
-        coverageNote: "Catalogue gap: ChemIsFree does not currently list a dedicated retrosynthesis or route-planning engine. RDKit and Open Babel can help with structures and file conversion, but they do not replace a retrosynthesis system or chemist review."
-    },
-    "curation": {
-        order: 0,
-        kicker: "DATA / STRUCTURE PREPARATION",
-        title: "Create a traceable, standardized input dataset",
-        intro: "Data curation is a shared foundation for screening, SAR analysis, QSAR, docking, and analogue design.",
-        tasks: ["data-curation", "structure-conversion", "ligand-preparation", "bioactivity-analysis"],
-        tools: ["chembl", "pubchem", "rdkit", "open-babel"],
-        actions: [
-            "Preserve an untouched copy of every downloaded file and keep identifiers, source URLs, retrieval dates, assay metadata, and processing steps.",
-            "Normalize structures with a documented policy for salts, mixtures, stereochemistry, tautomers, and duplicates. Do not remove stereochemistry or standardize protonation without considering the task.",
-            "Normalize activity units and endpoint naming, but do not merge biologically different measurements simply because they share a numeric unit.",
-            "Keep an exclusion log so that each removed compound or measurement has an auditable reason."
-        ],
-        deliverable: "Deliverable: a clean analysis-ready dataset linked back to its raw inputs and transformation log."
+        deliverable: "A reviewed route hypothesis with key uncertainties, likely starting-material constraints, and a backup design."
     },
     "automation": {
-        order: 11,
-        kicker: "REPRODUCIBLE WORKFLOWS",
-        title: "Connect the steps into a repeatable pipeline",
-        intro: "Automate stable, well-understood steps and keep human review at scientific decision points.",
+        order: 11, kicker: "REPRODUCIBLE WORKFLOWS",
+        title: "Make the workflow repeatable",
+        intro: "Automate stable steps, but keep expert review at scientific decision points.",
         tasks: ["workflow-construction", "pipeline-execution", "chemical-data-analysis", "machine-learning"],
-        tools: ["knime", "rdkit", "deepchem", "biopython"],
+        tools: ["knime", "molve", "rdkit", "deepchem"],
         actions: [
-            "Break the workflow into explicit inputs, transformations, outputs, and quality checks. Preserve raw files and record tool versions, configuration, random seeds, and environment details.",
-            "Use KNIME for a visual, low-code pipeline or programmatic libraries such as RDKit and DeepChem when scripted control is more appropriate.",
-            "Add assertions for expected molecule counts, parse failures, missing data, duplicates, and failed calculations. Save intermediate outputs and logs so that a rerun can be compared with the original.",
-            "Automate repetitive processing, but keep expert review for target assumptions, binding-mode interpretation, route feasibility, and final compound selection."
+            "Write down the input, operation, output, and quality check for each step; keep raw files unchanged.",
+            "Start with KNIME for a visual, low-code workflow. Add programming libraries only if the task cannot be handled reliably with the graphical route.",
+            "Save the workflow, tool versions, settings, intermediate files, and error log. Re-run it on a small test set before using a full library."
         ],
-        deliverable: "Deliverable: a documented workflow that can be rerun on a new dataset without losing provenance."
+        deliverable: "A saved workflow, a small test run, and a record of settings that another researcher could reproduce."
     }
 };
-
-async function loadWorkflowCatalogue() {
-    const results = document.getElementById("workflow-results");
-    try {
-        const responses = await Promise.all([
-            fetch("data/tools.json"),
-            fetch("data/taxonomy.json")
-        ]);
-        if (!responses[0].ok) throw new Error("Tool catalogue could not be loaded.");
-        if (!responses[1].ok) throw new Error("Catalogue taxonomy could not be loaded.");
-        const loadedTools = await responses[0].json();
-        workflowCatalogue.splice(0, workflowCatalogue.length, ...(Array.isArray(loadedTools) ? loadedTools : []));
-        workflowTaxonomy = await responses[1].json();
-        const submit = document.querySelector("#workflow-form button[type='submit']");
-        if (submit) submit.disabled = false;
-    } catch (error) {
-        console.error("Could not load workflow catalogue:", error);
-        if (results) {
-            results.innerHTML = '<div class="planner-error-message"><strong>Catalogue unavailable.</strong> The workflow planner could not load the current ChemIsFree tools. Check that the site is being served with its generated catalogue files, then try again.</div>';
-        }
-    }
-}
 
 function escapeWorkflowHtml(value) {
     return String(value === undefined || value === null ? "" : value)
@@ -308,53 +261,125 @@ function getWorkflowTaskName(taskId) {
     return titleLabel(taskId);
 }
 
-function rankWorkflowTools(config) {
+async function loadWorkflowCatalogue() {
+    const results = document.getElementById("workflow-results");
+    try {
+        const responses = await Promise.all([
+            fetch("data/tools.json"),
+            fetch("data/taxonomy.json")
+        ]);
+        if (!responses[0].ok) throw new Error("Tool catalogue could not be loaded.");
+        if (!responses[1].ok) throw new Error("Catalogue taxonomy could not be loaded.");
+        const loadedTools = await responses[0].json();
+        workflowCatalogue.splice(0, workflowCatalogue.length, ...(Array.isArray(loadedTools) ? loadedTools : []));
+        workflowTaxonomy = await responses[1].json();
+        const submit = document.querySelector("#workflow-form button[type='submit']");
+        if (submit) submit.disabled = false;
+    } catch (error) {
+        console.error("Could not load workflow catalogue:", error);
+        if (results) {
+            results.innerHTML = '<div class="planner-error-message"><strong>Catalogue unavailable.</strong> The planner could not load ChemIsFree tools. Open the site through its published pages rather than as a local file, then try again.</div>';
+        }
+    }
+}
+
+function getInterfaceItems(tool) {
+    return Array.isArray(tool.interface) ? tool.interface.map(function(value) {
+        return String(value || "").toLowerCase();
+    }) : [];
+}
+
+function interfaceSummary(tool) {
+    const items = getInterfaceItems(tool);
+    if (!items.length || items.includes("other")) return "Interface unconfirmed";
+    const labels = [];
+    if (items.includes("gui") && items.includes("web")) labels.push("GUI / Web");
+    else if (items.includes("gui")) labels.push("Desktop GUI");
+    else if (items.includes("web")) labels.push("Web");
+    if (items.includes("cli")) labels.push("Command line");
+    const programmatic = items.filter(function(value) {
+        return ["python", "r", "c++", "java", "api", "notebook", "mcp"].includes(value);
+    });
+    if (programmatic.length) labels.push("Programmatic");
+    if (!labels.length) labels.push(items.map(titleLabel).join(" · "));
+    return [...new Set(labels)].join(" + ");
+}
+
+function interfaceSuitability(tool, preference) {
+    const items = getInterfaceItems(tool);
+    const visual = items.includes("web") || items.includes("gui");
+    const code = items.some(function(value) {
+        return ["cli", "python", "r", "c++", "java", "api", "notebook", "mcp"].includes(value);
+    });
+    const uncertain = !items.length || items.includes("other");
+    const library = String(tool.type || "").toLowerCase() === "library" ||
+        String(tool.catalogue || "").toLowerCase() === "resource" &&
+        String(tool.resource_type || "").toLowerCase() === "library";
+    let score = 0;
+
+    if (preference === "visual-first") {
+        score += visual ? 32 : -16;
+        if (items.includes("web")) score += 5;
+        if (!visual && code) score -= 14;
+        if (library && !visual) score -= 20;
+        if (uncertain) score -= 18;
+    } else if (preference === "programmatic") {
+        score += code ? 24 : 0;
+        score += items.includes("cli") ? 6 : 0;
+        score += visual ? 2 : 0;
+        if (uncertain) score -= 16;
+    } else {
+        score += visual ? 10 : 0;
+        if (uncertain) score -= 16;
+        if (library && !visual) score -= 5;
+    }
+
+    const confidence = tool.interface_classification && tool.interface_classification.confidence;
+    if (confidence === "low") score -= 8;
+    if (confidence === "medium") score -= 2;
+    if (String(tool.status || "").toLowerCase() === "archived") score -= 35;
+    return score;
+}
+
+function rankWorkflowTools(config, preference) {
     const preferred = config.tools || [];
     const taskIds = config.tasks || [];
     const domainIds = config.domains || [];
+
     const ranked = workflowCatalogue.map(function(tool) {
         let score = 0;
         const preferredIndex = preferred.indexOf(tool.id);
-        if (preferredIndex >= 0) score += 100 - preferredIndex * 8;
+        if (preferredIndex >= 0) score += Math.max(4, 18 - preferredIndex * 2);
         const toolTasks = Array.isArray(tool.tasks) ? tool.tasks : [];
         taskIds.forEach(function(taskId) {
-            if (toolTasks.includes(taskId)) score += 8;
+            if (toolTasks.includes(taskId)) score += 9;
         });
         const toolDomains = Array.isArray(tool.domain) ? tool.domain : [];
         domainIds.forEach(function(domainId) {
-            if (toolDomains.includes(domainId)) score += 2;
+            if (toolDomains.includes(domainId)) score += 1;
         });
+        score += interfaceSuitability(tool, preference);
         return { tool: tool, score: score };
     }).filter(function(item) { return item.score > 0; });
 
     ranked.sort(function(a, b) {
         if (b.score !== a.score) return b.score - a.score;
+        const aVisual = getInterfaceItems(a.tool).some(function(value) { return value === "gui" || value === "web"; });
+        const bVisual = getInterfaceItems(b.tool).some(function(value) { return value === "gui" || value === "web"; });
+        if (aVisual !== bVisual && preference === "visual-first") return aVisual ? -1 : 1;
         return String(a.tool.name || "").localeCompare(String(b.tool.name || ""));
     });
 
-    return ranked.slice(0, 4).map(function(item) { return item.tool; });
+    return ranked.slice(0, 2).map(function(item) { return item.tool; });
 }
 
-function interfaceSummary(tool) {
-    const items = Array.isArray(tool.interface) ? tool.interface : [];
-    if (!items.length) return "Interface not specified";
-    if (items.includes("other")) return "Interface unconfirmed";
-
-    const gui = items.includes("gui");
-    const web = items.includes("web");
-    const cli = items.includes("cli");
-    const programmatic = items.filter(function(value) {
-        return ["python", "r", "c++", "java", "api", "notebook", "mcp"].includes(String(value).toLowerCase());
-    });
-    const labels = [];
-
-    if (gui && web) labels.push("GUI / Web");
-    else if (gui) labels.push("GUI");
-    else if (web) labels.push("Web");
-    if (cli) labels.push("CLI");
-    if (programmatic.length) labels.push("Programmatic");
-    if (!labels.length) labels.push(items.map(titleLabel).join(" · "));
-    return [...new Set(labels)].join(" + ");
+function safeHttpUrl(value) {
+    const candidates = Array.isArray(value) ? value : [value];
+    for (const candidate of candidates) {
+        const url = String(candidate || "").trim();
+        if (/^https?:\/\//i.test(url)) return url;
+    }
+    return "";
 }
 
 function platformNote(tool, selectedOS) {
@@ -362,36 +387,114 @@ function platformNote(tool, selectedOS) {
         .map(function(value) { return String(value).toLowerCase(); });
 
     if (selectedOS === "any") {
-        if (platforms.includes("web") || (Array.isArray(tool.interface) && tool.interface.includes("web"))) {
-            return "Browser access listed";
-        }
-        return platforms.length ? "Platform notes: " + platforms.map(titleLabel).join(", ") : "Check the official setup guide";
+        if (platforms.includes("web") || getInterfaceItems(tool).includes("web")) return "Browser option listed";
+        return platforms.length ? "Platforms listed: " + platforms.map(titleLabel).join(", ") : "Check the official setup guide";
     }
-
     if (platforms.includes(selectedOS)) return "Platform listed: " + titleLabel(selectedOS);
-    if (platforms.includes("web") || (Array.isArray(tool.interface) && tool.interface.includes("web"))) {
-        return "Browser option listed; not filtered out";
-    }
+    if (platforms.includes("web") || getInterfaceItems(tool).includes("web")) return "Browser option listed; not filtered out";
     if (platforms.includes("other") || !platforms.length) return "Compatibility not specified; check documentation";
     return "Selected OS not listed; check upstream requirements";
 }
 
-function makeToolCard(tool, selectedOS) {
+function toolQuickStart(tool, step) {
+    const id = String(tool.id || "").toLowerCase();
+    const name = String(tool.name || "").toLowerCase();
+    const haystack = id + " " + name;
+    const items = getInterfaceItems(tool);
+
+    if (haystack.includes("chembl")) {
+        return "Open ChEMBL and search the target. Verify organism and target type, then filter the activity table to one relevant endpoint. Export structures together with assay IDs, units, target IDs, and source details.";
+    }
+    if (haystack.includes("pubchem")) {
+        return "Search by exact name, SMILES, or InChIKey. Confirm the structure and stereochemistry, then save the CID, SMILES, properties, and source.";
+    }
+    if (haystack.includes("pymol")) {
+        return "Open the PDB structure, confirm the protein chain and any bound ligand, then inspect the pocket around that ligand. Save the session and an annotated image; check waters and cofactors before removing them.";
+    }
+    if (haystack.includes("plip") || name.includes("protein-ligand interaction")) {
+        return "Provide a protein–ligand complex in the required format and run the interaction analysis. Save the report, then inspect important contacts in a molecular viewer; listed contacts do not prove binding or affinity.";
+    }
+    if (haystack.includes("swissadme")) {
+        return "Enter standardized SMILES in the web form and run the property calculation. Save the complete output with each compound ID; treat permeability and blood–brain barrier estimates as rough filters, not a final answer.";
+    }
+    if (haystack.includes("admetlab") || haystack.includes("pkcsm") || haystack.includes("protox") || haystack.includes("admet-ai")) {
+        return "Submit a standardized SMILES and record the exact endpoint and model output. Save the raw predictions and check the tool's stated scope; predictions are not experimental measurements.";
+    }
+    if (haystack.includes("knime")) {
+        return "Start with a File Reader node, inspect the columns, then add only the required filtering, duplicate-checking, or plotting nodes. Save the workflow and export a result table; begin visually rather than writing code.";
+    }
+    if (haystack.includes("datawarrior")) {
+        return "Open the CSV or SDF and identify the structure/SMILES column. Inspect structures, create the descriptors or plots relevant to the question, group related compounds, and export a table that retains compound IDs.";
+    }
+    if (haystack.includes("autodock-vina") || haystack.includes("gnina")) {
+        return "This is mainly a command-line docking workflow. Prepare compatible receptor and ligand files, define the box from a justified binding site, and run a known-ligand control first. Inspect poses in a viewer; do not rank by score alone.";
+    }
+    if (haystack.includes("open-babel")) {
+        return "Use the graphical option if available, select the input and output file formats, and convert a small test set first. Check stereochemistry and atom counts before converting a full library.";
+    }
+    if (haystack.includes("rdkit") || haystack.includes("deepchem") || haystack.includes("biopython")) {
+        return "This is a programming library rather than a click-through app. Use it through an existing notebook or a prepared graphical workflow, or work with a computational colleague; check the input and output on a small example first.";
+    }
+    if (haystack.includes("zinc")) {
+        return "Search the relevant purchasable-compound collection with clear structural or property constraints. Save compound identifiers and availability information, and verify the catalogue/source before selecting compounds to order.";
+    }
+    if (haystack.includes("catalist")) {
+        return "Open the desktop application, draw or import a structure, and use the structure search or property tools to inspect your compounds. Export results with the original identifiers so they can be traced back to your series.";
+    }
+    if (haystack.includes("synthemol") || haystack.includes("reinvent") || haystack.includes("crem-pharm") || haystack.includes("aizynthfinder")) {
+        return "Check the setup requirements before starting: this resource may need Python, command-line use, or a configured model/reaction set. Confirm its inputs and dependencies on a small example, then review every generated molecule or route chemically.";
+    }
+    if (items.includes("web")) {
+        return "Open the official web interface, read its input-format example, and start with one known compound or structure. Save the raw result and record the input and date before testing a batch.";
+    }
+    if (items.includes("gui")) {
+        return "Open the desktop interface and try one representative structure or a small file first. Check the output visually, save the project/settings, and only then process the full dataset.";
+    }
+    if (items.includes("other") || !items.length) {
+        return "The interface is not confirmed in the catalogue. Open the official resource and verify whether it is a web service, desktop app, command-line tool, or programming library before planning your workflow around it.";
+    }
+    return "Open the official documentation and find its smallest example matching this task. Test one input first, save the settings and output, and scale up only after checking the result.";
+}
+
+function toolUseNote(tool, preference) {
+    const items = getInterfaceItems(tool);
+    if (!items.length || items.includes("other")) return "Interface unconfirmed — verify upstream documentation";
+    const hasVisual = items.includes("web") || items.includes("gui");
+    const hasCode = items.some(function(value) {
+        return ["cli", "python", "r", "c++", "java", "api", "notebook", "mcp"].includes(value);
+    });
+    if (preference === "visual-first" && !hasVisual && hasCode) return "More technical option — command line or programming";
+    if (items.includes("web")) return "Browser-based option";
+    if (items.includes("gui")) return "Graphical interface";
+    if (items.includes("cli")) return "Command-line tool";
+    if (hasCode) return "Programming/API resource";
+    return interfaceSummary(tool);
+}
+
+function makeToolCard(tool, selectedOS, preference, index, step) {
     const detailUrl = "tool.html?id=" + encodeURIComponent(tool.id || "");
-    const official = tool.website || tool.repository || tool.documentation || "";
+    const official = safeHttpUrl(tool.website) || safeHttpUrl(tool.repository) || safeHttpUrl(tool.documentation);
     const typeText = titleLabel(tool.type || tool.catalogue || "resource");
     const classification = tool.interface_classification;
     const confidenceText = classification && classification.confidence && classification.confidence !== "high"
-        ? "Interface classification: " + (classification.confidence === "low" ? "provisional" : "inferred")
+        ? "Classification: " + (classification.confidence === "low" ? "provisional" : "inferred")
         : "";
+    const archivedText = String(tool.status || "").toLowerCase() === "archived" ? "Archived resource — check maintenance status" : "";
+    const startLabel = index === 0 ? "SUGGESTED START" : "ALTERNATIVE";
+    const quickStart = toolQuickStart(tool, step);
 
     return '<article class="planner-tool-rec">' +
+        '<p class="planner-tool-rec-role">' + startLabel + '</p>' +
         '<h4>' + escapeWorkflowHtml(tool.name || "Unnamed tool") + '</h4>' +
         '<p>' + escapeWorkflowHtml(tool.description || "No catalogue description available.") + '</p>' +
         '<div class="planner-tool-rec-meta">' + escapeWorkflowHtml(typeText) + ' · ' +
             escapeWorkflowHtml(interfaceSummary(tool)) + '<br>' +
+            escapeWorkflowHtml(toolUseNote(tool, preference)) + '<br>' +
             escapeWorkflowHtml(platformNote(tool, selectedOS)) +
-            (confidenceText ? '<br>' + escapeWorkflowHtml(confidenceText) : '') + '</div>' +
+            (confidenceText ? '<br>' + escapeWorkflowHtml(confidenceText) : '') +
+            (archivedText ? '<br>' + escapeWorkflowHtml(archivedText) : '') +
+        '</div>' +
+        '<div class="planner-tool-quickstart"><strong>How to start.</strong> ' + escapeWorkflowHtml(quickStart) + '</div>' +
         '<div class="planner-tool-rec-links">' +
             '<a href="' + escapeWorkflowHtml(detailUrl) + '">ChemIsFree details ↗</a>' +
             (official ? '<a href="' + escapeWorkflowHtml(official) + '" target="_blank" rel="noopener noreferrer">Official resource ↗</a>' : '') +
@@ -399,18 +502,18 @@ function makeToolCard(tool, selectedOS) {
     '</article>';
 }
 
-function makeStep(step, index, selectedOS) {
-    const actions = step.actions.map(function(action) {
+function makeStep(step, index, selectedOS, preference) {
+    const actions = (step.actions || []).map(function(action) {
         return "<li>" + escapeWorkflowHtml(action) + "</li>";
     }).join("");
-    const recommendations = rankWorkflowTools(step);
+    const recommendations = rankWorkflowTools(step, preference);
     const toolsHtml = recommendations.length
         ? '<div class="planner-tool-recommendations">' +
-            recommendations.map(function(tool) { return makeToolCard(tool, selectedOS); }).join("") +
+            recommendations.map(function(tool, toolIndex) { return makeToolCard(tool, selectedOS, preference, toolIndex, step); }).join("") +
           '</div>'
-        : '<div class="planner-coverage-note"><strong>No directly matched catalogue entry yet.</strong> The method is still part of the workflow; the catalogue needs a relevant tool added or curated for this step.</div>';
+        : '<div class="planner-coverage-note"><strong>No directly matched catalogue entry yet.</strong> Follow the method steps above, and use the contribution page to suggest a relevant tool for this task.</div>';
     const coverage = step.coverageNote
-        ? '<div class="planner-coverage-note"><strong>Coverage note.</strong> ' + escapeWorkflowHtml(step.coverageNote) + '</div>'
+        ? '<div class="planner-coverage-note"><strong>Important limitation.</strong> ' + escapeWorkflowHtml(step.coverageNote) + '</div>'
         : "";
 
     return '<article class="planner-workflow-step">' +
@@ -420,7 +523,7 @@ function makeStep(step, index, selectedOS) {
             '<h3>' + escapeWorkflowHtml(step.title) + '</h3>' +
             '<p class="planner-step-intro">' + escapeWorkflowHtml(step.intro) + '</p>' +
             '<ol class="planner-step-actions">' + actions + '</ol>' +
-            '<p class="planner-deliverable"><strong>Output.</strong> ' + escapeWorkflowHtml(step.deliverable || "Save the result and its provenance for the next step.") + '</p>' +
+            '<p class="planner-deliverable"><strong>Save before moving on.</strong> ' + escapeWorkflowHtml(step.deliverable || "Save the result and record where it came from.") + '</p>' +
             toolsHtml + coverage +
         '</div>' +
     '</article>';
@@ -439,21 +542,30 @@ function renderWorkflow(event) {
     const objectives = selectedObjectives();
     const stageInput = document.querySelector('input[name="stage"]:checked');
     const stageKey = stageInput ? stageInput.value : "new-project";
-    const selectedOS = document.getElementById("planner-os").value;
+    const osControl = document.getElementById("planner-os");
+    const selectedOS = osControl ? osControl.value : "any";
+    const experienceControl = document.getElementById("planner-experience");
+    const experience = experienceControl ? experienceControl.value : "new";
+    const preferenceControl = document.getElementById("planner-tool-style");
+    const preference = preferenceControl ? preferenceControl.value : "visual-first";
+    const focusControl = document.getElementById("planner-project-focus");
+    const focus = focusControl ? focusControl.value.trim() : "";
 
     if (!objectives.length) {
-        results.innerHTML = '<div class="planner-empty-message"><strong>Select at least one objective.</strong> You can combine as many activities as you need; the planner will arrange them into one workflow.</div>';
+        results.innerHTML = '<div class="planner-empty-message"><strong>Select at least one objective.</strong> Choose a research task above and the planner will build an ordered workflow around it.</div>';
         results.focus();
         return;
     }
 
     const stage = stageGuides[stageKey] || stageGuides["new-project"];
-    const chosenSteps = objectives.map(function(id) { return objectiveGuides[id]; }).filter(Boolean);
+    const chosenSteps = objectives
+        .filter(function(id) { return id !== stageKey; })
+        .map(function(id) { return objectiveGuides[id]; })
+        .filter(Boolean);
     chosenSteps.sort(function(a, b) { return a.order - b.order; });
 
     const allSteps = [{
-        order: -1,
-        kicker: "PROJECT STAGE / " + titleLabel(stageKey).toUpperCase(),
+        kicker: "PROJECT STARTING POINT",
         title: stage.title,
         intro: stage.intro,
         tasks: stage.tasks,
@@ -468,20 +580,40 @@ function renderWorkflow(event) {
         const title = label ? label.querySelector("strong") : null;
         return title ? title.textContent.trim() : titleLabel(id);
     });
+    const experienceSummary = experience === "new"
+        ? "Beginner guidance"
+        : experience === "some"
+            ? "Some computational experience"
+            : "Command line / coding comfortable";
+    const styleSummary = preference === "visual-first"
+        ? "Browser / GUI first"
+        : preference === "mixed"
+            ? "Visual and technical tools"
+            : "Programming / command line acceptable";
+    const longWorkflowNote = allSteps.length > 7
+        ? '<p class="planner-length-note"><strong>This is a broad plan.</strong> For a shorter tutorial, run separate workflows for the discovery/data phase and the modelling/design phase.</p>'
+        : "";
+    const beginnerNote = experience === "new" && preference === "visual-first"
+        ? "Start with the suggested browser or graphical option in each step. Cards marked command line or programming may need a colleague, a prepared environment, or a separate graphical alternative."
+        : "Follow the steps in order and keep each input, setting, output, and source. Use technical tools only when you can validate their setup and outputs.";
 
     results.innerHTML =
         '<div class="planner-results-heading">' +
-            '<div><p class="eyebrow">02 / YOUR WORKFLOW</p>' +
-                '<h2>' + escapeWorkflowHtml(stage.title) + '</h2></div>' +
-            '<p>' + escapeWorkflowHtml(stage.intro) + '<br><br><strong>Combined objectives:</strong> ' +
-                escapeWorkflowHtml(objectiveNames.join(" · ")) +
-                '<br><br>OS setting: ' + escapeWorkflowHtml(titleLabel(selectedOS === "any" ? "No preference" : selectedOS)) +
-                '. Compatibility is shown as a note; relevant tools are not excluded.</p>' +
+            '<div><p class="eyebrow">02 / YOUR WORKFLOW</p><h2>' + escapeWorkflowHtml(stage.title) + '</h2></div>' +
+            '<p>' + escapeWorkflowHtml(stage.intro) +
+                '<br><br><strong>Goals:</strong> ' + escapeWorkflowHtml(objectiveNames.join(" · ")) +
+                '<br><strong>Guidance:</strong> ' + escapeWorkflowHtml(experienceSummary) +
+                '<br><strong>Tool route:</strong> ' + escapeWorkflowHtml(styleSummary) +
+                (focus ? '<br><strong>Project focus:</strong> ' + escapeWorkflowHtml(focus) : "") +
+                '<br><strong>Operating system:</strong> ' + escapeWorkflowHtml(titleLabel(selectedOS === "any" ? "No preference" : selectedOS)) +
+            '</p>' +
         '</div>' +
+        '<div class="planner-beginner-note"><strong>How to use this plan.</strong> ' + escapeWorkflowHtml(beginnerNote) + ' Treat model outputs as hypotheses, not experimental confirmation.</div>' +
+        longWorkflowNote +
         '<div class="planner-results-list">' +
-            allSteps.map(function(step, index) { return makeStep(step, index, selectedOS); }).join("") +
+            allSteps.map(function(step, index) { return makeStep(step, index, selectedOS, preference); }).join("") +
         '</div>' +
-        '<p class="planner-method-note">Use this as a starting workflow, not as an automatic scientific decision. Validate tool outputs against experimental evidence, inspect model applicability and uncertainty, and document every input and setting. Tool suggestions come from the current ChemIsFree catalogue; missing catalogue coverage is labelled explicitly.</p>';
+        '<p class="planner-method-note">Tool suggestions are ranked from the current ChemIsFree catalogue by task relevance and interface preference. Interface labels marked provisional, inferred, or unconfirmed have not been individually verified. Always check official documentation for the tool, its licence, maintenance status, input requirements, and scientific limitations before use.</p>';
 
     results.focus();
 }
