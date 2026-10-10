@@ -570,8 +570,14 @@ function applyUrlState() {
     if (interfaceValue && interfaceSelect?.querySelector(`option[value="${escapeAttribute(interfaceValue)}"]`)) interfaceSelect.value = interfaceValue;
     if (access && accessSelect?.querySelector(`option[value="${escapeAttribute(access)}"]`)) accessSelect.value = access;
 
-    const hasFilters = Boolean(search || domain || legacyCategory || task || interfaceValue || access);
-    viewMode = params.get("view") === "all" || hasFilters ? "all" : "featured";
+    const hasSearchOrNarrowing = Boolean(search || task || interfaceValue || access);
+    if (params.get("view") === "featured") {
+        viewMode = "featured";
+    } else if (params.get("view") === "all" || hasSearchOrNarrowing || (domain && !legacyCategory)) {
+        viewMode = "all";
+    } else {
+        viewMode = "featured";
+    }
 }
 
 function legacyCategoryToDomain(category) {
@@ -596,6 +602,7 @@ function updateUrlState(state) {
     if (state.interface) params.set("interface", state.interface);
     if (state.access) params.set("access", state.access);
     if (viewMode === "all") params.set("view", "all");
+    else if (state.domain) params.set("view", "featured");
 
     const query = params.toString();
     const newUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname;
