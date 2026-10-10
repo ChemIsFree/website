@@ -613,7 +613,7 @@ function renderWorkflow(event) {
         '<div class="planner-results-list">' +
             allSteps.map(function(step, index) { return makeStep(step, index, selectedOS, preference); }).join("") +
         '</div>' +
-        '<p class="planner-method-note">Tool suggestions are ranked from the current ChemIsFree catalogue by task relevance and interface preference. Interface labels marked provisional, inferred, or unconfirmed have not been individually verified. Always check the tool's official documentation, licence, maintenance status, input requirements, and scientific limitations before use.</p>';
+        '<p class="planner-method-note">Tool suggestions are ranked from the current ChemIsFree catalogue by task relevance and interface preference. Interface labels marked provisional, inferred, or unconfirmed have not been individually verified. Always check official documentation for the tool, its licence, maintenance status, input requirements, and scientific limitations before use.</p>';
 
     results.focus();
 }
