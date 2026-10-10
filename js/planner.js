@@ -338,6 +338,7 @@ function rankWorkflowTools(config) {
 function interfaceSummary(tool) {
     const items = Array.isArray(tool.interface) ? tool.interface : [];
     if (!items.length) return "Interface not specified";
+    if (items.includes("other")) return "Interface unconfirmed";
 
     const gui = items.includes("gui");
     const web = items.includes("web");
