@@ -14,8 +14,10 @@ CATALOGUE_ROOT = ROOT.parent / "catalogue"
 PRIMARY_FILE = CATALOGUE_ROOT / "data" / "tools.yaml"
 TAXONOMY_FILE = CATALOGUE_ROOT / "data" / "taxonomy.yaml"
 REGISTRY_FILE = CATALOGUE_ROOT / "data" / "assayer_free_registry.json"
+FEATURED_FILE = CATALOGUE_ROOT / "data" / "featured_tools.yaml"
 TOOLS_JSON = ROOT / "data" / "tools.json"
 TAXONOMY_JSON = ROOT / "data" / "taxonomy.json"
+FEATURED_JSON = ROOT / "data" / "featured_tools.json"
 
 ERRORS = []
 
@@ -62,7 +64,7 @@ def collect_tasks(taxonomy):
 
 
 def main():
-    required = [PRIMARY_FILE, TAXONOMY_FILE, REGISTRY_FILE, TOOLS_JSON, TAXONOMY_JSON]
+    required = [PRIMARY_FILE, TAXONOMY_FILE, REGISTRY_FILE, FEATURED_FILE, TOOLS_JSON, TAXONOMY_JSON, FEATURED_JSON]
     missing = [str(path) for path in required if not path.exists()]
     if missing:
         print("Missing required catalogue input/output files:", *missing, sep="\n  ", file=sys.stderr)
@@ -73,6 +75,8 @@ def main():
     imported = read_json(REGISTRY_FILE)
     built = read_json(TOOLS_JSON)
     built_taxonomy = read_json(TAXONOMY_JSON)
+    featured_config = read_yaml(FEATURED_FILE)
+    built_featured = read_json(FEATURED_JSON)
 
     source_task_list = collect_tasks(source_taxonomy)
     built_task_list = collect_tasks(built_taxonomy)
@@ -87,6 +91,33 @@ def main():
     duplicate_ids = [item for item, count in Counter(built_ids_list).items() if count > 1]
     if duplicate_ids:
         fail("Duplicate IDs in built catalogue: " + ", ".join(duplicate_ids[:20]))
+
+    # Editorial shortlist: keep the default browse view focused without removing the full catalogue.
+    featured_domains = featured_config.get("domains", {}) if isinstance(featured_config, dict) else {}
+    built_featured_domains = built_featured.get("domains", {}) if isinstance(built_featured, dict) else {}
+    if featured_config != built_featured:
+        fail("Generated featured-tools JSON differs from data/featured_tools.yaml.")
+    if set(featured_domains) != set(built_featured_domains):
+        fail("Featured category IDs differ between the source shortlist and generated JSON.")
+
+    tool_by_id = {str(tool.get("id", "")): tool for tool in built}
+    for domain_id, config in featured_domains.items():
+        if domain_id not in domain_ids:
+            fail(f"Featured shortlist refers to unknown category/domain {domain_id!r}.")
+        picks = config.get("tools", []) if isinstance(config, dict) else []
+        if not isinstance(picks, list):
+            fail(f"Featured shortlist for {domain_id!r} must provide a list of tool IDs.")
+            continue
+        if not 5 <= len(picks) <= 20:
+            fail(f"Featured shortlist for {domain_id!r} has {len(picks)} tools; expected 5–20.")
+        if len(picks) != len(set(picks)):
+            fail(f"Featured shortlist for {domain_id!r} contains duplicate tool IDs.")
+        for featured_id in picks:
+            tool = tool_by_id.get(str(featured_id))
+            if not tool:
+                fail(f"Featured shortlist for {domain_id!r} references missing tool {featured_id!r}.")
+            elif domain_id not in (tool.get("domain") or []):
+                fail(f"Featured tool {featured_id!r} is not assigned to domain {domain_id!r}.")
 
     for tool in built:
         record_id = str(tool.get("id", "<missing-id>"))
@@ -158,6 +189,7 @@ def main():
     print(f"Free-only Assayer registry entries: {len(imported)}")
     print(f"Combined catalogue: {len(built)} unique IDs")
     print(f"Recognised taxonomy tasks: {len(source_tasks)}")
+    print(f"Featured categories: {len(featured_domains)}; each category is checked for 5–20 valid, category-assigned IDs.")
     print("All catalogue entries declare free access; all imported records retain their source licence/access label and provenance.")
     return 0
 
