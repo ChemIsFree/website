@@ -89,7 +89,23 @@ jobs:
 
       - name: Package local preview site
         working-directory: website
-        run: zip -qr visual-review/chemisfree-prelaunch-preview.zip . -x "node_modules/*" ".git/*" "visual-review/*"
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZIP_DEFLATED, ZipFile
+
+          root = Path(".")
+          output = root / "visual-review" / "chemisfree-prelaunch-preview.zip"
+          with ZipFile(output, "w", ZIP_DEFLATED) as archive:
+              for path in root.rglob("*"):
+                  if not path.is_file():
+                      continue
+                  relative = path.relative_to(root)
+                  if any(part in {".git", "node_modules", "visual-review"} for part in relative.parts):
+                      continue
+                  archive.write(path, relative.as_posix())
+          print(f"Created {output} ({output.stat().st_size:,} bytes)")
+          PY
 
       - name: Upload screenshots and local preview package
         uses: actions/upload-artifact@v4
