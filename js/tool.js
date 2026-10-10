@@ -242,8 +242,11 @@ function getInterfaceLabels(tool) {
 }
 
 function getDisplayAccess(tool) {
-    if ((tool.access || []).includes("free")) return "Free";
-    if (tool.source_available === true || (tool.access || []).includes("open-source")) return "Open Source";
+    const license = String(tool.license || "").trim();
+    const explicitOpenSource = /^(MIT|Apache-2\\.0|BSD-2-Clause|BSD-3-Clause|GPL-2\\.0|GPL-3\\.0|AGPL-3\\.0|LGPL-2\\.1|LGPL-3\\.0|MPL-2\\.0|AFL-3\\.0|Artistic-2\\.0|Unlicense)$/i.test(license);
+    if ((tool.access || []).includes("free") && explicitOpenSource) return "Free · Open Source";
+    if ((tool.access || []).includes("free")) return "Free access";
+    if (explicitOpenSource) return "Open Source";
     return "Unknown";
 }
 
