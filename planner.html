@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workflow Planner — ChemIsFree</title>
+    <meta name="description" content="Build a step-by-step medicinal chemistry workflow by combining tools and methods around your project stage and research objectives.">
+    <link rel="stylesheet" href="css/style.css?v=10">
+</head>
+<body>
+<header class="site-header">
+    <div class="container header-inner">
+        <a href="index.html" class="site-wordmark">
+            <span class="wordmark-main">ChemIsFree</span>
+            <span class="wordmark-dot"></span>
+        </a>
+        <nav class="main-nav">
+            <a href="tools.html">Explore</a>
+            <a href="planner.html" aria-current="page">Workflow planner</a>
+            <a href="index.html#categories">Categories</a>
+            <a href="about.html">About</a>
+            <a href="contribute.html">Contribute</a>
+        </nav>
+    </div>
+</header>
+
+<main>
+    <section class="planner-hero">
+        <div class="container">
+            <div class="planner-hero-top">
+                <span><strong>CHEMISFREE</strong> / WORKFLOW DESIGN</span>
+                <span>TOOLS × METHODS × EVIDENCE</span>
+            </div>
+            <div class="planner-hero-grid">
+                <div>
+                    <p class="eyebrow">THE MEDICINAL CHEMISTRY WORKFLOW PLANNER</p>
+                    <h1>Plan a workflow.<br><em>Not a tool list.</em></h1>
+                </div>
+                <div class="planner-hero-copy">
+                    <p>Real discovery projects combine methods. Build a step-by-step route through data analysis, screening, molecular design, structural interpretation, property assessment, and synthesis planning—based on what you are trying to accomplish.</p>
+                    <p class="planner-hero-note">Select more than one objective. Your choices are combined, not used to exclude entire approaches.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="planner-builder">
+        <div class="container">
+            <div class="planner-section-heading">
+                <div>
+                    <p class="eyebrow">01 / DEFINE YOUR PROJECT</p>
+                    <h2>What are you<br>working towards?</h2>
+                </div>
+                <p>Choose the closest project stage and check every activity that applies. The operating system adds practical compatibility notes; it will not silently remove a relevant method or tool.</p>
+            </div>
+
+            <form id="workflow-form" class="planner-form">
+                <div class="planner-operating-system">
+                    <div>
+                        <label for="planner-os" class="planner-field-title">Operating system</label>
+                        <p class="planner-field-help">Used for platform notes, not as a scientific filter.</p>
+                    </div>
+                    <div>
+                        <select id="planner-os" name="operating-system" class="planner-select">
+                            <option value="any">No preference</option>
+                            <option value="linux">Linux</option>
+                            <option value="macos">macOS</option>
+                            <option value="windows">Windows</option>
+                        </select>
+                    </div>
+                </div>
+
+                <fieldset class="planner-fieldset">
+                    <legend>Where are you in the project?</legend>
+                    <p class="planner-field-help">Choose the stage that best describes your current position. This sets the starting point and order of the tutorial, not a restriction on what comes next.</p>
+                    <div class="planner-stage-grid">
+                        <label class="planner-stage-option">
+                            <input type="radio" name="stage" value="new-project" checked>
+                            <span class="planner-choice-copy">
+                                <strong>New project / target exploration</strong>
+                                <small>Define the question, target context, and evidence base.</small>
+                            </span>
+                        </label>
+                        <label class="planner-stage-option">
+                            <input type="radio" name="stage" value="ligand-landscape">
+                            <span class="planner-choice-copy">
+                                <strong>Target and ligand landscape</strong>
+                                <small>Understand known ligands, activity data, and existing SAR.</small>
+                            </span>
+                        </label>
+                        <label class="planner-stage-option">
+                            <input type="radio" name="stage" value="hit-identification">
+                            <span class="planner-choice-copy">
+                                <strong>Hit identification</strong>
+                                <small>Find and prioritize compounds for experimental testing.</small>
+                            </span>
+                        </label>
+                        <label class="planner-stage-option">
+                            <input type="radio" name="stage" value="hit-to-lead">
+                            <span class="planner-choice-copy">
+                                <strong>Hit-to-lead</strong>
+                                <small>Confirm series, understand SAR, and improve starting hits.</small>
+                            </span>
+                        </label>
+                        <label class="planner-stage-option">
+                            <input type="radio" name="stage" value="lead-optimization">
+                            <span class="planner-choice-copy">
+                                <strong>Lead optimization</strong>
+                                <small>Balance potency, selectivity, properties, and synthetic options.</small>
+                            </span>
+                        </label>
+                        <label class="planner-stage-option">
+                            <input type="radio" name="stage" value="candidate-profiling">
+                            <span class="planner-choice-copy">
+                                <strong>Candidate profiling</strong>
+                                <small>Consolidate evidence and identify the main remaining risks.</small>
+                            </span>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <fieldset class="planner-fieldset">
+                    <legend>What would you like to do?</legend>
+                    <p class="planner-field-help">Select any combination. The resulting tutorial will combine compatible methods into a single ordered workflow.</p>
+                    <div class="planner-objectives-grid">
+                        <label class="planner-objective-option">
+                            <input type="checkbox" name="objective" value="target-context">
+                            <span class="planner-choice-copy">
+                                <strong>Understand the target and binding site</strong>
+                                <small>Review target evidence, structures, pocket geometry, and key residues.</small>
+                            </span>
+                        </label>
+                        <label class="planner-objective-option">
+                            <input type="checkbox" name="objective" value="ligand-landscape">
+                            <span class="planner-choice-copy">
+                                <strong>Analyze known ligands and SAR</strong>
+                                <small>Curate bioactivity data, compare series, and identify reliable trends.</small>
+                            </span>
+                        </label>
+                        <label class="planner-objective-option">
+                            <input type="checkbox" name="objective" value="hit-identification">
+                            <span class="planner-choice-copy">
+                                <strong>Find and prioritize hits</strong>
+                                <small>Search chemical space and combine screening evidence.</small>
+                            </span>
+                        </label>
+                        <label class="planner-objective-option">
+                            <input type="checkbox" name="objective" value="structure-based">
+                            <span class="planner-choice-copy">
+                                <strong>Dock compounds and evaluate poses</strong>
+                                <small>Prepare structures, validate docking, and compare binding modes.</small>
+                            </span>
+                        </label>
+                        <label class="planner-objective-option">
+                            <input type="checkbox" name="objective" value="interactions">
+                            <span class="planner-choice-copy">
+                                <strong>Analyze protein–ligand interactions</strong>
+                                <small>Inspect hydrogen bonds, hydrophobic contacts, and interaction patterns.</small>
+                            </span>
+                        </label>
+                        <label class="planner-objective-option">
+                            <input type="checkbox" name="objective" value="qsar">
+                            <span class="planner-choice-copy">
+                                <strong>Build QSAR or predictive models</strong>
+                                <small>Prepare data, train models, and validate their applicability.</small>
+                            </span>
+                        </label>
+                        <label class="planner-objective-option">
+                            <input type="checkbox" name="objective" value="analogues">
+                            <span class="planner-choice-copy">
+                                <strong>Design analogues or explore scaffold hops</strong>
+                                <small>Translate SAR and binding hypotheses into testable changes.</small>
+                            </span>
+                        </label>
+                        <label class="planner-objective-option">
+                            <input type="checkbox" name="objective" value="de-novo">
+                            <span class="planner-choice-copy">
+                                <strong>Explore de novo or generative design</strong>
+                                <small>Define molecule constraints, generate ideas, and apply independent filters.</small>
+                            </span>
+                        </label>
+                        <label class="planner-objective-option">
+                            <input type="checkbox" name="objective" value="admet">
+                            <span class="planner-choice-copy">
+                                <strong>Assess properties, ADMET, or CNS fit</strong>
+                                <small>Evaluate physicochemical properties and identify developability risks.</small>
+                            </span>
+                        </label>
+                        <label class="planner-objective-option">
+                            <input type="checkbox" name="objective" value="synthesis">
+                            <span class="planner-choice-copy">
+                                <strong>Plan synthesis or retrosynthesis</strong>
+                                <small>Compare routes and assess whether designs are practical to make.</small>
+                            </span>
+                        </label>
+                        <label class="planner-objective-option">
+                            <input type="checkbox" name="objective" value="curation">
+                            <span class="planner-choice-copy">
+                                <strong>Prepare molecules and curate datasets</strong>
+                                <small>Standardize structures, resolve identifiers, and preserve provenance.</small>
+                            </span>
+                        </label>
+                        <label class="planner-objective-option">
+                            <input type="checkbox" name="objective" value="automation">
+                            <span class="planner-choice-copy">
+                                <strong>Build a repeatable workflow</strong>
+                                <small>Connect tools, record settings, and make analyses reproducible.</small>
+                            </span>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <div class="planner-form-actions">
+                    <button type="submit" class="button button-primary">Build my workflow <span>↗</span></button>
+                    <button type="reset" id="planner-reset" class="planner-reset">Reset selections</button>
+                </div>
+                <p class="planner-form-note">Tool suggestions are drawn from the current ChemIsFree catalogue. Where a dedicated tool is not listed, the tutorial will identify the gap rather than imply that another tool can perform that task.</p>
+            </form>
+
+            <section id="workflow-results" class="planner-results" aria-live="polite" tabindex="-1"></section>
+        </div>
+    </section>
+</main>
+
+<footer class="site-footer">
+    <div class="container footer-inner">
+        <div class="footer-brand">
+            <a href="index.html" class="footer-wordmark">ChemIsFree<span>.</span></a>
+            <p>Open chemistry.<br>Open knowledge.</p>
+        </div>
+        <div class="footer-links">
+            <div>
+                <span>EXPLORE</span>
+                <a href="tools.html">Tools</a>
+                <a href="planner.html">Workflow planner</a>
+                <a href="index.html#categories">Categories</a>
+            </div>
+            <div>
+                <span>COMMUNITY</span>
+                <a href="contribute.html">Suggest a Tool</a>
+            </div>
+            <div>
+                <span>CODE</span>
+                <a href="https://github.com/ChemIsFree" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+            </div>
+        </div>
+    </div>
+    <div class="container footer-bottom">
+        <span>© 2026 ChemIsFree</span>
+        <span>Built openly.</span>
+    </div>
+</footer>
+
+<script src="js/planner.js?v=1"></script>
+</body>
+</html>
