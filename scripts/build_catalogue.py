@@ -67,15 +67,16 @@ def normalized_url(value):
 
 
 def deduplicate_catalogue(primary, supplemental):
-    """Keep the hand-maintained catalogue authoritative over imported records."""
-    known_ids = {str(item.get("id", "")) for item in primary}
-    known_names = {normalized_name(item.get("name")) for item in primary}
-    known_urls = {
+    """Deduplicate against the hand-maintained catalogue without collapsing separate tools sharing a repository."""
+    primary_ids = {str(item.get("id", "")) for item in primary}
+    primary_names = {normalized_name(item.get("name")) for item in primary}
+    primary_urls = {
         normalized_url(item.get(key))
         for item in primary
         for key in ("website", "repository", "documentation")
         if normalized_url(item.get(key))
     }
+    seen_imports = set()
     added = []
     skipped = 0
 
@@ -87,20 +88,20 @@ def deduplicate_catalogue(primary, supplemental):
             for key in ("website", "repository", "documentation")
             if normalized_url(item.get(key))
         }
+        # Do not remove different tool records just because they share one project URL.
+        import_key = (item_name, tuple(sorted(item_urls)))
         if (
             not item_id
-            or item_id in known_ids
-            or (item_name and item_name in known_names)
-            or bool(item_urls & known_urls)
+            or item_id in primary_ids
+            or (item_name and item_name in primary_names)
+            or bool(item_urls & primary_urls)
+            or import_key in seen_imports
         ):
             skipped += 1
             continue
 
         added.append(item)
-        known_ids.add(item_id)
-        if item_name:
-            known_names.add(item_name)
-        known_urls.update(item_urls)
+        seen_imports.add(import_key)
 
     return added, skipped
 
