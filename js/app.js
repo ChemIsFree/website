@@ -233,7 +233,7 @@ function matchesAccessFilter(tool, access) {
 }
 
 function isExplicitOpenSourceLicense(license) {
-    return /^(MIT|Apache-2\\.0|BSD-2-Clause|BSD-3-Clause|GPL-2\\.0|GPL-3\\.0|AGPL-3\\.0|LGPL-2\\.1|LGPL-3\\.0|MPL-2\\.0|AFL-3\\.0|Artistic-2\\.0|Unlicense)$/i.test(String(license || "").trim());
+    return /^(MIT|Apache-2\.0|BSD-2-Clause|BSD-3-Clause|GPL-2\.0|GPL-3\.0|AGPL-3\.0|LGPL-2\.1|LGPL-3\.0|MPL-2\.0|AFL-3\.0|Artistic-2\.0|Unlicense)$/i.test(String(license || "").trim());
 }
 
 function populateFilters() {
