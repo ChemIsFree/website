@@ -111,8 +111,11 @@
     }
     function hasCli(tool) {
         var items = interfaceSet(tool);
-        return items.indexOf("cli") !== -1 || items.indexOf("python") !== -1 || items.indexOf("r") !== -1 ||
-            items.indexOf("c++") !== -1 || items.indexOf("java") !== -1 || items.indexOf("notebook") !== -1;
+        var codeLanguages = asArray(tool.languages).map(function (x) { return String(x).toLowerCase(); });
+        var codeInterfaces = ["cli", "python", "r", "c++", "java", "notebook"];
+        return codeInterfaces.some(function (kind) {
+            return items.indexOf(kind) !== -1 || codeLanguages.indexOf(kind) !== -1;
+        });
     }
     function hasOpenSource(tool) {
         // Source files alone do not establish an open-source licence.
@@ -133,6 +136,10 @@
         if (prefs.access === "oss-only" && !hasOpenSource(tool)) return false;
         if (prefs.access === "web-only" && interfaceSet(tool).indexOf("web") === -1) return false;
         var platforms = asArray(tool.platforms).map(function (x) { return String(x).toLowerCase(); });
+        var explicitDesktopPlatform = platforms.some(function (platform) {
+            return ["linux", "windows", "macos", "desktop"].indexOf(platform) !== -1;
+        });
+        var browserOnly = platforms.indexOf("web") !== -1 && !explicitDesktopPlatform;
         if (prefs.os !== "any" && osKnown(tool) && platforms.indexOf(prefs.os) === -1 && platforms.indexOf("desktop") === -1) return false;
         if (prefs.compute === "standard" && String(tool.gpu || "").toLowerCase() === "required") return false;
         return true;
@@ -161,9 +168,20 @@
         }
 
         var platforms = asArray(tool.platforms).map(function (x) { return String(x).toLowerCase(); });
+        var explicitDesktopPlatform = platforms.some(function (platform) {
+            return ["linux", "windows", "macos", "desktop"].indexOf(platform) !== -1;
+        });
+        var browserOnly = platforms.indexOf("web") !== -1 && !explicitDesktopPlatform;
         if (prefs.os !== "any") {
-            if (platforms.indexOf(prefs.os) !== -1) { score += 3; reasons.push("catalogue lists " + label(prefs.os) + " support"); }
-            else if (platforms.length === 0 || !osKnown(tool)) reasons.push("platform compatibility needs checking");
+            if (platforms.indexOf(prefs.os) !== -1) {
+                score += 3;
+                reasons.push("catalogue lists " + label(prefs.os) + " support");
+            } else if (browserOnly) {
+                score += 1;
+                reasons.push("browser-based resource; typically usable regardless of desktop operating system");
+            } else if (platforms.length === 0 || !osKnown(tool)) {
+                reasons.push("platform compatibility needs checking");
+            }
         }
         if (prefs.compute === "standard" && String(tool.gpu || "").toLowerCase() !== "required") {
             score += 1;
