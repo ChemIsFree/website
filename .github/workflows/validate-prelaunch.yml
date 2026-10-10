@@ -82,3 +82,21 @@ jobs:
       - name: Browser smoke test
         working-directory: website
         run: node scripts/smoke_test.mjs
+
+      - name: Capture desktop and mobile visual review
+        working-directory: website
+        run: node scripts/visual_review.mjs
+
+      - name: Package local preview site
+        working-directory: website
+        run: |
+          zip -qr visual-review/chemisfree-prelaunch-preview.zip . \\
+            -x "node_modules/*" ".git/*" "visual-review/*"
+
+      - name: Upload screenshots and local preview package
+        uses: actions/upload-artifact@v4
+        with:
+          name: chemisfree-visual-review
+          path: website/visual-review/
+          if-no-files-found: error
+          retention-days: 14
