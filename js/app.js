@@ -164,42 +164,46 @@ function getResourceTypeName(typeKey) {
     return taxonomy.resources?.[typeKey]?.name || formatLabel(typeKey);
 }
 
-function hasGuiOrWeb(tool) {
-    const interfaces = tool.interface || [];
-    return interfaces.includes("gui") || interfaces.includes("web");
-}
+function getCardInterfaceInfo(tool) {
+    const values = (Array.isArray(tool.interface) ? tool.interface : [])
+        .map(value => String(value).toLowerCase().trim())
+        .filter(Boolean);
 
-function hasCli(tool) {
-    return (tool.interface || []).includes("cli");
+    const guiValues = ["gui", "web", "browser", "web-ui", "desktop-ui"];
+    const programmaticValues = [
+        "cli", "python", "c", "c++", "java", "r", "javascript",
+        "typescript", "api", "sdk", "julia", "matlab", "programmatic"
+    ];
+
+    const gui = values.some(value => guiValues.includes(value));
+    const programmatic = values.some(value =>
+        programmaticValues.includes(value) || value.endsWith(" api")
+    );
+
+    const labels = [];
+    if (gui) labels.push({
+        label: values.includes("gui") && values.includes("web") ? "GUI / WEB" :
+            values.includes("web") && !values.includes("gui") ? "WEB INTERFACE" : "GUI",
+        className: "interface-tag-gui"
+    });
+    if (programmatic) labels.push({
+        label: values.includes("cli") ? "CLI / PROGRAMMATIC" : "PROGRAMMATIC",
+        className: "interface-tag-programmatic"
+    });
+
+    let cardClass = "interface-unspecified";
+    if (gui && programmatic) cardClass = "has-both-interfaces";
+    else if (gui) cardClass = "has-gui-interface";
+    else if (programmatic) cardClass = "has-programmatic-interface";
+
+    return { gui, programmatic, labels, cardClass };
 }
 
 function matchesInterfaceFilter(tool, filter) {
-    if (filter === "gui-web") return hasGuiOrWeb(tool);
-    if (filter === "cli") return hasCli(tool);
+    const info = getCardInterfaceInfo(tool);
+    if (filter === "gui-web") return info.gui;
+    if (filter === "programmatic" || filter === "cli") return info.programmatic;
     return true;
-}
-
-function getInterfaceLabels(tool) {
-    const labels = [];
-    const gui = hasGuiOrWeb(tool);
-    const cli = hasCli(tool);
-    const interfaces = tool.interface || [];
-
-    if (gui && cli) {
-        labels.push("GUI + CLI");
-    } else if (interfaces.includes("web")) {
-        labels.push("WEB");
-    } else if (gui) {
-        labels.push("GUI");
-    } else if (cli) {
-        labels.push("CLI");
-    }
-
-    return labels;
-}
-
-function getPrimaryInterfaceGroup(tool) {
-    return hasGuiOrWeb(tool) ? "gui-web" : hasCli(tool) ? "cli" : "other";
 }
 
 function normalizeAccessFilter() {
@@ -273,55 +277,23 @@ function renderApplications(applicationTools) {
     Object.entries(taxonomy.domains || {}).forEach(([domainId, domain], domainIndex) => {
         const domainApplications = deduplicateTools(
             applicationTools.filter(tool => getToolDomains(tool).includes(domainId))
-        );
+        ).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
 
         if (!domainApplications.length) return;
 
-        const guiApps = domainApplications.filter(tool => getPrimaryInterfaceGroup(tool) === "gui-web");
-        const cliApps = domainApplications.filter(tool => getPrimaryInterfaceGroup(tool) === "cli");
-
-        html += `
-            <section class="application-domain" data-domain="${escapeAttribute(domainId)}">
-                <div class="application-domain-header">
-                    <div>
-                        <p class="eyebrow">${String(domainIndex + 1).padStart(2, "0")} / APPLICATIONS</p>
-                        <h2>${escapeHtml(domain.name)}</h2>
-                    </div>
-                    <p class="application-domain-description">
-                        ${escapeHtml(domain.description || "")}
-                    </p>
-                </div>
-        `;
-
-        if (guiApps.length) {
-            html += `
-                <div class="application-interface-group">
-                    <div class="interface-label">
-                        <span></span>
-                        GUI / WEB
-                    </div>
-                    <div class="application-grid">
-                        ${guiApps.map(tool => createApplicationCard(tool, domainId)).join("")}
-                    </div>
-                </div>
-            `;
-        }
-
-        if (cliApps.length) {
-            html += `
-                <div class="application-interface-group">
-                    <div class="interface-label">
-                        <span></span>
-                        COMMAND LINE
-                    </div>
-                    <div class="application-grid">
-                        ${cliApps.map(tool => createApplicationCard(tool, domainId)).join("")}
-                    </div>
-                </div>
-            `;
-        }
-
-        html += `</section>`;
+        html +=
+            '<section class="application-domain" data-domain="' + escapeAttribute(domainId) + '">' +
+                '<div class="application-domain-header">' +
+                    '<div>' +
+                        '<p class="eyebrow">' + String(domainIndex + 1).padStart(2, "0") + ' / APPLICATIONS</p>' +
+                        '<h2>' + escapeHtml(domain.name) + '</h2>' +
+                    '</div>' +
+                    '<p class="application-domain-description">' + escapeHtml(domain.description || "") + '</p>' +
+                '</div>' +
+                '<div class="application-grid">' +
+                    domainApplications.map(tool => createApplicationCard(tool, domainId)).join("") +
+                '</div>' +
+            '</section>';
     });
 
     container.innerHTML = html;
@@ -330,8 +302,9 @@ function renderApplications(applicationTools) {
 function createApplicationCard(tool, domainId) {
     const statusBadge = createStatusBadge(tool);
     const access = getDisplayAccess(tool);
-    const website = tool.website || tool.repository || tool.documentation || "#";
-    const interfaceLabels = getInterfaceLabels(tool);
+    const website = tool.website || tool.repository || tool.documentation || "";
+    const detailUrl = "tool.html?id=" + encodeURIComponent(tool.id || "");
+    const interfaceInfo = getCardInterfaceInfo(tool);
 
     const taskLabels = deduplicateTaskLabels(
         getToolTasks(tool)
@@ -339,48 +312,39 @@ function createApplicationCard(tool, domainId) {
             .map(getTaskName)
     );
 
-    return `
-        <article class="tool-card application-card">
-            ${statusBadge}
+    const interfaceTags = interfaceInfo.labels.map(item =>
+        '<span class="application-interface-tag ' + item.className + '">' +
+            escapeHtml(item.label) +
+        '</span>'
+    ).join("");
 
-            <div class="application-card-topline">
-                <div class="tool-type">
-                    ${escapeHtml(formatLabel(tool.type || "software"))}
-                </div>
-
-                ${interfaceLabels.length ? `
-                    <span class="application-interface">
-                        ${escapeHtml(interfaceLabels[0])}
-                    </span>
-                ` : ""}
-            </div>
-
-            <h3>${escapeHtml(tool.name || "Unnamed application")}</h3>
-
-            <p class="tool-description">
-                ${escapeHtml(tool.description || "No description available.")}
-            </p>
-
-            ${taskLabels.length ? `
-                <div class="application-task-tags">
-                    ${taskLabels.map(label => `<span>${escapeHtml(label)}</span>`).join("")}
-                </div>
-            ` : ""}
-
-            <div class="tool-meta">
-                <span>${escapeHtml(access)}</span>
-            </div>
-
-            <div class="tool-card-bottom">
-                <a class="tool-link" href="tool.html?id=${encodeURIComponent(tool.id || "")}">
-                    View tool
-                </a>
-                <a class="tool-link" href="${escapeAttribute(website)}" target="_blank" rel="noopener noreferrer">
-                    Visit resource
-                </a>
-            </div>
-        </article>
-    `;
+    return (
+        '<article class="tool-card application-card ' + interfaceInfo.cardClass + '">' +
+            '<a class="card-detail-hitarea" href="' + escapeAttribute(detailUrl) +
+                '" aria-label="Open ' + escapeAttribute(tool.name || "tool") + ' details"></a>' +
+            statusBadge +
+            '<div class="application-card-topline">' +
+                '<div class="tool-type">' + escapeHtml(formatLabel(tool.type || "software")) + '</div>' +
+            '</div>' +
+            '<h3>' + escapeHtml(tool.name || "Unnamed application") + '</h3>' +
+            '<div class="application-interface-tags">' +
+                (interfaceTags || '<span class="application-interface-tag interface-tag-unknown">INTERFACE NOT SPECIFIED</span>') +
+            '</div>' +
+            '<p class="tool-description">' + escapeHtml(tool.description || "No description available.") + '</p>' +
+            (taskLabels.length
+                ? '<div class="application-task-tags">' +
+                    taskLabels.map(label => '<span>' + escapeHtml(label) + '</span>').join("") +
+                  '</div>'
+                : '') +
+            '<div class="tool-meta"><span>' + escapeHtml(access) + '</span></div>' +
+            '<div class="tool-card-bottom">' +
+                '<a class="tool-link" href="' + escapeAttribute(detailUrl) + '">Tool details ↗</a>' +
+                (website
+                    ? '<a class="tool-link" href="' + escapeAttribute(website) + '" target="_blank" rel="noopener noreferrer">Official resource ↗</a>'
+                    : '') +
+            '</div>' +
+        '</article>'
+    );
 }
 
 function renderResources(resourceTools) {
@@ -400,52 +364,50 @@ function renderResources(resourceTools) {
         const items = groups[type] || [];
         if (!items.length) return;
 
-        html += `
-            <section class="resource-group">
-                <div class="resource-group-heading">
-                    <h3>${escapeHtml(getResourceTypeName(type))}</h3>
-                    <span>${String(items.length).padStart(2, "0")}</span>
-                </div>
-                <div class="resource-grid">
-                    ${items
-                        .sort((a, b) => (a.name || "").localeCompare(b.name || ""))
-                        .map(createResourceCard)
-                        .join("")}
-                </div>
-            </section>
-        `;
+        html +=
+            '<section class="resource-group">' +
+                '<div class="resource-group-heading">' +
+                    '<h3>' + escapeHtml(getResourceTypeName(type)) + '</h3>' +
+                    '<span>' + String(items.length).padStart(2, "0") + '</span>' +
+                '</div>' +
+                '<div class="resource-grid">' +
+                    items.sort((a, b) => (a.name || "").localeCompare(b.name || ""))
+                        .map(createResourceCard).join("") +
+                '</div>' +
+            '</section>';
     });
 
     container.innerHTML = html;
 }
 
 function createResourceCard(tool) {
-    const website = tool.website || tool.repository || tool.documentation || "#";
+    const website = tool.website || tool.repository || tool.documentation || "";
+    const detailUrl = "tool.html?id=" + encodeURIComponent(tool.id || "");
     const taskLabels = deduplicateTaskLabels(getToolTasks(tool).map(getTaskName)).slice(0, 4);
     const typeKey = getResourceTypeKey(tool);
 
-    return `
-        <article class="resource-card">
-            <div class="resource-card-top">
-                <span class="resource-type">${escapeHtml(getResourceTypeName(typeKey))}</span>
-            </div>
-            <h4>${escapeHtml(tool.name || "Unnamed resource")}</h4>
-            <p>${escapeHtml(tool.description || "No description available.")}</p>
-            ${taskLabels.length ? `
-                <div class="resource-tags">
-                    ${taskLabels.map(label => `<span>${escapeHtml(label)}</span>`).join("")}
-                </div>
-            ` : ""}
-            <div class="resource-card-bottom">
-                <a class="tool-link" href="tool.html?id=${encodeURIComponent(tool.id || "")}">
-                    Details
-                </a>
-                <a class="tool-link" href="${escapeAttribute(website)}" target="_blank" rel="noopener noreferrer">
-                    Visit
-                </a>
-            </div>
-        </article>
-    `;
+    return (
+        '<article class="resource-card">' +
+            '<a class="card-detail-hitarea" href="' + escapeAttribute(detailUrl) +
+                '" aria-label="Open ' + escapeAttribute(tool.name || "resource") + ' details"></a>' +
+            '<div class="resource-card-top">' +
+                '<span class="resource-type">' + escapeHtml(getResourceTypeName(typeKey)) + '</span>' +
+            '</div>' +
+            '<h4>' + escapeHtml(tool.name || "Unnamed resource") + '</h4>' +
+            '<p>' + escapeHtml(tool.description || "No description available.") + '</p>' +
+            (taskLabels.length
+                ? '<div class="resource-tags">' +
+                    taskLabels.map(label => '<span>' + escapeHtml(label) + '</span>').join("") +
+                  '</div>'
+                : '') +
+            '<div class="resource-card-bottom">' +
+                '<a class="tool-link" href="' + escapeAttribute(detailUrl) + '">Details ↗</a>' +
+                (website
+                    ? '<a class="tool-link" href="' + escapeAttribute(website) + '" target="_blank" rel="noopener noreferrer">Visit ↗</a>'
+                    : '') +
+            '</div>' +
+        '</article>'
+    );
 }
 
 function updateResultCount(applications, resources) {
