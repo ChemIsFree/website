@@ -150,6 +150,10 @@ function createLinksSection(tool) {
     if (tool.website) links.push(`<a href="${escapeAttribute(tool.website)}" target="_blank" rel="noopener noreferrer" class="external-link">Official website <span>↗</span></a>`);
     if (tool.repository) links.push(`<a href="${escapeAttribute(tool.repository)}" target="_blank" rel="noopener noreferrer" class="external-link">Source repository <span>↗</span></a>`);
     if (tool.documentation) links.push(`<a href="${escapeAttribute(tool.documentation)}" target="_blank" rel="noopener noreferrer" class="external-link">Documentation <span>↗</span></a>`);
+    if (tool.source_project_url) {
+        const sourceName = tool.source_project || "upstream registry";
+        links.push(`<a href="${escapeAttribute(tool.source_project_url)}" target="_blank" rel="noopener noreferrer" class="external-link">Catalogue provenance: ${escapeHtml(sourceName)} <span>↗</span></a>`);
+    }
 
     if (!links.length) return "";
 
@@ -163,13 +167,19 @@ function createLinksSection(tool) {
 }
 
 function createNotesSection(tool) {
-    if (!tool.notes) return "";
+    const paragraphs = [];
+    if (tool.notes) paragraphs.push(tool.notes);
+    if (tool.access_note) paragraphs.push("Access and licence note: " + tool.access_note);
+    if (tool.chemisfree_status === "registry-listed") {
+        paragraphs.push("This record was imported from an external public catalogue and has not yet been independently verified by ChemIsFree. Confirm current availability, licence terms, platform support, and maintenance status with the official project.");
+    }
+    if (!paragraphs.length) return "";
 
     return `
         <section class="tool-section">
-            <div class="tool-section-label">03 / CHEMISFREE NOTE</div>
+            <div class="tool-section-label">03 / NOTES & PROVENANCE</div>
             <h2>Notes</h2>
-            <p>${escapeHtml(tool.notes)}</p>
+            ${paragraphs.map(paragraph => `<p>${escapeHtml(paragraph)}</p>`).join("")}
         </section>
     `;
 }
@@ -242,6 +252,7 @@ function createStatusBadge(tool) {
     if (status === "chemisfree-project") return `<div class="tool-status tool-status-own">ChemIsFree Project</div>`;
     if (status === "community-project") return `<div class="tool-status tool-status-community">Community Project</div>`;
     if (status === "archived") return `<div class="tool-status tool-status-archived">Archived</div>`;
+    if (status === "registry-listed") return `<div class="tool-status tool-status-registry">Registry-listed · review pending</div>`;
     return "";
 }
 
