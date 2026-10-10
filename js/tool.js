@@ -259,7 +259,8 @@ function getInterfaceLabels(tool) {
         }
     }
 
-    const known = new Set(["gui", "web", "cli", "python", "r", "c++", "java", "api", "notebook", "mcp"]);
+    const known = new Set(["gui", "web", "cli", "python", "r", "c++", "java", "api", "notebook", "mcp", "other"]);
+    if (values.includes("other")) labels.push("Interface unconfirmed");
     if (values.some(value => !known.has(value))) labels.push("Other");
 
     return labels;
