@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Explore Tools — ChemIsFree</title>
     <meta name="description" content="Find open chemistry, drug discovery, molecular modelling, machine learning and laboratory applications.">
-    <link rel="stylesheet" href="css/style.css?v=10">
+    <link rel="stylesheet" href="css/style.css?v=11">
 </head>
 <body>
 <header class="site-header">
@@ -49,9 +49,9 @@
     <section class="catalogue-section">
         <div class="container">
             <div class="catalogue-search">
-                <label for="search">Search the catalogue</label>
+                <label for="search">Search the full catalogue</label>
                 <div class="catalogue-search-field">
-                    <input id="search" type="search" placeholder="What are you trying to do?" autocomplete="off">
+                    <input id="search" type="search" placeholder="Search all tools, including specialist resources" autocomplete="off">
                     <span class="search-symbol">/</span>
                 </div>
             </div>
@@ -88,12 +88,20 @@
                 <button id="clear-filters" type="button" class="filter-clear">Clear filters</button>
             </div>
 
+            <div class="catalogue-view-toolbar">
+                <div class="catalogue-view-copy">
+                    <p id="catalogue-view-status" class="catalogue-view-status">CURATED PICKS / THE COMPLETE INDEX REMAINS AVAILABLE</p>
+                    <p class="catalogue-view-description">Start with a focused shortlist. Search or filter to explore every catalogue record.</p>
+                </div>
+                <button id="catalogue-view-toggle" class="catalogue-view-toggle" type="button" aria-pressed="false">Explore the full catalogue</button>
+            </div>
+
             <div class="catalogue-results-header">
                 <div class="catalogue-results-count">
                     <span class="results-marker"></span>
                     <span id="result-count">Loading catalogue...</span>
                 </div>
-                <div class="catalogue-results-note">APPLICATIONS FIRST · RESOURCES BELOW</div>
+                <div class="catalogue-results-note">RECOMMENDED FIRST · FULL INDEX AVAILABLE</div>
             </div>
 
             <div id="applications-catalogue" class="applications-catalogue"></div>
@@ -150,6 +158,6 @@
     </div>
 </footer>
 
-<script src="js/app.js?v=8"></script>
+<script src="js/app.js?v=9"></script>
 </body>
 </html>
