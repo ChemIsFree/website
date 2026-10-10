@@ -3,19 +3,24 @@ let taxonomy = {
     domains: {},
     resources: {}
 };
+let featuredConfig = { domains: {} };
+let viewMode = "featured";
 
 async function loadCatalogue() {
     try {
-        const [toolsResponse, taxonomyResponse] = await Promise.all([
+        const [toolsResponse, taxonomyResponse, featuredResponse] = await Promise.all([
             fetch("data/tools.json"),
-            fetch("data/taxonomy.json")
+            fetch("data/taxonomy.json"),
+            fetch("data/featured_tools.json")
         ]);
 
         if (!toolsResponse.ok) throw new Error(`Tools HTTP ${toolsResponse.status}`);
         if (!taxonomyResponse.ok) throw new Error(`Taxonomy HTTP ${taxonomyResponse.status}`);
+        if (!featuredResponse.ok) throw new Error(`Featured tools HTTP ${featuredResponse.status}`);
 
         tools = await toolsResponse.json();
         taxonomy = await taxonomyResponse.json();
+        featuredConfig = await featuredResponse.json();
         initializeCatalogue();
     } catch (error) {
         console.error("Could not load ChemIsFree catalogue:", error);
@@ -47,36 +52,54 @@ function initializeCatalogue() {
 
     const update = () => {
         const state = getFilterState();
-        const filtered = tools.filter(tool => matchesFilters(tool, state));
+        let filtered = tools.filter(tool => matchesFilters(tool, state));
+        if (viewMode === "featured") {
+            const featuredIds = new Set(
+                Object.values(featuredConfig.domains || {}).flatMap(category => category.tools || [])
+            );
+            filtered = filtered.filter(tool => featuredIds.has(tool.id));
+        }
         const applications = filtered.filter(isApplication);
         const resources = filtered.filter(isResource);
 
-        renderApplications(applications);
+        renderApplications(applications, viewMode);
         renderResources(resources);
-        updateResultCount(applications, resources);
+        updateResultCount(applications, resources, viewMode);
+        updateViewControls();
         updateUrlState(state);
+    };
+
+    const switchToFullForFilters = () => {
+        const state = getFilterState();
+        if (state.domain || state.task || state.interface || state.access) viewMode = "all";
+        update();
     };
 
     let searchDebounceTimer;
     document.getElementById("search")?.addEventListener("input", () => {
-        // Avoid rebuilding a large catalogue on every individual keystroke.
+        if (document.getElementById("search")?.value.trim()) viewMode = "all";
+        updateViewControls();
+        // Avoid rebuilding the full catalogue on every individual keystroke.
         window.clearTimeout(searchDebounceTimer);
         searchDebounceTimer = window.setTimeout(update, 120);
     });
-    document.getElementById("domain-filter")?.addEventListener("change", update);
-    document.getElementById("task-filter")?.addEventListener("change", update);
-    document.getElementById("interface-filter")?.addEventListener("change", update);
-    document.getElementById("access-filter")?.addEventListener("change", update);
+    document.getElementById("domain-filter")?.addEventListener("change", switchToFullForFilters);
+    document.getElementById("task-filter")?.addEventListener("change", switchToFullForFilters);
+    document.getElementById("interface-filter")?.addEventListener("change", switchToFullForFilters);
+    document.getElementById("access-filter")?.addEventListener("change", switchToFullForFilters);
 
-    document.getElementById("clear-filters")?.addEventListener("click", () => {
-        clearCatalogue();
+    document.getElementById("catalogue-view-toggle")?.addEventListener("click", () => {
+        viewMode = viewMode === "featured" ? "all" : "featured";
         update();
     });
 
-    document.getElementById("clear-filters-empty")?.addEventListener("click", () => {
+    const clearFilters = () => {
         clearCatalogue();
+        viewMode = "featured";
         update();
-    });
+    };
+    document.getElementById("clear-filters")?.addEventListener("click", clearFilters);
+    document.getElementById("clear-filters-empty")?.addEventListener("click", clearFilters);
 
     update();
 }
@@ -280,16 +303,23 @@ function populateFilters() {
     });
 }
 
-function renderApplications(applicationTools) {
+function renderApplications(applicationTools, mode = "all") {
     const container = document.getElementById("applications-catalogue");
     if (!container) return;
+    container.dataset.viewMode = mode;
 
     let html = "";
 
     Object.entries(taxonomy.domains || {}).forEach(([domainId, domain], domainIndex) => {
-        const domainApplications = deduplicateTools(
+        let domainApplications = deduplicateTools(
             applicationTools.filter(tool => getToolDomains(tool).includes(domainId))
         );
+
+        if (mode === "featured") {
+            const orderedIds = featuredConfig.domains?.[domainId]?.tools || [];
+            const toolsById = new Map(domainApplications.map(tool => [tool.id, tool]));
+            domainApplications = orderedIds.map(id => toolsById.get(id)).filter(Boolean);
+        }
 
         if (!domainApplications.length) return;
 
@@ -481,18 +511,35 @@ function createResourceCard(tool) {
     `;
 }
 
-function updateResultCount(applications, resources) {
+function updateResultCount(applications, resources, mode = "all") {
     const count = document.getElementById("result-count");
     const noResults = document.getElementById("no-results");
     if (!count) return;
 
     const appCount = applications.length;
     const resourceCount = resources.length;
+    const prefix = mode === "featured" ? "featured " : "";
 
-    count.textContent = `${appCount} application${appCount === 1 ? "" : "s"} · ${resourceCount} resource${resourceCount === 1 ? "" : "s"}`;
+    count.textContent = `${appCount} ${prefix}application${appCount === 1 ? "" : "s"} · ${resourceCount} ${prefix}resource${resourceCount === 1 ? "" : "s"}`;
 
     if (noResults) {
         noResults.hidden = appCount === 0 && resourceCount === 0;
+    }
+}
+
+function updateViewControls() {
+    const toggle = document.getElementById("catalogue-view-toggle");
+    const status = document.getElementById("catalogue-view-status");
+    if (toggle) {
+        toggle.textContent = viewMode === "featured"
+            ? `Explore all ${tools.length.toLocaleString("en-GB")} tools`
+            : "Show featured picks";
+        toggle.setAttribute("aria-pressed", viewMode === "all" ? "true" : "false");
+    }
+    if (status) {
+        status.textContent = viewMode === "featured"
+            ? "CURATED PICKS / THE COMPLETE INDEX REMAINS AVAILABLE"
+            : "FULL INDEX / ALL CATALOGUE RECORDS";
     }
 }
 
@@ -522,6 +569,9 @@ function applyUrlState() {
     if (task && taskSelect?.querySelector(`option[value="${escapeAttribute(task)}"]`)) taskSelect.value = task;
     if (interfaceValue && interfaceSelect?.querySelector(`option[value="${escapeAttribute(interfaceValue)}"]`)) interfaceSelect.value = interfaceValue;
     if (access && accessSelect?.querySelector(`option[value="${escapeAttribute(access)}"]`)) accessSelect.value = access;
+
+    const hasFilters = Boolean(search || domain || legacyCategory || task || interfaceValue || access);
+    viewMode = params.get("view") === "all" || hasFilters ? "all" : "featured";
 }
 
 function legacyCategoryToDomain(category) {
@@ -545,6 +595,7 @@ function updateUrlState(state) {
     if (state.task) params.set("task", state.task);
     if (state.interface) params.set("interface", state.interface);
     if (state.access) params.set("access", state.access);
+    if (viewMode === "all") params.set("view", "all");
 
     const query = params.toString();
     const newUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname;
