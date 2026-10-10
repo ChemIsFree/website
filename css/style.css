@@ -4156,3 +4156,10 @@ button {
     .about-policy { padding: 60px 0 75px; }
     .about-policy .container { grid-template-columns: 1fr; }
 }
+
+.resource-source-note {
+    margin: 9px 0 0 !important;
+    color: var(--text-muted) !important;
+    font-size: 8px !important;
+    letter-spacing: .06em;
+}
