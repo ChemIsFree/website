@@ -57,7 +57,12 @@ function initializeCatalogue() {
         updateUrlState(state);
     };
 
-    document.getElementById("search")?.addEventListener("input", update);
+    let searchDebounceTimer;
+    document.getElementById("search")?.addEventListener("input", () => {
+        // Avoid rebuilding a large catalogue on every individual keystroke.
+        window.clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = window.setTimeout(update, 120);
+    });
     document.getElementById("domain-filter")?.addEventListener("change", update);
     document.getElementById("task-filter")?.addEventListener("change", update);
     document.getElementById("interface-filter")?.addEventListener("change", update);
@@ -107,10 +112,19 @@ function buildSearchText(tool) {
         ...(tool.interface || []),
         ...(tool.category || []),
         ...(tool.languages || []),
+        ...(tool.developers || []),
+        ...(tool.source_registry_sources || []),
         ...domains,
         ...tasks,
         tool.type,
-        tool.resource_type
+        tool.resource_type,
+        tool.license,
+        tool.access_note,
+        tool.source_project,
+        tool.source_registry_stage,
+        tool.website,
+        tool.repository,
+        tool.documentation
     ].filter(Boolean).join(" ").toLowerCase();
 }
 
