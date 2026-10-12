@@ -4966,3 +4966,116 @@ button {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
+
+
+/* Live target and structure evidence from UniProt / RCSB PDB */
+.live-target-evidence {
+    margin: 26px 0;
+    padding: 22px;
+    border: 1px solid var(--line);
+    background: var(--paper-light);
+}
+.live-evidence-heading {
+    margin-bottom: 18px;
+}
+.live-evidence-heading h3 {
+    margin: 3px 0 7px;
+    font-size: 24px;
+    line-height: 1.25;
+}
+.live-evidence-heading p:last-child,
+.live-evidence-note {
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.6;
+}
+.live-target-evidence h4 {
+    margin: 22px 0 9px;
+    font-size: 15px;
+}
+.live-evidence-table-wrap {
+    width: 100%;
+    margin: 12px 0;
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    background: white;
+}
+.live-evidence-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 660px;
+    font-size: 12px;
+    line-height: 1.45;
+}
+.live-evidence-table th,
+.live-evidence-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+}
+.live-evidence-table th {
+    color: var(--text-muted);
+    background: #eeede7;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    white-space: nowrap;
+}
+.live-evidence-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+.live-evidence-table tbody tr:hover td {
+    background: #faf9f4;
+}
+.live-evidence-table td a {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.live-evidence-table td small {
+    display: block;
+    margin-top: 3px;
+    color: var(--text-muted);
+    font-size: 10px;
+}
+.live-evidence-empty {
+    padding: 15px 17px;
+    border-left: 3px solid #b78231;
+    background: #fff9ef;
+    font-size: 12px;
+    line-height: 1.65;
+}
+.live-evidence-empty p {
+    margin: 7px 0 0;
+}
+.live-evidence-empty a {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+@media (max-width: 760px) {
+    .live-target-evidence {
+        padding: 15px;
+    }
+    .live-evidence-heading h3 {
+        font-size: 21px;
+    }
+}
+@media print {
+    .live-target-evidence {
+        background: white !important;
+        padding: 10px 0;
+        break-inside: avoid;
+    }
+    .live-evidence-table {
+        min-width: 0;
+        font-size: 9px;
+    }
+    .live-evidence-table th,
+    .live-evidence-table td {
+        padding: 4px;
+    }
+    .live-evidence-note {
+        color: #333 !important;
+        font-size: 8px;
+    }
+}
