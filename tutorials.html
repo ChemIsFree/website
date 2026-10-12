@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practical Tutorials — ChemIsFree</title>
+    <meta name="description" content="Beginner-friendly, step-by-step medicinal chemistry workflows using free chemistry and drug-discovery tools.">
+    <link rel="stylesheet" href="css/style.css?v=15">
+</head>
+<body>
+<header class="site-header">
+    <div class="container header-inner">
+        <a href="index.html" class="site-wordmark">
+            <span class="wordmark-main">ChemIsFree</span>
+            <span class="wordmark-dot"></span>
+        </a>
+        <nav class="main-nav">
+            <a href="tools.html">Explore</a>
+            <a href="tutorials.html" aria-current="page">Tutorials</a>
+            <a href="planner.html">Workflow planner</a>
+            <a href="index.html#categories">Categories</a>
+            <a href="about.html">About</a>
+            <a href="contribute.html">Contribute</a>
+        </nav>
+    </div>
+</header>
+
+<main class="tutorials-page">
+    <section class="tutorials-hero">
+        <div class="container">
+            <div class="tutorials-hero-top">
+                <span><strong>CHEMISFREE</strong> / PRACTICAL GUIDES</span>
+                <span>NO-CODE FIRST · EVIDENCE LED</span>
+            </div>
+            <div class="tutorials-hero-grid">
+                <div>
+                    <p class="eyebrow">FROM RESEARCH QUESTION TO USEFUL RESULT</p>
+                    <h1>Follow the workflow.<br><em>Use the tools.</em></h1>
+                </div>
+                <div class="tutorials-hero-copy">
+                    <p>Short, practical recipes for medicinal and synthetic chemists. Each guide says what you need, which tool to open, what to do, what to save, and how to spot common mistakes.</p>
+                    <p>Start with the browser or desktop route where possible. Docking and other advanced calculations are clearly marked when setup or command-line help is needed.</p>
+                    <a class="tutorial-primary-link" href="#recipe-sar">Start with SAR analysis <span>↘</span></a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="tutorials-index">
+        <div class="container">
+            <div class="tutorials-section-intro">
+                <p class="eyebrow">CHOOSE A TASK</p>
+                <h2>What are you trying to do?</h2>
+                <p>Follow one recipe from top to bottom. You do not need to complete all five.</p>
+            </div>
+            <div class="tutorials-index-grid">
+                <a href="#recipe-sar" class="tutorials-index-card"><span>01</span><strong>Explore SAR from public data</strong><small>ChEMBL + DataWarrior · beginner</small></a>
+                <a href="#recipe-admet" class="tutorials-index-card"><span>02</span><strong>Compare property and ADMET risks</strong><small>SwissADME + ADMETlab · beginner</small></a>
+                <a href="#recipe-interactions" class="tutorials-index-card"><span>03</span><strong>Inspect a protein–ligand complex</strong><small>PyMOL + PLIP · beginner</small></a>
+                <a href="#recipe-docking" class="tutorials-index-card"><span>04</span><strong>Dock a ligand into a protein</strong><small>AutoDock Vina + PyMOL · technical setup</small></a>
+                <a href="#recipe-analogues" class="tutorials-index-card"><span>05</span><strong>Build an analogue shortlist</strong><small>ChEMBL + DataWarrior + ZINC · beginner</small></a>
+            </div>
+        </div>
+    </section>
+
+    <section class="tutorial-recipes">
+        <div class="container">
+
+            <article class="tutorial-recipe" id="recipe-sar">
+                <div class="tutorial-recipe-number">01</div>
+                <div class="tutorial-recipe-body">
+                    <div class="tutorial-recipe-topline"><span>NO-CODE START</span><span>DATA → SAR</span></div>
+                    <h2>Explore structure–activity relationships (SAR)</h2>
+                    <p class="tutorial-recipe-lede">Use public bioactivity data to find chemical series, compare potency, and identify which structural changes may be worth testing.</p>
+                    <div class="tutorial-recipe-meta">
+                        <div><strong>You need</strong><span>A protein target name or ID. A known active compound is helpful but not essential.</span></div>
+                        <div><strong>Use</strong><span><a href="https://www.ebi.ac.uk/chembl/" target="_blank" rel="noopener noreferrer">ChEMBL ↗</a> and <a href="https://openmolecules.org/datawarrior/" target="_blank" rel="noopener noreferrer">DataWarrior ↗</a></span></div>
+                        <div><strong>Time-saving tip</strong><span>Begin with one target and one activity endpoint, not every assay at once.</span></div>
+                    </div>
+                    <ol class="tutorial-steps">
+                        <li><span class="tutorial-step-title">Confirm the target in ChEMBL.</span><p>Open ChEMBL and search the target name or a stable identifier. Open the target record and check organism, target type, and isoform/construct where available. Do not combine human and non-human targets or different isoforms without a reason.</p></li>
+                        <li><span class="tutorial-step-title">Open its bioactivity records and filter to comparable measurements.</span><p>Choose one endpoint for the first pass—usually IC50 <em>or</em> Ki, not both. Keep a consistent relation (start with exact values), units, assay IDs, target ID, and compound IDs. Export the table. If the export does not contain structures or SMILES, obtain the structure data for those compound IDs before doing structure-based analysis.</p></li>
+                        <li><span class="tutorial-step-title">Open the data in DataWarrior.</span><p>Use <strong>File → Open</strong> to load the CSV or SDF. If there is a SMILES column, DataWarrior can recognize it and create structure and descriptor columns. Check a few rows manually to ensure each structure matches its compound ID.</p></li>
+                        <li><span class="tutorial-step-title">Compare activity with structures and properties.</span><p>Sort/filter the activity column, inspect the structure view, and create a scatter plot against a property such as molecular weight or calculated lipophilicity. Group related compounds by scaffold and compare substitutions within each series. Treat apparent trends as hypotheses, not proof of causation.</p></li>
+                        <li><span class="tutorial-step-title">Save an analysis another chemist can reopen.</span><p>Save the complete DataWarrior project as <code>.dwar</code>, then export the shortlisted compounds and table with IDs and source metadata retained.</p></li>
+                    </ol>
+                    <div class="tutorial-result-check">
+                        <div><strong>Save as your result</strong><p>A curated activity table, a DataWarrior project, and a short list of SAR observations with supporting compound IDs.</p></div>
+                        <div><strong>Check before concluding</strong><p>Do the compounds share the same target context, assay endpoint, units, and comparable test conditions? Are censored values such as “&gt;” or “&lt;” being treated correctly?</p></div>
+                    </div>
+                    <div class="tutorial-links"><a href="tool.html?id=chembl">ChEMBL in the catalogue ↗</a><a href="tool.html?id=assayer-datawarrior">DataWarrior in the catalogue ↗</a><a href="https://chembl.gitbook.io/chembl-interface-documentation/" target="_blank" rel="noopener noreferrer">ChEMBL interface guide ↗</a><a href="https://openmolecules.org/help/import.html" target="_blank" rel="noopener noreferrer">DataWarrior import guide ↗</a></div>
+                </div>
+            </article>
+
+            <article class="tutorial-recipe" id="recipe-admet">
+                <div class="tutorial-recipe-number">02</div>
+                <div class="tutorial-recipe-body">
+                    <div class="tutorial-recipe-topline"><span>NO-CODE</span><span>PROPERTY TRIAGE</span></div>
+                    <h2>Compare physicochemical and ADMET risks</h2>
+                    <p class="tutorial-recipe-lede">Run the same compounds through web predictors, compare the results side by side, and choose which risks need experiments.</p>
+                    <div class="tutorial-recipe-meta">
+                        <div><strong>You need</strong><span>One SMILES string and a unique compound ID per molecule. Standardize structures first.</span></div>
+                        <div><strong>Use</strong><span><a href="https://www.swissadme.ch/" target="_blank" rel="noopener noreferrer">SwissADME ↗</a> and <a href="https://admetlab3.scbdd.com/" target="_blank" rel="noopener noreferrer">ADMETlab 3.0 ↗</a></span></div>
+                        <div><strong>Batch size</strong><span>Start with 5–20 compounds and confirm the results before scaling up.</span></div>
+                    </div>
+                    <ol class="tutorial-steps">
+                        <li><span class="tutorial-step-title">Prepare the input list.</span><p>Make a two-column master sheet with your compound ID and SMILES. Check salts, stereochemistry, charge, and duplicates. Keep the ID unchanged across every tool so the outputs can be joined later.</p></li>
+                        <li><span class="tutorial-step-title">Run SwissADME.</span><p>Paste one molecule per line in the SMILES field; add a short compound name after each SMILES, separated by a space. Click <strong>Run</strong>. Save the full output and record the input list. Review descriptors, lipophilicity estimates, solubility estimates, and any absorption or blood–brain barrier indicators relevant to your project.</p></li>
+                        <li><span class="tutorial-step-title">Run selected endpoints in ADMETlab 3.0.</span><p>Submit the same standardized structures. Select only the endpoints you need for the decision—for example, metabolic stability, CYP-related risk, or toxicity estimates. Export or copy the raw predictions with compound IDs and endpoint names.</p></li>
+                        <li><span class="tutorial-step-title">Build a comparison table.</span><p>Join results by compound ID. Keep each model's output in its own column; do not average together scores that represent different endpoints. Highlight agreement, disagreement, missing predictions, and compounds outside a model's stated applicability domain.</p></li>
+                        <li><span class="tutorial-step-title">Turn a prediction into the next experiment.</span><p>For each important risk, state what would confirm it experimentally—for example, solubility, permeability, microsomal stability, or a focused safety assay. Rank experiments by how much uncertainty they would remove.</p></li>
+                    </ol>
+                    <div class="tutorial-result-check">
+                        <div><strong>Save as your result</strong><p>A compound-by-property table with model names, raw predictions, source date, uncertainties, and proposed experimental follow-up.</p></div>
+                        <div><strong>Check before concluding</strong><p>Predictions are not measurements. A favourable rule-of-thumb, lipophilicity, or single “BBB” output does not establish brain exposure or overall developability.</p></div>
+                    </div>
+                    <div class="tutorial-links"><a href="tool.html?id=assayer-swissadme">SwissADME in the catalogue ↗</a><a href="tool.html?id=assayer-admetlab-3-0">ADMETlab in the catalogue ↗</a><a href="https://swissadme.ch/help.php" target="_blank" rel="noopener noreferrer">SwissADME input guide ↗</a></div>
+                </div>
+            </article>
+
+            <article class="tutorial-recipe" id="recipe-interactions">
+                <div class="tutorial-recipe-number">03</div>
+                <div class="tutorial-recipe-body">
+                    <div class="tutorial-recipe-topline"><span>GUI + WEB</span><span>STRUCTURE INTERPRETATION</span></div>
+                    <h2>Inspect a protein–ligand complex</h2>
+                    <p class="tutorial-recipe-lede">Combine a visual inspection with an interaction report to check whether a proposed binding pose makes chemical sense.</p>
+                    <div class="tutorial-recipe-meta">
+                        <div><strong>You need</strong><span>A protein–ligand complex file from an experimental structure or a saved docking pose. A protein file alone is not enough for ligand-contact analysis.</span></div>
+                        <div><strong>Use</strong><span><a href="https://www.pymol.org/" target="_blank" rel="noopener noreferrer">PyMOL ↗</a> and <a href="https://plip-tool.biotec.tu-dresden.de/plip-web/plip/index" target="_blank" rel="noopener noreferrer">PLIP web server ↗</a></span></div>
+                        <div><strong>Difficulty</strong><span>Beginner-friendly once you have the complex file in a supported format.</span></div>
+                    </div>
+                    <ol class="tutorial-steps">
+                        <li><span class="tutorial-step-title">Start with a trustworthy complex.</span><p>For an experimental complex, find the structure in the Protein Data Bank and download the coordinate file containing the bound ligand. Note the PDB ID, chain, ligand residue name, and any important cofactors. For a docked pose, keep the receptor and selected ligand pose together and convert to a PLIP-compatible complex file if necessary.</p></li>
+                        <li><span class="tutorial-step-title">Generate an interaction report in PLIP.</span><p>Open the PLIP web service, upload the complex, and run the analysis. Save the report and the input file. Check that PLIP identified the intended ligand and protein chain—not a crystallization additive or the wrong small molecule.</p></li>
+                        <li><span class="tutorial-step-title">Inspect the same pose in PyMOL.</span><p>Open the complex in PyMOL. Display the protein as a cartoon, the ligand as sticks, and the pocket residues as sticks or labelled side chains. Focus on the interactions that matter to the design hypothesis rather than labelling every contact.</p></li>
+                        <li><span class="tutorial-step-title">Check the chemistry behind the reported contacts.</span><p>For important hydrogen bonds, check donor/acceptor identity and geometry. Look for clashes, unsupported protonation assumptions, missing waters, and contacts to residues that may not belong to the relevant binding site.</p></li>
+                        <li><span class="tutorial-step-title">Translate the observation into a testable idea.</span><p>Compare the pose with known ligands or a close analogue. Write down one proposed structural change and what assay result would support or refute the hypothesis.</p></li>
+                    </ol>
+                    <div class="tutorial-result-check">
+                        <div><strong>Save as your result</strong><p>The original complex, PLIP report, PyMOL session, an annotated image, and a short note linking each design idea to a specific contact.</p></div>
+                        <div><strong>Check before concluding</strong><p>A contact report does not prove binding or rank affinity. The quality of the result depends on the input structure, ligand identity, protonation, and biological context.</p></div>
+                    </div>
+                    <div class="tutorial-links"><a href="tool.html?id=pymol-open-source">PyMOL in the catalogue ↗</a><a href="tool.html?id=plip-protein-ligand-interaction-profiler">PLIP in the catalogue ↗</a><a href="https://pymol.org/dokuwiki/" target="_blank" rel="noopener noreferrer">PyMOL documentation ↗</a></div>
+                </div>
+            </article>
+
+            <article class="tutorial-recipe" id="recipe-docking">
+                <div class="tutorial-recipe-number">04</div>
+                <div class="tutorial-recipe-body">
+                    <div class="tutorial-recipe-topline"><span>TECHNICAL SETUP REQUIRED</span><span>STRUCTURE-BASED SCREENING</span></div>
+                    <h2>Dock a ligand into a protein with AutoDock Vina</h2>
+                    <p class="tutorial-recipe-lede">A reproducible starter route for a single ligand. The first setup involves command-line tools; after that, the same steps can be repeated across a small series.</p>
+                    <div class="tutorial-recipe-meta">
+                        <div><strong>You need</strong><span>A protein structure, a ligand structure with correct stereochemistry, and a defined binding site. Use a co-crystallized ligand when possible.</span></div>
+                        <div><strong>Use</strong><span><a href="https://vina.scripps.edu/" target="_blank" rel="noopener noreferrer">AutoDock Vina ↗</a>, <a href="https://meeko.readthedocs.io/" target="_blank" rel="noopener noreferrer">Meeko ↗</a>, and <a href="https://www.pymol.org/" target="_blank" rel="noopener noreferrer">PyMOL ↗</a></span></div>
+                        <div><strong>If you are new to the terminal</strong><span>Ask a computational colleague to help set up Vina/Meeko once, or work through the official example before using project compounds.</span></div>
+                    </div>
+                    <ol class="tutorial-steps">
+                        <li><span class="tutorial-step-title">Test your installation with the official example first.</span><p>Follow the official AutoDock Vina “Basic docking” example using the supplied c-Abl/imatinib files. Do not start with a full screening library. Confirm that the example produces a docking output and log without errors.</p></li>
+                        <li><span class="tutorial-step-title">Choose and inspect the target structure in PyMOL.</span><p>Download the appropriate PDB structure. Check the protein chain, bound ligand, missing regions, cofactors, and waters. Keep the original file unchanged. If a co-crystallized ligand defines the pocket, record its coordinates before removing it from the receptor input.</p></li>
+                        <li><span class="tutorial-step-title">Prepare receptor and ligand files.</span><p>Use Meeko's receptor-preparation tool to make the receptor PDBQT and create a box around the intended site. Prepare the ligand from an SDF (preferred over PDB for small molecules) with the ligand-preparation tool. Confirm stereochemistry, protonation, and tautomer assumptions before docking.</p><pre><code>mk_prepare_receptor.py -i receptor_with_H.pdb -o receptor -p -v --box_size 20 20 20 --box_center X Y Z
+mk_prepare_ligand.py -i ligand.sdf -o ligand.pdbqt</code></pre><p>Replace the example filenames and X/Y/Z values with those for your structure. Box dimensions and centre must be chosen for the target; the values above are placeholders, not universal settings.</p></li>
+                        <li><span class="tutorial-step-title">Run Vina and preserve the log.</span><p>Use the box configuration generated during receptor preparation. For the first project test, record all settings and use a fixed configuration across analogues.</p><pre><code>vina --receptor receptor.pdbqt --ligand ligand.pdbqt --config receptor.box.txt --exhaustiveness=32 --out ligand_out.pdbqt</code></pre><p>This is a template: the receptor, ligand, and box filenames must match your files. The output contains predicted poses; the log contains scores and run settings.</p></li>
+                        <li><span class="tutorial-step-title">Validate and inspect before screening more compounds.</span><p>If there is a co-crystallized ligand, redock it and compare the predicted pose with the experimental pose. Open the top poses in PyMOL, check key interactions and clashes, and use PLIP on a properly prepared complex if you need an interaction report. Only move to a larger set after the setup passes its control.</p></li>
+                    </ol>
+                    <div class="tutorial-result-check">
+                        <div><strong>Save as your result</strong><p>The receptor/ligand input files, box definition, Vina configuration, log, predicted poses, and a validation note describing the control result.</p></div>
+                        <div><strong>Check before concluding</strong><p>Docking scores are approximate and should not be read as measured affinities. A plausible pose and a successful control are prerequisites for prioritization, not proof of binding.</p></div>
+                    </div>
+                    <div class="tutorial-links"><a href="tool.html?id=autodock-vina">AutoDock Vina in the catalogue ↗</a><a href="tool.html?id=open-babel">Open Babel in the catalogue ↗</a><a href="https://autodock-vina.readthedocs.io/en/stable/docking_basic.html" target="_blank" rel="noopener noreferrer">Official step-by-step Vina example ↗</a></div>
+                </div>
+            </article>
+
+            <article class="tutorial-recipe" id="recipe-analogues">
+                <div class="tutorial-recipe-number">05</div>
+                <div class="tutorial-recipe-body">
+                    <div class="tutorial-recipe-topline"><span>NO-CODE START</span><span>DESIGN → SYNTHESIS</span></div>
+                    <h2>Build a practical analogue shortlist</h2>
+                    <p class="tutorial-recipe-lede">Use known SAR and purchasable-compound data to propose a small set of structures that tests one medicinal chemistry hypothesis at a time.</p>
+                    <div class="tutorial-recipe-meta">
+                        <div><strong>You need</strong><span>A starting hit or lead, its structure, and the main property or potency limitation you want to improve.</span></div>
+                        <div><strong>Use</strong><span><a href="https://www.ebi.ac.uk/chembl/" target="_blank" rel="noopener noreferrer">ChEMBL ↗</a>, <a href="https://openmolecules.org/datawarrior/" target="_blank" rel="noopener noreferrer">DataWarrior ↗</a>, and <a href="https://zinc.docking.org/" target="_blank" rel="noopener noreferrer">ZINC ↗</a></span></div>
+                        <div><strong>Keep it focused</strong><span>Begin with 5–20 analogues and one design hypothesis.</span></div>
+                    </div>
+                    <ol class="tutorial-steps">
+                        <li><span class="tutorial-step-title">Write the design question.</span><p>Choose one priority: improve potency, reduce lipophilicity, improve solubility, explore selectivity, or replace a synthetically difficult group. Record what must remain unchanged, such as a key pharmacophore or core scaffold.</p></li>
+                        <li><span class="tutorial-step-title">Check existing analogues in ChEMBL.</span><p>Search by compound name or use ChEMBL's structure/similarity search. Review close analogues, their measured activity, and assay provenance before proposing new compounds. Do not compare potency values from incompatible endpoints as if they were equivalent.</p></li>
+                        <li><span class="tutorial-step-title">Explore the series in DataWarrior.</span><p>Open the structure/activity table, confirm SMILES map to the right IDs, then inspect related structures and property columns. Identify a substituent position to change and keep the rest of the structure constant where possible.</p></li>
+                        <li><span class="tutorial-step-title">Find available analogues or building-block options.</span><p>Search ZINC for close purchasable analogues or use it to check whether a proposed structure appears in its collections. Save IDs and availability information. A database match is not a guarantee of current stock, purity, or suitability.</p></li>
+                        <li><span class="tutorial-step-title">Make a synthesis-ready decision table.</span><p>For each candidate, record structure/ID, rationale, expected benefit, key property risk, known activity, availability, and the likely synthetic change. Ask a synthetic chemist to review route plausibility before committing resources.</p></li>
+                    </ol>
+                    <div class="tutorial-result-check">
+                        <div><strong>Save as your result</strong><p>A ranked analogue matrix with no more than a few clear hypotheses, traceable structures, and an experimental plan.</p></div>
+                        <div><strong>Check before concluding</strong><p>Prioritize compounds that are chemically interpretable and practical to make or obtain—not merely those with the best predicted score.</p></div>
+                    </div>
+                    <div class="tutorial-links"><a href="tool.html?id=chembl">ChEMBL in the catalogue ↗</a><a href="tool.html?id=assayer-datawarrior">DataWarrior in the catalogue ↗</a><a href="tool.html?id=zinc">ZINC in the catalogue ↗</a></div>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="tutorials-next">
+        <div class="container tutorials-next-inner">
+            <div>
+                <p class="eyebrow">NEED A DIFFERENT ROUTE?</p>
+                <h2>Build a workflow for your project.</h2>
+                <p>Combine objectives in the planner. These recipes are curated starting points; the planner can help assemble a broader route around your stage and task.</p>
+            </div>
+            <a href="planner.html" class="button button-primary">Open workflow planner <span>↗</span></a>
+        </div>
+    </section>
+</main>
+
+<footer class="site-footer">
+    <div class="container footer-inner">
+        <div class="footer-brand">
+            <a href="index.html" class="footer-wordmark">ChemIsFree<span>.</span></a>
+            <p>Open chemistry.<br>Open knowledge.</p>
+        </div>
+        <div class="footer-links">
+            <div><span>EXPLORE</span><a href="tools.html">Tools</a><a href="tutorials.html">Tutorials</a><a href="planner.html">Workflow planner</a></div>
+            <div><span>COMMUNITY</span><a href="about.html">About</a><a href="contribute.html">Suggest a Tool</a></div>
+            <div><span>CODE</span><a href="https://github.com/ChemIsFree" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div>
+        </div>
+    </div>
+    <div class="container footer-bottom"><span>© 2026 ChemIsFree</span><span>Built openly.</span></div>
+</footer>
+</body>
+</html>
