@@ -505,7 +505,7 @@ function makeToolCard(tool, selectedOS, preference, index, step) {
 
 
 const plannerInputLabels = {
-    target: "Target and organism are specified",
+    target: "A target is specified; organism and target mapping still need validation",
     structure: "A relevant protein structure has been selected",
     "native-ligand": "A native/co-crystal ligand or independent pose reference is available",
     "known-actives": "A traceable known-active set is available",
@@ -514,7 +514,15 @@ const plannerInputLabels = {
     "activity-data": "A traceable activity dataset is available",
     "compound-set": "Compound structures/SMILES and stable IDs are available",
     "synthesis-constraints": "Synthesis/procurement constraints are defined",
-    "validated-docking": "Docking has passed pose and enrichment controls"
+    "validated-docking": "Docking has passed pose-recovery and enrichment controls",
+    "protein-sequence": "A protein sequence or accession is available",
+    "prepared-ligands": "Prepared ligand structures or conformers are available",
+    "docking-box": "The docking box or binding-site coordinates are defined",
+    "interaction-fingerprints": "Protein-ligand interaction fingerprints are available",
+    pharmacophore: "A pharmacophore hypothesis or feature map is available",
+    "qsar-model": "A QSAR/ML model and its validation results are available",
+    "generated-compounds": "A designed or generated compound set is available",
+    "admet-results": "Property/ADMET prediction or experimental results are available"
 };
 
 function currentPlannerInputs() {
@@ -528,7 +536,7 @@ function currentPlannerInputs() {
     const organismControl = document.getElementById("planner-organism");
     const target = targetControl ? targetControl.value.trim() : "";
     const organism = organismControl ? organismControl.value.trim() : "";
-    available.target = Boolean(target && organism);
+    available.target = Boolean(target);
     return { available: available, target: target, organism: organism };
 }
 
@@ -979,6 +987,18 @@ function renderWorkflow(event) {
     const experience = experienceControl ? experienceControl.value : "new";
     const preferenceControl = document.getElementById("planner-tool-style");
     const preference = preferenceControl ? preferenceControl.value : "visual-first";
+    const approachControl = document.querySelector('input[name="approach"]:checked');
+    const approach = approachControl ? approachControl.value : "mixed";
+    const guiOnlyControl = document.querySelector('input[name="gui-only"]:checked');
+    const guiOnly = guiOnlyControl ? guiOnlyControl.value : "yes";
+    const approachLabels = {
+        "ligand-based": "Ligand-based",
+        "structure-based": "Structure-based",
+        mixed: "Mixed ligand- and structure-based"
+    };
+    const approachLabel = approachLabels[approach] || "Mixed ligand- and structure-based";
+    const targetChoiceControl = document.querySelector('input[name="target-choice"]:checked');
+    const targetChoice = targetChoiceControl ? targetChoiceControl.value : "";
     const focusControl = document.getElementById("planner-project-focus");
     const focus = focusControl ? focusControl.value.trim() : "";
     const inputState = currentPlannerInputs();
@@ -997,18 +1017,18 @@ function renderWorkflow(event) {
     const question = focus || primary.question.replace("the specified target", inputState.target || "the target of interest").replace("the stated organism", inputState.organism || "the relevant organism");
     const targetLine = inputState.target && inputState.organism
         ? escapeWorkflowHtml(inputState.target) + " · " + escapeWorkflowHtml(inputState.organism)
-        : (inputState.target ? escapeWorkflowHtml(inputState.target) + " · organism not specified" : "Not specified yet");
+        : (inputState.target ? escapeWorkflowHtml(inputState.target) + " · organism not specified"
+            : (targetChoice === "private" ? "Intentionally undisclosed" : targetChoice === "not-yet" ? "No specific target selected" : "Not specified yet"));
     const goalNames = objectives.map(objectiveDisplayName);
     const experienceSummary = experience === "new"
         ? "Beginner explanation"
         : experience === "some"
             ? "Some computational experience"
             : "Command line / coding comfortable";
-    const styleSummary = preference === "visual-first"
-        ? "Browser / desktop first"
-        : preference === "mixed"
-            ? "Visual and technical tools"
-            : "Programming / command line acceptable";
+    const styleSummary = guiOnly === "yes"
+        ? "Graphical interface only / strongly preferred"
+        : (preference === "mixed" ? "Graphical and command-line tools acceptable"
+            : preference === "programmatic" ? "Programming / command line acceptable" : "Graphical tools preferred; CLI allowed");
     const assetsSummary = missingRequirements.length
         ? "Provisional plan · " + missingRequirements.length + " required input(s) not yet marked available"
         : "Inputs declared · scientific validation gates still apply";
@@ -1044,7 +1064,9 @@ function renderWorkflow(event) {
                 '<div><span>QUESTION</span><p>' + escapeWorkflowHtml(question) + '</p></div>' +
                 '<div><span>TARGET / ORGANISM</span><p>' + targetLine + '</p></div>' +
                 '<div><span>THIS DECIDES</span><p>' + escapeWorkflowHtml(primary.decision) + '</p></div>' +
+                '<div><span>APPROACH</span><p>' + escapeWorkflowHtml(approachLabel) + '</p></div>' +
             '</div>' +
+            workflowApproachGuideHtml(approach) +
             (inputState.target && inputState.organism
                 ? '<section class="live-target-evidence" id="live-target-evidence"><div class="live-evidence-heading"><p class="eyebrow">LIVE DATABASE LOOKUP</p><h3>Target and structure evidence</h3><p>Retrieving UniProt and RCSB records…</p></div></section>'
                 : '<section class="live-target-evidence" id="live-target-evidence"><div class="live-evidence-heading"><p class="eyebrow">TARGET EVIDENCE</p><h3>Target and structure evidence</h3><p>Enter both a target and organism above to retrieve UniProt matches and an experimental PDB shortlist when the public APIs are reachable.</p></div></section>') +
@@ -1092,11 +1114,461 @@ function resetWorkflow() {
     if (results) results.innerHTML = "";
 }
 
+
+/* ---------------------------------------------------------
+   Live ChEMBL target search and endpoint-specific activity export
+   --------------------------------------------------------- */
+let chemblTargetSearchTimer = null;
+let chemblTargetSearchRequest = 0;
+let selectedChemblTargetRecord = null;
+let lastChemblActivityRows = [];
+
+function updateQuestionnaireCounts() {
+    const objectiveInputs = Array.from(document.querySelectorAll('input[name="objective"]'));
+    const selectedObjectivesCount = objectiveInputs.filter(function(input) { return input.checked; }).length;
+    const objectiveState = document.getElementById("objective-question-state");
+    if (objectiveState) {
+        objectiveState.textContent = selectedObjectivesCount === objectiveInputs.length
+            ? "All " + objectiveInputs.length + " activities selected"
+            : selectedObjectivesCount + " of " + objectiveInputs.length + " selected";
+    }
+    const assetInputs = Array.from(document.querySelectorAll('input[name="asset"]'));
+    const selectedAssetsCount = assetInputs.filter(function(input) { return input.checked; }).length;
+    const assetState = document.getElementById("asset-question-state");
+    if (assetState) assetState.textContent = selectedAssetsCount ? selectedAssetsCount + " input(s) marked available" : "None marked yet";
+
+    const approachState = document.querySelector("#question-approach .planner-question-state");
+    const approach = document.querySelector('input[name="approach"]:checked');
+    if (approachState) approachState.textContent = approach
+        ? ({ "ligand-based": "Ligand-based", "structure-based": "Structure-based", mixed: "Mixed approach" }[approach.value] || "Choose one")
+        : "Choose one";
+    const interfaceState = document.querySelector("#question-interface .planner-question-state");
+    const guiOnly = document.querySelector('input[name="gui-only"]:checked');
+    if (interfaceState) interfaceState.textContent = guiOnly && guiOnly.value === "yes"
+        ? "Graphical interface only"
+        : "Command line / code also acceptable";
+}
+
+function setTargetQuestionState(text) {
+    const state = document.getElementById("target-question-state");
+    if (state) state.textContent = text;
+}
+
+function clearChEMBLSelection(options) {
+    const opts = options || {};
+    const target = document.getElementById("planner-target");
+    const chemblId = document.getElementById("planner-target-chembl-id");
+    const organism = document.getElementById("planner-organism");
+    const suggestions = document.getElementById("target-suggestions");
+    const summary = document.getElementById("target-selection-summary");
+    const activityButton = document.getElementById("fetch-chembl-activities");
+    const activityResults = document.getElementById("chembl-activity-results");
+    selectedChemblTargetRecord = null;
+    lastChemblActivityRows = [];
+    if (chemblId) chemblId.value = "";
+    if (target && opts.clearText !== false) target.value = "";
+    if (organism && opts.clearOrganism !== false) organism.value = "";
+    if (suggestions) suggestions.replaceChildren();
+    if (summary) {
+        summary.hidden = true;
+        summary.textContent = "";
+    }
+    if (activityButton) activityButton.disabled = true;
+    if (activityResults) activityResults.textContent = "";
+}
+
+function buildTargetSuggestion(record) {
+    const id = String(record.target_chembl_id || record.chembl_id || "");
+    const name = String(record.pref_name || record.target_name || record.name || "Unnamed target");
+    const organism = String(record.organism || record.target_organism || "");
+    const targetType = String(record.target_type || record.target_type_description || "");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "planner-target-suggestion";
+    button.setAttribute("role", "option");
+    const textWrap = document.createElement("span");
+    const strong = document.createElement("strong");
+    strong.textContent = name;
+    textWrap.appendChild(strong);
+    const metadata = document.createElement("small");
+    metadata.textContent = [organism, targetType].filter(Boolean).join(" · ") || "Organism / type not reported in this result";
+    textWrap.appendChild(metadata);
+    const code = document.createElement("code");
+    code.textContent = id;
+    button.appendChild(textWrap);
+    button.appendChild(code);
+    button.addEventListener("click", function() {
+        selectChemblTarget({ target_chembl_id: id, pref_name: name, organism: organism, target_type: targetType });
+    });
+    return button;
+}
+
+function selectChemblTarget(record) {
+    const id = String(record.target_chembl_id || record.chembl_id || "");
+    if (!id) return;
+    selectedChemblTargetRecord = record;
+    const name = String(record.pref_name || record.target_name || record.name || id);
+    const organismName = String(record.organism || record.target_organism || "");
+    const target = document.getElementById("planner-target");
+    const chemblId = document.getElementById("planner-target-chembl-id");
+    const organism = document.getElementById("planner-organism");
+    const suggestions = document.getElementById("target-suggestions");
+    const status = document.getElementById("target-search-status");
+    const summary = document.getElementById("target-selection-summary");
+    const activityButton = document.getElementById("fetch-chembl-activities");
+    const activityResults = document.getElementById("chembl-activity-results");
+    if (target) target.value = name;
+    if (chemblId) chemblId.value = id;
+    if (organism) organism.value = organismName;
+    if (suggestions) suggestions.replaceChildren();
+    if (status) status.textContent = "Target selected. Confirm the organism and choose an activity endpoint below.";
+    if (summary) {
+        summary.hidden = false;
+        summary.innerHTML = "<strong>Selected ChEMBL target:</strong> " + escapeWorkflowHtml(name) +
+            " (" + escapeWorkflowHtml(id) + "). " +
+            escapeWorkflowHtml(organismName || "Organism not reported — confirm the mapping manually.");
+    }
+    if (activityButton) activityButton.disabled = false;
+    if (activityResults) activityResults.textContent = "";
+    setTargetQuestionState(id);
+}
+
+async function searchChemblTargets(term, requestId) {
+    const status = document.getElementById("target-search-status");
+    const suggestions = document.getElementById("target-suggestions");
+    if (!status || !suggestions) return;
+    status.textContent = "Searching ChEMBL…";
+    try {
+        const params = new URLSearchParams({ q: term, limit: "8" });
+        const payload = await fetchJsonResource("https://www.ebi.ac.uk/chembl/api/data/target/search.json?" + params.toString());
+        if (requestId !== chemblTargetSearchRequest) return;
+        let records = Array.isArray(payload.targets) ? payload.targets
+            : Array.isArray(payload.target_search_results) ? payload.target_search_results : [];
+        records = records.filter(function(item) {
+            return Boolean(item && (item.target_chembl_id || item.chembl_id) && (item.pref_name || item.target_name || item.name));
+        }).slice(0, 8);
+        suggestions.replaceChildren();
+        if (!records.length) {
+            status.textContent = "No matching ChEMBL target was returned. You can keep the name and organism for the later UniProt / RCSB PDB lookup; no match here does not mean the target has no structure.";
+            return;
+        }
+        records.forEach(function(record) {
+            suggestions.appendChild(buildTargetSuggestion(record));
+        });
+        status.textContent = records.length + " ChEMBL target suggestion(s). Select the record that matches your target and organism.";
+    } catch (error) {
+        if (requestId !== chemblTargetSearchRequest) return;
+        suggestions.replaceChildren();
+        status.textContent = "Live ChEMBL search is unavailable in this browser session. You can still enter a target name and organism for the later UniProt / RCSB PDB lookup, or open ChEMBL directly.";
+        const link = document.createElement("a");
+        link.href = "https://www.ebi.ac.uk/chembl/";
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = "Open ChEMBL ↗";
+        suggestions.appendChild(link);
+    }
+}
+
+function csvSafeCell(value) {
+    let text = value === null || value === undefined ? "" : String(value);
+    if (/^[=+\-@]/.test(text)) text = "'" + text;
+    return '"' + text.replace(/"/g, '""') + '"';
+}
+
+function downloadChemblCsv(rows, targetId, endpoint) {
+    if (!Array.isArray(rows) || !rows.length) return;
+    const columns = [
+        "target_chembl_id", "molecule_chembl_id", "canonical_smiles", "standard_type",
+        "standard_relation", "standard_value", "standard_units", "pchembl_value",
+        "assay_chembl_id", "assay_type", "document_chembl_id", "bao_label", "src_id"
+    ];
+    const lines = [columns.map(csvSafeCell).join(",")];
+    rows.forEach(function(row) {
+        lines.push(columns.map(function(column) { return csvSafeCell(row[column]); }).join(","));
+    });
+    const blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = (targetId || "chembl-target") + "_" + endpoint.toLowerCase() + "_activities.csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+}
+
+function renderChemblActivityPreview(rows, totalAvailable, targetId, endpoint, smilesCount, truncated) {
+    const results = document.getElementById("chembl-activity-results");
+    if (!results) return;
+    const shown = rows.slice(0, 8);
+    const body = shown.map(function(row) {
+        return "<tr><td>" + escapeWorkflowHtml(row.molecule_chembl_id || "—") + "</td>" +
+            "<td>" + escapeWorkflowHtml(row.standard_relation || "") + " " + escapeWorkflowHtml(row.standard_value || "n/a") +
+            " " + escapeWorkflowHtml(row.standard_units || "") + "</td>" +
+            "<td>" + escapeWorkflowHtml(row.pchembl_value || "—") + "</td>" +
+            "<td>" + escapeWorkflowHtml(row.assay_chembl_id || "—") + "</td></tr>";
+    }).join("");
+    results.innerHTML = "<p><strong>" + rows.length.toLocaleString() + " " + escapeWorkflowHtml(endpoint) +
+        " measurement(s) prepared for export</strong> for " + escapeWorkflowHtml(targetId) + ". " +
+        "Canonical SMILES retrieved for " + smilesCount.toLocaleString() + " unique compound(s)." +
+        (truncated ? " The browser retrieval limit was reached; use the official ChEMBL record for the remaining observations." : "") +
+        " Activities retain their reported values, units, relations, assay IDs and document/source fields.</p>" +
+        "<div class='planner-activity-preview-wrap'><table class='planner-activity-preview'><thead><tr><th>Molecule ChEMBL ID</th><th>Reported value</th><th>pChEMBL</th><th>Assay ID</th></tr></thead><tbody>" +
+        body + "</tbody></table></div>" +
+        (rows.length > shown.length ? "<p>Preview shows the first " + shown.length + " rows; the CSV contains the full retrieved set.</p>" : "") +
+        "<button type='button' class='button button-secondary' id='download-chembl-csv'>Download CSV (bioactivity + SMILES)</button>" +
+        "<p class='planner-field-help'>The CSV contains " + rows.length.toLocaleString() + " observations from the " + escapeWorkflowHtml(endpoint) +
+        " endpoint; total observations reported by ChEMBL: " + Number(totalAvailable || rows.length).toLocaleString() +
+        ". Repeated measurements are preserved. Do not merge IC₅₀, Kᵢ and EC₅₀ without a justified analysis plan.</p>";
+    const download = document.getElementById("download-chembl-csv");
+    if (download) download.addEventListener("click", function() { downloadChemblCsv(rows, targetId, endpoint); });
+}
+
+async function fetchChemblActivities() {
+    const targetIdControl = document.getElementById("planner-target-chembl-id");
+    const endpointControl = document.getElementById("planner-activity-type");
+    const button = document.getElementById("fetch-chembl-activities");
+    const results = document.getElementById("chembl-activity-results");
+    const targetId = targetIdControl ? targetIdControl.value.trim() : "";
+    const endpoint = endpointControl ? endpointControl.value : "IC50";
+    if (!targetId || !/^CHEMBL\d+$/i.test(targetId)) {
+        if (results) results.textContent = "Select a ChEMBL target record from the live suggestions before requesting activity data.";
+        return;
+    }
+    if (button) button.disabled = true;
+    if (results) results.textContent = "Retrieving " + endpoint + " activity records from ChEMBL…";
+    try {
+        const collected = [];
+        const pageSize = 1000;
+        const maxRows = 10000;
+        let totalAvailable = 0;
+        let offset = 0;
+        let firstPage = true;
+        while (offset < maxRows && (firstPage || offset < totalAvailable)) {
+            const params = new URLSearchParams({
+                target_chembl_id: targetId,
+                standard_type: endpoint,
+                limit: String(pageSize),
+                offset: String(offset),
+                only: "activity_id,molecule_chembl_id,standard_type,standard_relation,standard_value,standard_units,pchembl_value,assay_chembl_id,assay_type,document_chembl_id,bao_label,src_id,target_chembl_id,target_organism"
+            });
+            const payload = await fetchJsonResource("https://www.ebi.ac.uk/chembl/api/data/activity.json?" + params.toString());
+            const page = Array.isArray(payload.activities) ? payload.activities : [];
+            const pageMeta = payload.page_meta || {};
+            totalAvailable = Number(pageMeta.total_count || pageMeta.total || page.length);
+            firstPage = false;
+            if (!page.length) break;
+            collected.push.apply(collected, page);
+            offset += page.length;
+            if (results) results.textContent = "Retrieving " + endpoint + " activities… " + collected.length.toLocaleString() +
+                (totalAvailable ? " of " + totalAvailable.toLocaleString() : "") + ".";
+            if (page.length < pageSize) break;
+        }
+        if (!collected.length) {
+            if (results) results.textContent = "ChEMBL returned no activity observations for " + endpoint + " for this target. Check the selected target and endpoint; an empty result is not proof of inactivity.";
+            return;
+        }
+
+        const moleculeIds = Array.from(new Set(collected.map(function(row) { return row.molecule_chembl_id; }).filter(Boolean)));
+        const structureLookupIds = moleculeIds.slice(0, 1000);
+        const structuresById = {};
+        const chunks = [];
+        for (let i = 0; i < structureLookupIds.length; i += 50) chunks.push(structureLookupIds.slice(i, i + 50));
+        for (let i = 0; i < chunks.length; i += 4) {
+            const batch = chunks.slice(i, i + 4);
+            const responses = await Promise.allSettled(batch.map(async function(ids) {
+                const params = new URLSearchParams({
+                    molecule_chembl_id__in: ids.join(","),
+                    only: "molecule_chembl_id,molecule_structures",
+                    limit: String(ids.length)
+                });
+                return fetchJsonResource("https://www.ebi.ac.uk/chembl/api/data/molecule.json?" + params.toString());
+            }));
+            responses.forEach(function(response) {
+                if (response.status !== "fulfilled") return;
+                const molecules = Array.isArray(response.value.molecules) ? response.value.molecules : [];
+                molecules.forEach(function(molecule) {
+                    const structures = molecule.molecule_structures || {};
+                    structuresById[molecule.molecule_chembl_id] = structures.canonical_smiles || structures.standard_inchi || "";
+                });
+            });
+            if (results) results.textContent = "Adding canonical structures… " +
+                Math.min(i + batch.length, chunks.length) + " of " + chunks.length + " structure batches.";
+        }
+
+        lastChemblActivityRows = collected.map(function(row) {
+            return {
+                target_chembl_id: row.target_chembl_id || targetId,
+                molecule_chembl_id: row.molecule_chembl_id || "",
+                canonical_smiles: structuresById[row.molecule_chembl_id] || "",
+                standard_type: row.standard_type || endpoint,
+                standard_relation: row.standard_relation || "",
+                standard_value: row.standard_value === null || row.standard_value === undefined ? "" : row.standard_value,
+                standard_units: row.standard_units || "",
+                pchembl_value: row.pchembl_value === null || row.pchembl_value === undefined ? "" : row.pchembl_value,
+                assay_chembl_id: row.assay_chembl_id || "",
+                assay_type: row.assay_type || "",
+                document_chembl_id: row.document_chembl_id || "",
+                bao_label: row.bao_label || "",
+                src_id: row.src_id || ""
+            };
+        });
+        const truncated = Number(totalAvailable) > collected.length || collected.length >= maxRows;
+        renderChemblActivityPreview(lastChemblActivityRows, totalAvailable || collected.length, targetId, endpoint,
+            Object.keys(structuresById).length, truncated);
+    } catch (error) {
+        if (results) {
+            results.textContent = "The ChEMBL activity query did not complete (" + String(error && error.message || error) +
+                "). Confirm the target, try again, or use the official ChEMBL target page. No activity values have been fabricated.";
+            const link = document.createElement("a");
+            link.href = "https://www.ebi.ac.uk/chembl/";
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.textContent = "Open ChEMBL ↗";
+            results.appendChild(document.createTextNode(" "));
+            results.appendChild(link);
+        }
+    } finally {
+        if (button) button.disabled = !(targetIdControl && targetIdControl.value.trim());
+    }
+}
+
+function workflowApproachGuideHtml(approach) {
+    if (approach === "ligand-based") {
+        return "<details class='planner-approach-guide'><summary>Recommended starting sequence for a ligand-based workflow</summary><div><ol>" +
+            "<li><strong>Curate known activity first.</strong> Search the target in <a href='https://www.ebi.ac.uk/chembl/' target='_blank' rel='noopener noreferrer'>ChEMBL</a>; keep IC₅₀, Kᵢ, EC₅₀ and assay systems separate, preserve relations/units and retain source IDs.</li>" +
+            "<li><strong>Inspect chemical series.</strong> Use <a href='https://openmolecules.org/datawarrior/' target='_blank' rel='noopener noreferrer'>DataWarrior</a> to search ChEMBL directly via <em>Database → Search ChEMBL database</em>, inspect structures, filter records and export the fields needed for analysis.</li>" +
+            "<li><strong>Build complementary ligand evidence.</strong> Start with chemical standardization, analogue/scaffold analysis and a well-defined active set; add pharmacophore or QSAR methods only when the data support them.</li>" +
+            "</ol></div></details>";
+    }
+    return "<details class='planner-approach-guide'><summary>Recommended starting sequence for a " +
+        escapeWorkflowHtml(approach === "structure-based" ? "structure-based" : "mixed") +
+        " workflow</summary><div><ol>" +
+        "<li><strong>Find a suitable experimental structure first.</strong> Search <a href='https://www.rcsb.org/' target='_blank' rel='noopener noreferrer'>RCSB PDB</a> for the correct protein, organism/isoform and construct. Prefer a well-resolved structure with an interpretable co-crystallized ligand and a complete binding site; avoid unexplained mutations where a better structure exists. Check resolution, refinement statistics, missing residues, chain identity, ligand identity, alternate conformations and whether the pocket matches the intended biological state. Resolution alone should not choose the receptor.</li>" +
+        "<li><strong>Download a ligand reference and collect known ligands.</strong> Record the PDB ID, chain and ligand residue/component ID. Use <a href='https://www.ebi.ac.uk/chembl/' target='_blank' rel='noopener noreferrer'>ChEMBL</a> for traceable activity measurements. In <a href='https://openmolecules.org/datawarrior/' target='_blank' rel='noopener noreferrer'>DataWarrior</a>, the built-in route is <em>Database → Search ChEMBL database</em>; you do not need to first export a ChEMBL CSV to visualize or inspect the molecules. Keep assay, endpoint, unit, relation and source metadata.</li>" +
+        "<li><strong>Only search alternative pockets when the biological question justifies it.</strong> <a href='https://github.com/Discngine/fpocket' target='_blank' rel='noopener noreferrer'>fpocket</a> detects and characterizes cavities; <a href='https://github.com/jr-marchand/caviar' target='_blank' rel='noopener noreferrer'>CAVIAR</a> detects cavities and decomposes them into subpockets, but its upstream project is currently marked paused. Treat both as hypotheses to inspect against structures, literature, conservation and known ligand evidence. PocketMol is a pocket-conditioned molecular-design method, not a general pocket-finding replacement.</li>" +
+        "<li><strong>Then validate the docking setup before screening.</strong> Prepare the receptor and ligands, recover the crystallographic pose, compare scoring/sampling methods, and test enrichment using known actives with property-matched decoys. Do not treat a docking score as evidence of activity.</li>" +
+        "</ol></div></details>";
+}
+
+function setupGuidedQuestionnaire() {
+    const targetChoiceInputs = Array.from(document.querySelectorAll('input[name="target-choice"]'));
+    const searchPanel = document.getElementById("target-search-panel");
+    const targetInput = document.getElementById("planner-target");
+    const targetStatus = document.getElementById("target-search-status");
+    const suggestions = document.getElementById("target-suggestions");
+    const activityButton = document.getElementById("fetch-chembl-activities");
+    const styleControl = document.getElementById("planner-tool-style");
+
+    function handleTargetChoice() {
+        const choice = document.querySelector('input[name="target-choice"]:checked');
+        const value = choice ? choice.value : "";
+        if (searchPanel) searchPanel.hidden = value !== "yes";
+        if (value === "yes") {
+            setTargetQuestionState("Target lookup enabled");
+            if (targetInput) targetInput.focus();
+        } else if (value === "private") {
+            clearChEMBLSelection();
+            setTargetQuestionState("Target intentionally undisclosed");
+        } else if (value === "not-yet") {
+            clearChEMBLSelection();
+            setTargetQuestionState("No specific target yet");
+        } else {
+            setTargetQuestionState("Not answered");
+        }
+    }
+    targetChoiceInputs.forEach(function(input) { input.addEventListener("change", handleTargetChoice); });
+
+    if (targetInput) {
+        targetInput.addEventListener("input", function() {
+            const typed = targetInput.value.trim();
+            const chemblId = document.getElementById("planner-target-chembl-id");
+            const selection = document.getElementById("target-selection-summary");
+            const activityResults = document.getElementById("chembl-activity-results");
+            selectedChemblTargetRecord = null;
+            if (chemblId) chemblId.value = "";
+            if (selection) { selection.hidden = true; selection.textContent = ""; }
+            if (activityButton) activityButton.disabled = true;
+            if (activityResults) activityResults.textContent = "";
+            lastChemblActivityRows = [];
+            const requestId = ++chemblTargetSearchRequest;
+            if (chemblTargetSearchTimer) window.clearTimeout(chemblTargetSearchTimer);
+            if (suggestions) suggestions.replaceChildren();
+            if (typed.length < 2) {
+                if (targetStatus) targetStatus.textContent = "Enter at least two characters to search ChEMBL.";
+                setTargetQuestionState("Target lookup enabled");
+                return;
+            }
+            if (targetStatus) targetStatus.textContent = "Searching ChEMBL…";
+            chemblTargetSearchTimer = window.setTimeout(function() {
+                searchChemblTargets(typed, requestId);
+            }, 300);
+        });
+        targetInput.addEventListener("keydown", function(event) {
+            if (event.key === "Enter" && suggestions && suggestions.querySelector("button")) event.preventDefault();
+        });
+    }
+
+    const activityType = document.getElementById("planner-activity-type");
+    if (activityType) activityType.addEventListener("change", function() {
+        const results = document.getElementById("chembl-activity-results");
+        lastChemblActivityRows = [];
+        if (results) results.textContent = "";
+    });
+    if (activityButton) activityButton.addEventListener("click", fetchChemblActivities);
+
+    document.querySelectorAll('input[name="approach"], input[name="gui-only"], input[name="objective"], input[name="asset"]').forEach(function(input) {
+        input.addEventListener("change", updateQuestionnaireCounts);
+    });
+    document.querySelectorAll('input[name="gui-only"]').forEach(function(input) {
+        input.addEventListener("change", function() {
+            if (!styleControl) return;
+            if (input.checked) styleControl.value = input.value === "yes" ? "visual-first" : "mixed";
+        });
+    });
+    if (styleControl) styleControl.addEventListener("change", function() {
+        const gui = document.querySelector('input[name="gui-only"]:checked');
+        if (gui && styleControl.value !== "visual-first" && gui.value === "yes") {
+            const allowCode = document.querySelector('input[name="gui-only"][value="not-necessarily"]');
+            if (allowCode) allowCode.checked = true;
+        }
+        updateQuestionnaireCounts();
+    });
+
+    const questionApproach = document.querySelector("#question-approach .planner-question-state");
+    if (questionApproach) {
+        document.querySelectorAll('input[name="approach"]').forEach(function(input) {
+            input.addEventListener("change", updateQuestionnaireCounts);
+        });
+    }
+    updateQuestionnaireCounts();
+
+    const form = document.getElementById("workflow-form");
+    if (form) form.addEventListener("reset", function() {
+        window.setTimeout(function() {
+            clearChEMBLSelection();
+            if (searchPanel) searchPanel.hidden = true;
+            if (targetStatus) targetStatus.textContent = "Enter at least two characters to search ChEMBL.";
+            setTargetQuestionState("Not answered");
+            const approachDetails = document.getElementById("question-approach");
+            const targetDetails = document.getElementById("question-target");
+            const objectiveDetails = document.getElementById("question-objectives");
+            const assetsDetails = document.getElementById("question-assets");
+            if (approachDetails) approachDetails.open = false;
+            if (targetDetails) targetDetails.open = false;
+            if (objectiveDetails) objectiveDetails.open = false;
+            if (assetsDetails) assetsDetails.open = false;
+            updateQuestionnaireCounts();
+        }, 0);
+    });
+}
+
 document.addEventListener("DOMContentLoaded", function() {
     const form = document.getElementById("workflow-form");
     const submit = document.querySelector("#workflow-form button[type='submit']");
     if (submit) submit.disabled = true;
     loadWorkflowCatalogue();
+    setupGuidedQuestionnaire();
     if (form) form.addEventListener("submit", renderWorkflow);
     if (form) form.addEventListener("reset", function() { window.setTimeout(resetWorkflow, 0); });
 });
