@@ -653,7 +653,7 @@ function composeProtocolSteps(objectives, primaryId, approach) {
     });
 
     const phaseOrder = {
-        "target.resolve": 0, "structure.choose": 10, "pocket.audit": 20, "pocket.alternatives": 25,
+        "target.resolve": 0, "structure.choose": 10, "pocket.audit": 20, "pocket.alternatives": 58,
         "ligand.query": 30, "data.inventory": 35, "data.curate": 40, "ligand.search": 45, "ligand.series": 50, "data.audit": 55,
         "structure.prepare": 60, "docking.ensemble": 65, "structure.redock": 70, "structure.crossdock": 75, "docking.rmsd": 78, "screen.validate": 80,
         "interactions.report": 90, "interaction.fingerprint": 95, "pharmacophore.map": 100, "screen.library": 105, "screen.triage": 110, "screen.rescore": 115,
@@ -662,7 +662,7 @@ function composeProtocolSteps(objectives, primaryId, approach) {
         "synthesis.input": 180, "synthesis.route": 185, "synthesis.risk": 190, "workflow.design": 200, "workflow.build": 205, "workflow.validate": 210, "workflow.audit": 220
     };
     const phaseRank = {
-        "target.resolve": 0, "structure.choose": 0, "pocket.audit": 0, "pocket.alternatives": 0,
+        "target.resolve": 0, "structure.choose": 0, "pocket.audit": 0, "pocket.alternatives": 2,
         "ligand.query": 1, "data.inventory": 1, "data.curate": 1, "ligand.search": 1, "ligand.series": 1, "data.audit": 1,
         "structure.prepare": 2, "docking.ensemble": 2, "structure.redock": 2, "structure.crossdock": 2, "docking.rmsd": 2, "screen.validate": 2,
         "interactions.report": 3, "interaction.fingerprint": 3, "pharmacophore.map": 3, "screen.library": 3, "screen.triage": 3, "screen.rescore": 3,
@@ -1423,9 +1423,9 @@ function renderLiveEvidenceUnavailable(target, organism, message) {
 function workflowPhaseForStep(step) {
     const id = String(step.id || "");
     const definitions = [
-        {id:"target-structure",title:"1. Qualify the target and choose the structure",intro:"Resolve the biological entity, compare experimental structures, and establish which pocket is being investigated.",match:["target.resolve","structure.choose","pocket.audit","pocket.alternatives"]},
+        {id:"target-structure",title:"1. Qualify the target and choose the structure",intro:"Resolve the biological entity, compare experimental structures, and establish which pocket is being investigated.",match:["target.resolve","structure.choose","pocket.audit"]},
         {id:"ligand-evidence",title:"2. Retrieve and curate ligand evidence",intro:"Download source-traceable compounds and activity measurements, then standardize structures without losing provenance.",match:["ligand.query","data.inventory","data.curate","ligand.search","ligand.series","data.audit"]},
-        {id:"docking-validation",title:"3. Prepare and validate the docking setup",intro:"Prepare receptor and ligands consistently, run pose-recovery and cross-docking controls, then test active-versus-decoy enrichment before screening.",match:["structure.prepare","docking.ensemble","structure.redock","structure.crossdock","docking.rmsd","screen.validate"]},
+        {id:"docking-validation",title:"3. Prepare and validate the docking setup",intro:"Prepare receptor and ligands consistently, run pose-recovery and cross-docking controls, then test active-versus-decoy enrichment before screening.",match:["pocket.alternatives","structure.prepare","docking.ensemble","structure.redock","structure.crossdock","docking.rmsd","screen.validate"]},
         {id:"binding-screening",title:"4. Map interactions and search chemical space",intro:"Use interaction analysis and pharmacophore hypotheses to interpret poses and prioritize compounds with orthogonal evidence.",match:["interactions.report","interaction.fingerprint","pharmacophore.map","screen.library","screen.triage","screen.rescore"]},
         {id:"design-prediction",title:"5. Design, model, and assess developability",intro:"Explore focused analogues or constrained generation, then review properties, ADMET, and model reliability.",match:["design.hypothesis","design.enumerate","generation.enumerate","generation.curate","generation.triage","develop.descriptors","develop.profile","admet.risk-plan","model.baseline","model.validate","model.domain"]},
         {id:"synthesis-reproducibility",title:"6. Assess synthesis and package the workflow",intro:"Check availability and route uncertainty, record assumptions, and make the procedure reproducible.",match:["synthesis.input","synthesis.route","synthesis.risk","workflow.design","workflow.build","workflow.validate","workflow.audit"]}
