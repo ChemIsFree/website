@@ -5444,3 +5444,48 @@ button {
         max-width: none;
     }
 }
+
+
+.planner-approach-guide {
+    margin: 22px 0 0;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.42);
+}
+.planner-approach-guide > summary {
+    padding: 15px 18px;
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.5;
+    list-style-position: inside;
+}
+.planner-approach-guide[open] > summary {
+    border-bottom: 1px solid var(--line);
+    background: var(--paper-light);
+}
+.planner-approach-guide > div {
+    padding: 18px 22px 20px;
+}
+.planner-approach-guide ol {
+    margin: 0;
+    padding-left: 20px;
+}
+.planner-approach-guide li {
+    padding-left: 5px;
+    margin: 0 0 13px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.7;
+}
+.planner-approach-guide li:last-child {
+    margin-bottom: 0;
+}
+.planner-approach-guide li strong {
+    color: var(--ink);
+}
+.planner-approach-guide a {
+    color: var(--violet);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
