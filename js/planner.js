@@ -1,3 +1,4 @@
+const protocolLibrary = window.ChemIsFreeProtocols || {};
 const workflowCatalogue = [];
 let workflowTaxonomy = { domains: {}, resources: {} };
 
@@ -370,7 +371,7 @@ function rankWorkflowTools(config, preference) {
         return String(a.tool.name || "").localeCompare(String(b.tool.name || ""));
     });
 
-    return ranked.slice(0, 2).map(function(item) { return item.tool; });
+    return ranked.slice(0, 4).map(function(item) { return item.tool; });
 }
 
 function safeHttpUrl(value) {
@@ -502,7 +503,42 @@ function makeToolCard(tool, selectedOS, preference, index, step) {
     '</article>';
 }
 
-function makeStep(step, index, selectedOS, preference) {
+
+const plannerInputLabels = {
+    target: "Target and organism are specified",
+    structure: "A relevant protein structure has been selected",
+    "native-ligand": "A native/co-crystal ligand or independent pose reference is available",
+    "known-actives": "A traceable known-active set is available",
+    decoys: "A property-matched decoy/control set is available",
+    library: "The screening library and source are defined",
+    "activity-data": "A traceable activity dataset is available",
+    "compound-set": "Compound structures/SMILES and stable IDs are available",
+    "synthesis-constraints": "Synthesis/procurement constraints are defined",
+    "validated-docking": "Docking has passed pose and enrichment controls"
+};
+
+function currentPlannerInputs() {
+    const available = {};
+    Object.keys(plannerInputLabels).forEach(function(key) {
+        if (key === "target") return;
+        const input = document.querySelector('input[name="asset"][value="' + key + '"]');
+        available[key] = Boolean(input && input.checked);
+    });
+    const targetControl = document.getElementById("planner-target");
+    const organismControl = document.getElementById("planner-organism");
+    const target = targetControl ? targetControl.value.trim() : "";
+    const organism = organismControl ? organismControl.value.trim() : "";
+    available.target = Boolean(target && organism);
+    return { available: available, target: target, organism: organism };
+}
+
+function unmetInputNames(keys, available) {
+    return (keys || []).filter(function(key) { return !available[key]; }).map(function(key) {
+        return plannerInputLabels[key] || titleLabel(key);
+    });
+}
+
+function makeStep(step, index, selectedOS, preference, availableInputs) {
     const actions = (step.actions || []).map(function(action) {
         return "<li>" + escapeWorkflowHtml(action) + "</li>";
     }).join("");
@@ -511,27 +547,94 @@ function makeStep(step, index, selectedOS, preference) {
         ? '<div class="planner-tool-recommendations">' +
             recommendations.map(function(tool, toolIndex) { return makeToolCard(tool, selectedOS, preference, toolIndex, step); }).join("") +
           '</div>'
-        : '<div class="planner-coverage-note"><strong>No directly matched catalogue entry yet.</strong> Follow the method steps above, and use the contribution page to suggest a relevant tool for this task.</div>';
+        : '<div class="planner-coverage-note"><strong>No directly matched catalogue entry yet.</strong> The method is still listed, but no catalogue tool is being claimed as a direct match. Suggest a relevant resource through the contribution page.</div>';
     const coverage = step.coverageNote
         ? '<div class="planner-coverage-note"><strong>Important limitation.</strong> ' + escapeWorkflowHtml(step.coverageNote) + '</div>'
+        : "";
+    const missing = unmetInputNames(step.requires, availableInputs);
+    const prereqHtml = step.before || missing.length
+        ? '<div class="planner-step-prerequisite"><strong>Before this step.</strong> ' +
+            (step.before ? escapeWorkflowHtml(step.before) : "Confirm the prerequisites listed below.") +
+            (missing.length ? '<ul>' + missing.map(function(name) { return "<li>Not yet marked available: " + escapeWorkflowHtml(name) + "</li>"; }).join("") + '</ul>' : '<span class="planner-prereq-ok">Required inputs marked available.</span>') +
+          '</div>'
+        : "";
+    const gateHtml = step.gate
+        ? '<div class="planner-step-gate"><strong>Gate — do not advance until:</strong> ' + escapeWorkflowHtml(step.gate) + '</div>'
+        : "";
+    const failureHtml = step.commonFailure
+        ? '<div class="planner-step-failure"><strong>Common failure.</strong> ' + escapeWorkflowHtml(step.commonFailure) + '</div>'
+        : "";
+    const sourcesHtml = Array.isArray(step.sources) && step.sources.length
+        ? '<div class="planner-step-sources"><strong>References / resources:</strong> ' +
+          step.sources.map(function(source) {
+              const url = safeHttpUrl(source.url);
+              return url ? '<a href="' + escapeWorkflowHtml(url) + '" target="_blank" rel="noopener noreferrer">' + escapeWorkflowHtml(source.title || url) + ' ↗</a>' : escapeWorkflowHtml(source.title || "");
+          }).join(" · ") + '</div>'
         : "";
 
     return '<article class="planner-workflow-step">' +
         '<div class="planner-step-number">' + String(index + 1).padStart(2, "0") + '</div>' +
         '<div class="planner-step-content">' +
-            '<p class="planner-step-kicker">' + escapeWorkflowHtml(step.kicker || "WORKFLOW STEP") + '</p>' +
+            '<p class="planner-step-kicker">' + escapeWorkflowHtml(step.kicker || "PROTOCOL STEP") + '</p>' +
             '<h3>' + escapeWorkflowHtml(step.title) + '</h3>' +
             '<p class="planner-step-intro">' + escapeWorkflowHtml(step.intro) + '</p>' +
             '<ol class="planner-step-actions">' + actions + '</ol>' +
-            '<p class="planner-deliverable"><strong>Save before moving on.</strong> ' + escapeWorkflowHtml(step.deliverable || "Save the result and record where it came from.") + '</p>' +
+            '<p class="planner-deliverable"><strong>Record / deliverable.</strong> ' + escapeWorkflowHtml(step.deliverable || "Save the result, source identifiers and relevant settings.") + '</p>' +
+            prereqHtml + gateHtml + failureHtml + sourcesHtml +
             toolsHtml + coverage +
         '</div>' +
     '</article>';
 }
 
-function selectedObjectives() {
-    return Array.from(document.querySelectorAll('input[name="objective"]:checked'))
-        .map(function(input) { return input.value; });
+function objectiveDisplayName(id) {
+    const input = document.querySelector('input[name="objective"][value="' + id + '"]');
+    const label = input ? input.closest("label") : null;
+    const title = label ? label.querySelector("strong") : null;
+    return title ? title.textContent.trim() : (protocolLibrary[id] ? protocolLibrary[id].title : titleLabel(id));
+}
+
+function choosePrimaryProtocol(objectives) {
+    const priority = ["structure-based","hit-identification","ligand-landscape","qsar","target-context","analogues","de-novo","interactions","admet","synthesis","curation","automation"];
+    for (let i = 0; i < priority.length; i += 1) {
+        if (objectives.includes(priority[i]) && protocolLibrary[priority[i]]) return priority[i];
+    }
+    return objectives.find(function(id) { return Boolean(protocolLibrary[id]); }) || "target-context";
+}
+
+function composeProtocolSteps(objectives, primaryId) {
+    const orderedObjectives = [primaryId].concat(objectives.filter(function(id) { return id !== primaryId; }));
+    const seen = {};
+    const steps = [];
+    orderedObjectives.forEach(function(id) {
+        const definition = protocolLibrary[id];
+        if (!definition) return;
+        definition.steps.forEach(function(step) {
+            const key = String(step.id || "") + "|" + String(step.title || "");
+            if (!seen[key]) {
+                seen[key] = true;
+                steps.push(step);
+            }
+        });
+    });
+    steps.sort(function(a, b) {
+        if (a.order !== b.order) return a.order - b.order;
+        return String(a.title || "").localeCompare(String(b.title || ""));
+    });
+    return steps;
+}
+
+function getProtocolRequirements(objectives) {
+    const result = [];
+    const seen = {};
+    objectives.forEach(function(id) {
+        (protocolLibrary[id] ? protocolLibrary[id].requiredInputs || [] : []).forEach(function(key) {
+            if (!seen[key]) {
+                seen[key] = true;
+                result.push(key);
+            }
+        });
+    });
+    return result;
 }
 
 function renderWorkflow(event) {
@@ -539,9 +642,10 @@ function renderWorkflow(event) {
     const results = document.getElementById("workflow-results");
     if (!results) return;
 
-    const objectives = selectedObjectives();
+    const objectives = selectedObjectives().filter(function(id) { return Boolean(protocolLibrary[id]); });
     const stageInput = document.querySelector('input[name="stage"]:checked');
     const stageKey = stageInput ? stageInput.value : "new-project";
+    const stage = stageGuides[stageKey] || stageGuides["new-project"];
     const osControl = document.getElementById("planner-os");
     const selectedOS = osControl ? osControl.value : "any";
     const experienceControl = document.getElementById("planner-experience");
@@ -550,73 +654,93 @@ function renderWorkflow(event) {
     const preference = preferenceControl ? preferenceControl.value : "visual-first";
     const focusControl = document.getElementById("planner-project-focus");
     const focus = focusControl ? focusControl.value.trim() : "";
+    const inputState = currentPlannerInputs();
 
     if (!objectives.length) {
-        results.innerHTML = '<div class="planner-empty-message"><strong>Select at least one objective.</strong> Choose a research task above and the planner will build an ordered workflow around it.</div>';
+        results.innerHTML = '<div class="planner-empty-message"><strong>Select at least one objective.</strong> The protocol engine will create an ordered plan from the selected research decision.</div>';
         results.focus();
         return;
     }
 
-    const stage = stageGuides[stageKey] || stageGuides["new-project"];
-    const chosenSteps = objectives
-        .filter(function(id) { return id !== stageKey; })
-        .map(function(id) { return objectiveGuides[id]; })
-        .filter(Boolean);
-    chosenSteps.sort(function(a, b) { return a.order - b.order; });
-
-    const allSteps = [{
-        kicker: "PROJECT STARTING POINT",
-        title: stage.title,
-        intro: stage.intro,
-        tasks: stage.tasks,
-        tools: stage.tools,
-        actions: stage.actions,
-        deliverable: stage.deliverable
-    }].concat(chosenSteps);
-
-    const objectiveNames = objectives.map(function(id) {
-        const input = document.querySelector('input[name="objective"][value="' + id + '"]');
-        const label = input ? input.closest("label") : null;
-        const title = label ? label.querySelector("strong") : null;
-        return title ? title.textContent.trim() : titleLabel(id);
-    });
+    const primaryId = choosePrimaryProtocol(objectives);
+    const primary = protocolLibrary[primaryId];
+    const steps = composeProtocolSteps(objectives, primaryId);
+    const requirementKeys = getProtocolRequirements(objectives);
+    const missingRequirements = unmetInputNames(requirementKeys, inputState.available);
+    const question = focus || primary.question.replace("the specified target", inputState.target || "the target of interest").replace("the stated organism", inputState.organism || "the relevant organism");
+    const targetLine = inputState.target
+        ? escapeWorkflowHtml(inputState.target) + " · " + escapeWorkflowHtml(inputState.organism)
+        : "Not specified yet";
+    const goalNames = objectives.map(objectiveDisplayName);
     const experienceSummary = experience === "new"
-        ? "Beginner guidance"
+        ? "Beginner explanation"
         : experience === "some"
             ? "Some computational experience"
             : "Command line / coding comfortable";
     const styleSummary = preference === "visual-first"
-        ? "Browser / GUI first"
+        ? "Browser / desktop first"
         : preference === "mixed"
             ? "Visual and technical tools"
             : "Programming / command line acceptable";
-    const longWorkflowNote = allSteps.length > 7
-        ? '<p class="planner-length-note"><strong>This is a broad plan.</strong> For a shorter tutorial, run separate workflows for the discovery/data phase and the modelling/design phase.</p>'
+    const assetsSummary = missingRequirements.length
+        ? "Provisional plan · " + missingRequirements.length + " required input(s) not yet marked available"
+        : "Inputs declared · scientific validation gates still apply";
+    const stopStatements = [];
+    objectives.forEach(function(id) {
+        const statement = protocolLibrary[id] && protocolLibrary[id].stopIf;
+        if (statement && !stopStatements.includes(statement)) stopStatements.push(statement);
+    });
+    const stopHtml = stopStatements.slice(0, 3).map(function(statement) { return "<li>" + escapeWorkflowHtml(statement) + "</li>"; }).join("");
+    const missingHtml = missingRequirements.length
+        ? '<div class="planner-gaps"><h3>Resolve these input gaps</h3><p>This protocol is useful for planning, but it is not ready to execute end-to-end. The step-level prerequisites below show where missing inputs block downstream work.</p><ul>' +
+            missingRequirements.map(function(name) { return "<li>" + escapeWorkflowHtml(name) + "</li>"; }).join("") +
+          '</ul></div>'
+        : '<div class="planner-gaps planner-gaps-ok"><h3>Inputs declared</h3><p>The selected prerequisites are marked available. This does not mean the methods are validated: follow each step-level gate and stop when a control fails.</p></div>';
+    const additionalGoals = goalNames.length > 1
+        ? '<p><strong>Combined objectives:</strong> ' + escapeWorkflowHtml(goalNames.join(" · ")) + '</p>'
         : "";
-    const beginnerNote = experience === "new" && preference === "visual-first"
-        ? "Start with the suggested browser or graphical option in each step. Cards marked command line or programming may need a colleague, a prepared environment, or a separate graphical alternative."
-        : "Follow the steps in order and keep each input, setting, output, and source. Use technical tools only when you can validate their setup and outputs.";
+    const longWorkflowNote = steps.length > 12
+        ? '<p class="planner-length-note"><strong>Combined protocol.</strong> This plan is broad because several objectives were selected. Run it phase by phase; do not skip a gate simply to shorten the workflow.</p>'
+        : "";
+    const guidance = experience === "new" && preference === "visual-first"
+        ? "Start with browser or graphical tools where the catalogue offers a direct match. Some preparation, docking, QSAR and simulation steps still require command-line use or a configured environment; a web interface does not remove the need for method validation."
+        : "Record inputs, versions, settings, control results and failures. A tool suggestion is not evidence that the method is valid for your target or chemotype.";
+    const selectedOSLabel = selectedOS === "any" ? "No preference" : titleLabel(selectedOS);
 
     results.innerHTML =
-        '<div class="planner-results-heading">' +
-            '<div><p class="eyebrow">02 / YOUR WORKFLOW</p><h2>' + escapeWorkflowHtml(stage.title) + '</h2></div>' +
-            '<p>' + escapeWorkflowHtml(stage.intro) +
-                '<br><br><strong>Goals:</strong> ' + escapeWorkflowHtml(objectiveNames.join(" · ")) +
-                '<br><strong>Guidance:</strong> ' + escapeWorkflowHtml(experienceSummary) +
-                '<br><strong>Tool route:</strong> ' + escapeWorkflowHtml(styleSummary) +
-                (focus ? '<br><strong>Project focus:</strong> ' + escapeWorkflowHtml(focus) : "") +
-                '<br><strong>Operating system:</strong> ' + escapeWorkflowHtml(titleLabel(selectedOS === "any" ? "No preference" : selectedOS)) +
-            '</p>' +
-        '</div>' +
-        '<div class="planner-beginner-note"><strong>How to use this plan.</strong> ' + escapeWorkflowHtml(beginnerNote) + ' Treat model outputs as hypotheses, not experimental confirmation.</div>' +
-        longWorkflowNote +
-        '<div class="planner-results-list">' +
-            allSteps.map(function(step, index) { return makeStep(step, index, selectedOS, preference); }).join("") +
-        '</div>' +
-        '<p class="planner-method-note">Tool suggestions are ranked from the current ChemIsFree catalogue by task relevance and interface preference. Interface labels marked provisional, inferred, or unconfirmed have not been individually verified. Always check official documentation for the tool, its licence, maintenance status, input requirements, and scientific limitations before use.</p>';
+        '<div class="protocol-results-header">' +
+            '<div class="protocol-kicker">02 / GENERATED SCIENTIFIC PROTOCOL</div>' +
+            '<div class="protocol-state ' + (missingRequirements.length ? "is-provisional" : "is-input-complete") + '">' + escapeWorkflowHtml(assetsSummary) + '</div>' +
+            '<h2>' + escapeWorkflowHtml(primary.title) + '</h2>' +
+            '<p class="protocol-summary">' + escapeWorkflowHtml(primary.question.replace("the specified target", inputState.target || "the target of interest").replace("the stated organism", inputState.organism || "the relevant organism")) + '</p>' +
+            '<div class="protocol-decision-grid">' +
+                '<div><span>QUESTION</span><p>' + escapeWorkflowHtml(question) + '</p></div>' +
+                '<div><span>TARGET / ORGANISM</span><p>' + targetLine + '</p></div>' +
+                '<div><span>THIS DECIDES</span><p>' + escapeWorkflowHtml(primary.decision) + '</p></div>' +
+            '</div>' + additionalGoals + missingHtml +
+            '<div class="protocol-stop"><strong>Stop condition</strong><ul>' + stopHtml + '</ul></div>' +
+            '<div class="planner-beginner-note"><strong>Execution note.</strong> ' + escapeWorkflowHtml(guidance) +
+                '<br><strong>Experience:</strong> ' + escapeWorkflowHtml(experienceSummary) +
+                ' · <strong>Tool route:</strong> ' + escapeWorkflowHtml(styleSummary) +
+                ' · <strong>Operating system:</strong> ' + escapeWorkflowHtml(selectedOSLabel) +
+                '<br><strong>Starting point:</strong> ' + escapeWorkflowHtml(stage.title) +
+            '</div>' + longWorkflowNote +
+            '<div class="protocol-actions"><button type="button" class="button button-secondary" id="print-workflow">Print / save protocol as PDF</button><button type="button" class="button button-secondary" id="edit-inputs">Edit inputs</button></div>' +
+            '<div class="planner-results-list">' +
+                steps.map(function(step, index) { return makeStep(step, index, selectedOS, preference, inputState.available); }).join("") +
+            '</div>' +
+            '<p class="planner-method-note">Catalogue matches are ranked from ChemIsFree records using task tags and interface preference. Interface classifications may be provisional or unconfirmed. External references are starting points, not endorsements. Thresholds labelled as working defaults are project heuristics rather than universal rules. Predicted poses, activity scores and ADMET outputs are not experimental confirmation.</p>';
 
+    const printButton = document.getElementById("print-workflow");
+    if (printButton) printButton.addEventListener("click", function() { window.print(); });
+    const editButton = document.getElementById("edit-inputs");
+    if (editButton) editButton.addEventListener("click", function() {
+        const form = document.getElementById("workflow-form");
+        if (form) form.scrollIntoView({behavior:"smooth", block:"start"});
+    });
     results.focus();
 }
+
 
 function resetWorkflow() {
     const results = document.getElementById("workflow-results");
