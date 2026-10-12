@@ -5672,3 +5672,45 @@ button {
         padding: 12px;
     }
 }
+
+
+/* Prevent an ambiguous UniProt mapping from silently selecting a PDB target */
+.uniprot-accession-selector {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 12px;
+    margin: 20px 0 22px;
+    padding: 16px;
+    border: 1px solid var(--line);
+    background: var(--paper-light);
+}
+.uniprot-accession-selector > label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    grid-column: 1 / -1;
+    color: var(--ink);
+    font-size: 12px;
+    line-height: 1.5;
+}
+.uniprot-accession-selector > label small {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+.uniprot-accession-selector .planner-select {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+}
+.uniprot-accession-selector .button {
+    white-space: normal;
+}
+.uniprot-accession-selector .live-evidence-note {
+    grid-column: 1 / -1;
+    margin: 0;
+}
+@media (max-width: 620px) {
+    .uniprot-accession-selector { grid-template-columns: minmax(0, 1fr); }
+    .uniprot-accession-selector .button { width: 100%; }
+}
