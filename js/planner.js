@@ -1,3 +1,4 @@
+const protocolLibrary = window.ChemIsFreeProtocols || {};
 const workflowCatalogue = [];
 let workflowTaxonomy = { domains: {}, resources: {} };
 
@@ -370,7 +371,7 @@ function rankWorkflowTools(config, preference) {
         return String(a.tool.name || "").localeCompare(String(b.tool.name || ""));
     });
 
-    return ranked.slice(0, 2).map(function(item) { return item.tool; });
+    return ranked.slice(0, 4).map(function(item) { return item.tool; });
 }
 
 function safeHttpUrl(value) {
@@ -502,7 +503,42 @@ function makeToolCard(tool, selectedOS, preference, index, step) {
     '</article>';
 }
 
-function makeStep(step, index, selectedOS, preference) {
+
+const plannerInputLabels = {
+    target: "Target and organism are specified",
+    structure: "A relevant protein structure has been selected",
+    "native-ligand": "A native/co-crystal ligand or independent pose reference is available",
+    "known-actives": "A traceable known-active set is available",
+    decoys: "A property-matched decoy/control set is available",
+    library: "The screening library and source are defined",
+    "activity-data": "A traceable activity dataset is available",
+    "compound-set": "Compound structures/SMILES and stable IDs are available",
+    "synthesis-constraints": "Synthesis/procurement constraints are defined",
+    "validated-docking": "Docking has passed pose and enrichment controls"
+};
+
+function currentPlannerInputs() {
+    const available = {};
+    Object.keys(plannerInputLabels).forEach(function(key) {
+        if (key === "target") return;
+        const input = document.querySelector('input[name="asset"][value="' + key + '"]');
+        available[key] = Boolean(input && input.checked);
+    });
+    const targetControl = document.getElementById("planner-target");
+    const organismControl = document.getElementById("planner-organism");
+    const target = targetControl ? targetControl.value.trim() : "";
+    const organism = organismControl ? organismControl.value.trim() : "";
+    available.target = Boolean(target && organism);
+    return { available: available, target: target, organism: organism };
+}
+
+function unmetInputNames(keys, available) {
+    return (keys || []).filter(function(key) { return !available[key]; }).map(function(key) {
+        return plannerInputLabels[key] || titleLabel(key);
+    });
+}
+
+function makeStep(step, index, selectedOS, preference, availableInputs) {
     const actions = (step.actions || []).map(function(action) {
         return "<li>" + escapeWorkflowHtml(action) + "</li>";
     }).join("");
@@ -511,19 +547,40 @@ function makeStep(step, index, selectedOS, preference) {
         ? '<div class="planner-tool-recommendations">' +
             recommendations.map(function(tool, toolIndex) { return makeToolCard(tool, selectedOS, preference, toolIndex, step); }).join("") +
           '</div>'
-        : '<div class="planner-coverage-note"><strong>No directly matched catalogue entry yet.</strong> Follow the method steps above, and use the contribution page to suggest a relevant tool for this task.</div>';
+        : '<div class="planner-coverage-note"><strong>No directly matched catalogue entry yet.</strong> The method is still listed, but no catalogue tool is being claimed as a direct match. Suggest a relevant resource through the contribution page.</div>';
     const coverage = step.coverageNote
         ? '<div class="planner-coverage-note"><strong>Important limitation.</strong> ' + escapeWorkflowHtml(step.coverageNote) + '</div>'
+        : "";
+    const missing = unmetInputNames(step.requires, availableInputs);
+    const prereqHtml = step.before || missing.length
+        ? '<div class="planner-step-prerequisite"><strong>Before this step.</strong> ' +
+            (step.before ? escapeWorkflowHtml(step.before) : "Confirm the prerequisites listed below.") +
+            (missing.length ? '<ul>' + missing.map(function(name) { return "<li>Not yet marked available: " + escapeWorkflowHtml(name) + "</li>"; }).join("") + '</ul>' : '<span class="planner-prereq-ok">Required inputs marked available.</span>') +
+          '</div>'
+        : "";
+    const gateHtml = step.gate
+        ? '<div class="planner-step-gate"><strong>Gate — do not advance until:</strong> ' + escapeWorkflowHtml(step.gate) + '</div>'
+        : "";
+    const failureHtml = step.commonFailure
+        ? '<div class="planner-step-failure"><strong>Common failure.</strong> ' + escapeWorkflowHtml(step.commonFailure) + '</div>'
+        : "";
+    const sourcesHtml = Array.isArray(step.sources) && step.sources.length
+        ? '<div class="planner-step-sources"><strong>References / resources:</strong> ' +
+          step.sources.map(function(source) {
+              const url = safeHttpUrl(source.url);
+              return url ? '<a href="' + escapeWorkflowHtml(url) + '" target="_blank" rel="noopener noreferrer">' + escapeWorkflowHtml(source.title || url) + ' ↗</a>' : escapeWorkflowHtml(source.title || "");
+          }).join(" · ") + '</div>'
         : "";
 
     return '<article class="planner-workflow-step">' +
         '<div class="planner-step-number">' + String(index + 1).padStart(2, "0") + '</div>' +
         '<div class="planner-step-content">' +
-            '<p class="planner-step-kicker">' + escapeWorkflowHtml(step.kicker || "WORKFLOW STEP") + '</p>' +
+            '<p class="planner-step-kicker">' + escapeWorkflowHtml(step.kicker || "PROTOCOL STEP") + '</p>' +
             '<h3>' + escapeWorkflowHtml(step.title) + '</h3>' +
             '<p class="planner-step-intro">' + escapeWorkflowHtml(step.intro) + '</p>' +
             '<ol class="planner-step-actions">' + actions + '</ol>' +
-            '<p class="planner-deliverable"><strong>Save before moving on.</strong> ' + escapeWorkflowHtml(step.deliverable || "Save the result and record where it came from.") + '</p>' +
+            '<p class="planner-deliverable"><strong>Record / deliverable.</strong> ' + escapeWorkflowHtml(step.deliverable || "Save the result, source identifiers and relevant settings.") + '</p>' +
+            prereqHtml + gateHtml + failureHtml + sourcesHtml +
             toolsHtml + coverage +
         '</div>' +
     '</article>';
@@ -534,14 +591,388 @@ function selectedObjectives() {
         .map(function(input) { return input.value; });
 }
 
+function objectiveDisplayName(id) {
+    const input = document.querySelector('input[name="objective"][value="' + id + '"]');
+    const label = input ? input.closest("label") : null;
+    const title = label ? label.querySelector("strong") : null;
+    return title ? title.textContent.trim() : (protocolLibrary[id] ? protocolLibrary[id].title : titleLabel(id));
+}
+
+function choosePrimaryProtocol(objectives) {
+    const priority = ["structure-based","hit-identification","ligand-landscape","qsar","target-context","analogues","de-novo","interactions","admet","synthesis","curation","automation"];
+    for (let i = 0; i < priority.length; i += 1) {
+        if (objectives.includes(priority[i]) && protocolLibrary[priority[i]]) return priority[i];
+    }
+    return objectives.find(function(id) { return Boolean(protocolLibrary[id]); }) || "target-context";
+}
+
+function composeProtocolSteps(objectives, primaryId) {
+    const orderedObjectives = [primaryId].concat(objectives.filter(function(id) { return id !== primaryId; }));
+    const seen = {};
+    const steps = [];
+    orderedObjectives.forEach(function(id) {
+        const definition = protocolLibrary[id];
+        if (!definition) return;
+        definition.steps.forEach(function(step) {
+            const key = String(step.id || "") + "|" + String(step.title || "");
+            if (!seen[key]) {
+                seen[key] = true;
+                steps.push(step);
+            }
+        });
+    });
+    steps.sort(function(a, b) {
+        if (a.order !== b.order) return a.order - b.order;
+        return String(a.title || "").localeCompare(String(b.title || ""));
+    });
+    return steps;
+}
+
+function getProtocolRequirements(objectives) {
+    const result = [];
+    const seen = {};
+    objectives.forEach(function(id) {
+        (protocolLibrary[id] ? protocolLibrary[id].requiredInputs || [] : []).forEach(function(key) {
+            if (!seen[key]) {
+                seen[key] = true;
+                result.push(key);
+            }
+        });
+    });
+    return result;
+}
+
+
+let liveEvidenceRequestId = 0;
+
+function escapeSearchQuery(value) {
+    return String(value || "").replace(/\\/g, "\\\\").replace(/"/g, '\\"').trim();
+}
+
+async function fetchJsonResource(url, options) {
+    const response = await fetch(url, options || {});
+    if (!response.ok) throw new Error("Request failed (" + response.status + ")");
+    return response.json();
+}
+
+async function lookupUniProtTarget(target, organism) {
+    const targetTerm = escapeSearchQuery(target);
+    const organismTerm = escapeSearchQuery(organism);
+    const isSymbol = /^[A-Za-z0-9_.-]+$/.test(targetTerm);
+    const queries = [];
+    if (isSymbol) queries.push('gene_exact:' + targetTerm + ' AND organism_name:"' + organismTerm + '"');
+    queries.push('gene:' + targetTerm + ' AND organism_name:"' + organismTerm + '"');
+    queries.push('protein_name:"' + targetTerm + '" AND organism_name:"' + organismTerm + '"');
+    queries.push('(' + targetTerm + ') AND organism_name:"' + organismTerm + '"');
+
+    let lastError = null;
+    for (const query of queries) {
+        try {
+            const params = new URLSearchParams({
+                query: query,
+                fields: "accession,id,protein_name,gene_names,organism_name,length,xref_pdb",
+                format: "json",
+                size: "5"
+            });
+            const data = await fetchJsonResource("https://rest.uniprot.org/uniprotkb/search?" + params.toString());
+            if (Array.isArray(data.results) && data.results.length) return data.results;
+        } catch (error) {
+            lastError = error;
+        }
+    }
+    if (lastError) throw lastError;
+    return [];
+}
+
+function extractUniProtMatch(entry) {
+    const gene = Array.isArray(entry.genes) && entry.genes[0] && entry.genes[0].geneName
+        ? entry.genes[0].geneName.value
+        : "";
+    const name = entry.proteinDescription && entry.proteinDescription.recommendedName && entry.proteinDescription.recommendedName.fullName
+        ? entry.proteinDescription.recommendedName.fullName.value
+        : (entry.proteinDescription && entry.proteinDescription.submissionNames && entry.proteinDescription.submissionNames[0]
+            ? entry.proteinDescription.submissionNames[0].fullName.value
+            : "Protein name unavailable");
+    return {
+        accession: entry.primaryAccession || "",
+        entryName: entry.uniProtkbId || "",
+        name: name,
+        gene: gene,
+        organism: entry.organism && entry.organism.scientificName ? entry.organism.scientificName : "",
+        length: entry.sequence && entry.sequence.length ? entry.sequence.length : "",
+        reviewed: String(entry.entryType || "").toLowerCase().includes("reviewed"),
+        pdbRefs: Array.isArray(entry.uniProtKBCrossReferences)
+            ? entry.uniProtKBCrossReferences.filter(function(ref) { return ref.database === "PDB"; }).map(function(ref) { return ref.id; })
+            : []
+    };
+}
+
+async function searchRcsbEntries(uniprotAccession, target, organism) {
+    const rows = 12;
+    const accessionQuery = {
+        query: {
+            type: "terminal",
+            service: "text",
+            parameters: {
+                attribute: "rcsb_polymer_entity_container_identifiers.reference_sequence_identifiers.database_accession",
+                operator: "exact_match",
+                negation: false,
+                value: uniprotAccession
+            }
+        },
+        return_type: "entry",
+        request_options: {
+            paginate: { start: 0, rows: rows },
+            results_content_type: ["experimental"],
+            sort: [{ sort_by: "score", direction: "desc" }],
+            scoring_strategy: "combined"
+        }
+    };
+
+    let response = null;
+    let accessionSearchError = null;
+    try {
+        response = await fetchJsonResource("https://search.rcsb.org/rcsbsearch/v2/query", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(accessionQuery)
+        });
+    } catch (error) {
+        accessionSearchError = error;
+    }
+    let results = response && Array.isArray(response.result_set) ? response.result_set : [];
+    if (results.length) return { results: results, total: response.total_count || results.length, exactAccession: true };
+
+    // Fallback search is deliberately labelled weaker because text matches are less specific than UniProt cross-references.
+    // It also gives the user a chance to recover when the accession query is unsupported by the live service.
+    const generalQuery = {
+        query: {
+            type: "group",
+            logical_operator: "and",
+            nodes: [
+                { type: "terminal", service: "text", parameters: { value: target } },
+                { type: "terminal", service: "text", parameters: {
+                    attribute: "rcsb_entity_source_organism.ncbi_scientific_name",
+                    operator: "contains_phrase",
+                    negation: false,
+                    value: organism
+                } }
+            ]
+        },
+        return_type: "entry",
+        request_options: {
+            paginate: { start: 0, rows: rows },
+            results_content_type: ["experimental"],
+            sort: [{ sort_by: "score", direction: "desc" }],
+            scoring_strategy: "combined"
+        }
+    };
+    response = await fetchJsonResource("https://search.rcsb.org/rcsbsearch/v2/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(generalQuery)
+    });
+    results = Array.isArray(response.result_set) ? response.result_set : [];
+    return {
+        results: results,
+        total: response.total_count || results.length,
+        exactAccession: false,
+        accessionSearchError: accessionSearchError ? String(accessionSearchError.message || accessionSearchError) : ""
+    };
+}
+
+function numberOrNull(value) {
+    if (value === null || value === undefined || value === "") return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function scoreStructureRecord(record) {
+    let score = 0;
+    const resolution = record.resolution;
+    const rfree = record.rfree;
+    if (resolution !== null) {
+        if (resolution <= 1.5) score += 4;
+        else if (resolution <= 2.0) score += 3.5;
+        else if (resolution <= 2.5) score += 3;
+        else if (resolution <= 3.0) score += 2;
+        else if (resolution <= 3.5) score += 1.5;
+        else score += 0.5;
+    }
+    if (rfree !== null) {
+        if (rfree <= 0.20) score += 3;
+        else if (rfree <= 0.25) score += 2.5;
+        else if (rfree <= 0.30) score += 1.5;
+        else score += 0.5;
+    }
+    if (record.nonpolymerIds.length) score += 2;
+    if (String(record.method).toUpperCase().includes("X-RAY")) score += 1;
+    return Math.min(10, score);
+}
+
+async function loadRcsbStructureRecord(pdbId) {
+    const encodedId = encodeURIComponent(String(pdbId || "").toUpperCase());
+    const entry = await fetchJsonResource("https://data.rcsb.org/rest/v1/core/entry/" + encodedId);
+    const info = entry.rcsb_entry_info || {};
+    const resolutions = Array.isArray(info.resolution_combined) ? info.resolution_combined : [];
+    const resolution = resolutions.map(numberOrNull).filter(function(value) { return value !== null; })[0] ?? numberOrNull(info.diffrn_resolution_high);
+    const refine = Array.isArray(entry.refine) ? entry.refine : [];
+    let rfree = null;
+    for (let i = 0; i < refine.length; i += 1) {
+        const candidate = numberOrNull(refine[i].ls_R_factor_R_free);
+        if (candidate !== null) { rfree = candidate; break; }
+    }
+    const containers = entry.rcsb_entry_container_identifiers || {};
+    const nonpolymerIds = Array.isArray(containers.non_polymer_entity_ids)
+        ? containers.non_polymer_entity_ids
+        : [];
+    const methods = Array.isArray(entry.exptl) ? entry.exptl.map(function(item) { return item.method || ""; }).filter(Boolean) : [];
+    return {
+        id: String(pdbId).toUpperCase(),
+        title: entry.struct && entry.struct.title ? entry.struct.title : "",
+        resolution: resolution,
+        rfree: rfree,
+        method: methods.join(", ") || "Method not reported",
+        nonpolymerIds: nonpolymerIds,
+        score: 0
+    };
+}
+
+
+async function loadRcsbComponent(pdbId, entityId) {
+    const url = "https://data.rcsb.org/rest/v1/core/nonpolymer_entity/" +
+        encodeURIComponent(String(pdbId || "").toUpperCase()) + "/" +
+        encodeURIComponent(String(entityId || ""));
+    try {
+        const entity = await fetchJsonResource(url);
+        const containers = entity.rcsb_nonpolymer_entity_container_identifiers || {};
+        const chemComp = entity.chem_comp || {};
+        const legacy = entity.pdbx_entity_nonpoly || {};
+        const annotation = entity.rcsb_nonpolymer_entity || {};
+        const componentId = containers.non_polymer_comp_id || legacy.comp_id || chemComp.id || String(entityId);
+        const description = legacy.name || legacy.pdbx_description || annotation.pdbx_description || chemComp.name || "";
+        const molecularWeight = numberOrNull(annotation.formula_weight || chemComp.formula_weight || legacy.formula_weight);
+        return {
+            id: String(componentId),
+            description: String(description || ""),
+            molecularWeight: molecularWeight
+        };
+    } catch (error) {
+        return { id: String(entityId), description: "", molecularWeight: null };
+    }
+}
+
+async function enrichStructureComponents(records) {
+    return Promise.all(records.map(async function(record) {
+        const entityIds = record.nonpolymerIds.slice(0, 3);
+        const loaded = await Promise.all(entityIds.map(function(entityId) {
+            return loadRcsbComponent(record.id, entityId);
+        }));
+        record.components = loaded;
+        return record;
+    }));
+}
+
+function targetEvidenceHtml(evidence) {
+    const uniprotRows = evidence.matches.map(function(match) {
+        const accessionUrl = match.accession ? "https://www.uniprot.org/uniprotkb/" + encodeURIComponent(match.accession) : "https://www.uniprot.org/";
+        return '<tr><td><a href="' + escapeWorkflowHtml(accessionUrl) + '" target="_blank" rel="noopener noreferrer">' + escapeWorkflowHtml(match.accession || "—") + ' ↗</a></td>' +
+            '<td>' + escapeWorkflowHtml(match.name) + (match.gene ? '<small>' + escapeWorkflowHtml(match.gene) + '</small>' : '') + '</td>' +
+            '<td>' + escapeWorkflowHtml(match.organism) + '</td>' +
+            '<td>' + escapeWorkflowHtml(match.length || "—") + '</td>' +
+            '<td>' + (match.reviewed ? "Reviewed" : "Unreviewed / other") + '</td></tr>';
+    }).join("");
+
+    let structures = "";
+    if (evidence.structures && evidence.structures.length) {
+        structures = '<h4>Experimental structure shortlist</h4>' +
+            '<p class="live-evidence-note">Sorted by a transparent triage heuristic, not by docking or ligand potency. Inspect the full record before selecting a receptor.</p>' +
+            '<div class="live-evidence-table-wrap"><table class="live-evidence-table"><thead><tr><th>PDB</th><th>Resolution (Å)</th><th>R-free</th><th>Method</th><th>Bound non-polymer components</th><th>Triage / 10</th></tr></thead><tbody>' +
+            evidence.structures.map(function(record) {
+                const pdbUrl = "https://www.rcsb.org/structure/" + encodeURIComponent(record.id);
+                return '<tr><td><a href="' + escapeWorkflowHtml(pdbUrl) + '" target="_blank" rel="noopener noreferrer"><strong>' + escapeWorkflowHtml(record.id) + '</strong> ↗</a></td>' +
+                    '<td>' + (record.resolution === null ? "n/a" : record.resolution.toFixed(2)) + '</td>' +
+                    '<td>' + (record.rfree === null ? "n/a" : record.rfree.toFixed(3)) + '</td>' +
+                    '<td>' + escapeWorkflowHtml(record.method) + '</td>' +
+                    '<td>' + escapeWorkflowHtml(record.components && record.components.length
+                        ? record.components.map(function(component) {
+                            const detail = component.description ? component.id + " — " + component.description : component.id;
+                            return component.molecularWeight !== null ? detail + " (" + component.molecularWeight.toFixed(1) + " Da)" : detail;
+                          }).join("; ")
+                        : (record.nonpolymerIds.length ? record.nonpolymerIds.join(", ") : "None listed")) + '</td>' +
+                    '<td>' + record.score.toFixed(1) + '</td></tr>';
+            }).join("") +
+            '</tbody></table></div>' +
+            '<p class="live-evidence-note">Triage score components: resolution (0–4), R-free (0–3 when reported), non-polymer component presence (+2), and X-ray diffraction (+1). This simple heuristic may favour well-refined X-ray structures over cryo-EM structures and does not score site completeness, ligand medicinal relevance, mutation state, clashes or binding-mode suitability. Non-polymer IDs can include cofactors/ions, so they do not prove that a drug-like ligand is bound.</p>';
+    } else {
+        structures = '<div class="live-evidence-empty"><strong>No experimental structures were returned by the accession-specific query.</strong> The target may lack a matching structure, the cross-reference may be missing, or the API query may be incomplete. Check the manual RCSB search before concluding there are no structures.</div>';
+    }
+
+    const targetMatchesNote = evidence.matches.length > 1
+        ? '<p class="live-evidence-note"><strong>Target match needs human review.</strong> UniProt returned several records. The structure search uses the first result above; confirm the intended accession before using any structure.</p>'
+        : "";
+    const searchMode = evidence.exactAccession
+        ? "Structures matched through the selected UniProt accession."
+        : "Fallback text search used because the accession-specific search returned no entries or could not be completed; inspect target/organism mapping carefully.";
+    return '<section class="live-target-evidence" id="live-target-evidence">' +
+        '<div class="live-evidence-heading"><p class="eyebrow">LIVE DATABASE LOOKUP</p><h3>Target and structure evidence</h3><p>Retrieved from UniProt and RCSB PDB in the browser. This is discovery metadata, not a structural validation.</p></div>' +
+        '<h4>UniProt target matches</h4>' +
+        '<div class="live-evidence-table-wrap"><table class="live-evidence-table"><thead><tr><th>Accession</th><th>Protein / gene</th><th>Organism</th><th>Length (aa)</th><th>Record type</th></tr></thead><tbody>' + uniprotRows + '</tbody></table></div>' +
+        targetMatchesNote +
+        '<p class="live-evidence-note">' + escapeWorkflowHtml(searchMode) + ' Total reported RCSB results: ' + String(evidence.structureTotal) + '.</p>' +
+        structures +
+        '<p class="live-evidence-note"><a href="https://www.uniprot.org/" target="_blank" rel="noopener noreferrer">Open UniProt ↗</a> · <a href="https://www.rcsb.org/" target="_blank" rel="noopener noreferrer">Open RCSB PDB ↗</a></p>' +
+    '</section>';
+}
+
+async function retrieveLiveTargetEvidence(target, organism) {
+    const rawMatches = await lookupUniProtTarget(target, organism);
+    const matches = rawMatches.map(extractUniProtMatch);
+    if (!matches.length || !matches[0].accession) {
+        throw new Error("No UniProt match was returned for this target and organism.");
+    }
+    const selected = matches[0];
+    const structureSearch = await searchRcsbEntries(selected.accession, target, organism);
+    const ids = structureSearch.results.map(function(item) { return item.identifier; }).filter(Boolean);
+    const metadataResults = await Promise.allSettled(ids.slice(0, 12).map(loadRcsbStructureRecord));
+    const sortedStructures = metadataResults.filter(function(item) { return item.status === "fulfilled"; }).map(function(item) {
+        const record = item.value;
+        record.score = scoreStructureRecord(record);
+        return record;
+    }).sort(function(a, b) {
+        if (b.score !== a.score) return b.score - a.score;
+        if (a.resolution !== null && b.resolution !== null && a.resolution !== b.resolution) return a.resolution - b.resolution;
+        return a.id.localeCompare(b.id);
+    });
+    const structures = await enrichStructureComponents(sortedStructures.slice(0, 8));
+    return {
+        matches: matches,
+        structures: structures,
+        structureTotal: structureSearch.total,
+        exactAccession: structureSearch.exactAccession,
+        accessionSearchError: structureSearch.accessionSearchError || ""
+    };
+}
+
+function renderLiveEvidenceUnavailable(target, organism, message) {
+    const safeTarget = escapeWorkflowHtml(target);
+    const safeOrganism = escapeWorkflowHtml(organism);
+    return '<section class="live-target-evidence" id="live-target-evidence">' +
+        '<div class="live-evidence-heading"><p class="eyebrow">LIVE DATABASE LOOKUP</p><h3>Target and structure evidence</h3></div>' +
+        '<div class="live-evidence-empty"><strong>Live evidence lookup did not complete.</strong> ' + escapeWorkflowHtml(message || "The remote database could not be queried from this browser session.") +
+        '<p>No accession or PDB ranking has been invented. Check the target name (“' + safeTarget + '”), organism (“' + safeOrganism + '”) and try the official databases directly.</p>' +
+        '<p><a href="https://www.uniprot.org/" target="_blank" rel="noopener noreferrer">Search UniProt ↗</a> · <a href="https://www.rcsb.org/" target="_blank" rel="noopener noreferrer">Search RCSB PDB ↗</a></p></div></section>';
+}
+
 function renderWorkflow(event) {
     if (event) event.preventDefault();
     const results = document.getElementById("workflow-results");
     if (!results) return;
 
-    const objectives = selectedObjectives();
+    const objectives = selectedObjectives().filter(function(id) { return Boolean(protocolLibrary[id]); });
     const stageInput = document.querySelector('input[name="stage"]:checked');
     const stageKey = stageInput ? stageInput.value : "new-project";
+    const stage = stageGuides[stageKey] || stageGuides["new-project"];
     const osControl = document.getElementById("planner-os");
     const selectedOS = osControl ? osControl.value : "any";
     const experienceControl = document.getElementById("planner-experience");
@@ -550,73 +981,111 @@ function renderWorkflow(event) {
     const preference = preferenceControl ? preferenceControl.value : "visual-first";
     const focusControl = document.getElementById("planner-project-focus");
     const focus = focusControl ? focusControl.value.trim() : "";
+    const inputState = currentPlannerInputs();
 
     if (!objectives.length) {
-        results.innerHTML = '<div class="planner-empty-message"><strong>Select at least one objective.</strong> Choose a research task above and the planner will build an ordered workflow around it.</div>';
+        results.innerHTML = '<div class="planner-empty-message"><strong>Select at least one objective.</strong> The protocol engine will create an ordered plan from the selected research decision.</div>';
         results.focus();
         return;
     }
 
-    const stage = stageGuides[stageKey] || stageGuides["new-project"];
-    const chosenSteps = objectives
-        .filter(function(id) { return id !== stageKey; })
-        .map(function(id) { return objectiveGuides[id]; })
-        .filter(Boolean);
-    chosenSteps.sort(function(a, b) { return a.order - b.order; });
-
-    const allSteps = [{
-        kicker: "PROJECT STARTING POINT",
-        title: stage.title,
-        intro: stage.intro,
-        tasks: stage.tasks,
-        tools: stage.tools,
-        actions: stage.actions,
-        deliverable: stage.deliverable
-    }].concat(chosenSteps);
-
-    const objectiveNames = objectives.map(function(id) {
-        const input = document.querySelector('input[name="objective"][value="' + id + '"]');
-        const label = input ? input.closest("label") : null;
-        const title = label ? label.querySelector("strong") : null;
-        return title ? title.textContent.trim() : titleLabel(id);
-    });
+    const primaryId = choosePrimaryProtocol(objectives);
+    const primary = protocolLibrary[primaryId];
+    const steps = composeProtocolSteps(objectives, primaryId);
+    const requirementKeys = getProtocolRequirements(objectives);
+    const missingRequirements = unmetInputNames(requirementKeys, inputState.available);
+    const question = focus || primary.question.replace("the specified target", inputState.target || "the target of interest").replace("the stated organism", inputState.organism || "the relevant organism");
+    const targetLine = inputState.target && inputState.organism
+        ? escapeWorkflowHtml(inputState.target) + " · " + escapeWorkflowHtml(inputState.organism)
+        : (inputState.target ? escapeWorkflowHtml(inputState.target) + " · organism not specified" : "Not specified yet");
+    const goalNames = objectives.map(objectiveDisplayName);
     const experienceSummary = experience === "new"
-        ? "Beginner guidance"
+        ? "Beginner explanation"
         : experience === "some"
             ? "Some computational experience"
             : "Command line / coding comfortable";
     const styleSummary = preference === "visual-first"
-        ? "Browser / GUI first"
+        ? "Browser / desktop first"
         : preference === "mixed"
             ? "Visual and technical tools"
             : "Programming / command line acceptable";
-    const longWorkflowNote = allSteps.length > 7
-        ? '<p class="planner-length-note"><strong>This is a broad plan.</strong> For a shorter tutorial, run separate workflows for the discovery/data phase and the modelling/design phase.</p>'
+    const assetsSummary = missingRequirements.length
+        ? "Provisional plan · " + missingRequirements.length + " required input(s) not yet marked available"
+        : "Inputs declared · scientific validation gates still apply";
+    const stopStatements = [];
+    objectives.forEach(function(id) {
+        const statement = protocolLibrary[id] && protocolLibrary[id].stopIf;
+        if (statement && !stopStatements.includes(statement)) stopStatements.push(statement);
+    });
+    const stopHtml = stopStatements.slice(0, 3).map(function(statement) { return "<li>" + escapeWorkflowHtml(statement) + "</li>"; }).join("");
+    const missingHtml = missingRequirements.length
+        ? '<div class="planner-gaps"><h3>Resolve these input gaps</h3><p>This protocol is useful for planning, but it is not ready to execute end-to-end. The step-level prerequisites below show where missing inputs block downstream work.</p><ul>' +
+            missingRequirements.map(function(name) { return "<li>" + escapeWorkflowHtml(name) + "</li>"; }).join("") +
+          '</ul></div>'
+        : '<div class="planner-gaps planner-gaps-ok"><h3>Inputs declared</h3><p>The selected prerequisites are marked available. This does not mean the methods are validated: follow each step-level gate and stop when a control fails.</p></div>';
+    const additionalGoals = goalNames.length > 1
+        ? '<p><strong>Combined objectives:</strong> ' + escapeWorkflowHtml(goalNames.join(" · ")) + '</p>'
         : "";
-    const beginnerNote = experience === "new" && preference === "visual-first"
-        ? "Start with the suggested browser or graphical option in each step. Cards marked command line or programming may need a colleague, a prepared environment, or a separate graphical alternative."
-        : "Follow the steps in order and keep each input, setting, output, and source. Use technical tools only when you can validate their setup and outputs.";
+    const longWorkflowNote = steps.length > 12
+        ? '<p class="planner-length-note"><strong>Combined protocol.</strong> This plan is broad because several objectives were selected. Run it phase by phase; do not skip a gate simply to shorten the workflow.</p>'
+        : "";
+    const guidance = experience === "new" && preference === "visual-first"
+        ? "Start with browser or graphical tools where the catalogue offers a direct match. Some preparation, docking, QSAR and simulation steps still require command-line use or a configured environment; a web interface does not remove the need for method validation."
+        : "Record inputs, versions, settings, control results and failures. A tool suggestion is not evidence that the method is valid for your target or chemotype.";
+    const selectedOSLabel = selectedOS === "any" ? "No preference" : titleLabel(selectedOS);
 
     results.innerHTML =
-        '<div class="planner-results-heading">' +
-            '<div><p class="eyebrow">02 / YOUR WORKFLOW</p><h2>' + escapeWorkflowHtml(stage.title) + '</h2></div>' +
-            '<p>' + escapeWorkflowHtml(stage.intro) +
-                '<br><br><strong>Goals:</strong> ' + escapeWorkflowHtml(objectiveNames.join(" · ")) +
-                '<br><strong>Guidance:</strong> ' + escapeWorkflowHtml(experienceSummary) +
-                '<br><strong>Tool route:</strong> ' + escapeWorkflowHtml(styleSummary) +
-                (focus ? '<br><strong>Project focus:</strong> ' + escapeWorkflowHtml(focus) : "") +
-                '<br><strong>Operating system:</strong> ' + escapeWorkflowHtml(titleLabel(selectedOS === "any" ? "No preference" : selectedOS)) +
-            '</p>' +
-        '</div>' +
-        '<div class="planner-beginner-note"><strong>How to use this plan.</strong> ' + escapeWorkflowHtml(beginnerNote) + ' Treat model outputs as hypotheses, not experimental confirmation.</div>' +
-        longWorkflowNote +
-        '<div class="planner-results-list">' +
-            allSteps.map(function(step, index) { return makeStep(step, index, selectedOS, preference); }).join("") +
-        '</div>' +
-        '<p class="planner-method-note">Tool suggestions are ranked from the current ChemIsFree catalogue by task relevance and interface preference. Interface labels marked provisional, inferred, or unconfirmed have not been individually verified. Always check official documentation for the tool, its licence, maintenance status, input requirements, and scientific limitations before use.</p>';
+        '<div class="protocol-results-header">' +
+            '<div class="protocol-kicker">02 / GENERATED SCIENTIFIC PROTOCOL</div>' +
+            '<div class="protocol-state ' + (missingRequirements.length ? "is-provisional" : "is-input-complete") + '">' + escapeWorkflowHtml(assetsSummary) + '</div>' +
+            '<h2>' + escapeWorkflowHtml(primary.title) + '</h2>' +
+            '<p class="protocol-summary">' + escapeWorkflowHtml(primary.question.replace("the specified target", inputState.target || "the target of interest").replace("the stated organism", inputState.organism || "the relevant organism")) + '</p>' +
+            '<div class="protocol-decision-grid">' +
+                '<div><span>QUESTION</span><p>' + escapeWorkflowHtml(question) + '</p></div>' +
+                '<div><span>TARGET / ORGANISM</span><p>' + targetLine + '</p></div>' +
+                '<div><span>THIS DECIDES</span><p>' + escapeWorkflowHtml(primary.decision) + '</p></div>' +
+            '</div>' +
+            (inputState.target && inputState.organism
+                ? '<section class="live-target-evidence" id="live-target-evidence"><div class="live-evidence-heading"><p class="eyebrow">LIVE DATABASE LOOKUP</p><h3>Target and structure evidence</h3><p>Retrieving UniProt and RCSB records…</p></div></section>'
+                : '<section class="live-target-evidence" id="live-target-evidence"><div class="live-evidence-heading"><p class="eyebrow">TARGET EVIDENCE</p><h3>Target and structure evidence</h3><p>Enter both a target and organism above to retrieve UniProt matches and an experimental PDB shortlist when the public APIs are reachable.</p></div></section>') +
+            additionalGoals + missingHtml +
+            '<div class="protocol-stop"><strong>Stop condition</strong><ul>' + stopHtml + '</ul></div>' +
+            '<div class="planner-beginner-note"><strong>Execution note.</strong> ' + escapeWorkflowHtml(guidance) +
+                '<br><strong>Experience:</strong> ' + escapeWorkflowHtml(experienceSummary) +
+                ' · <strong>Tool route:</strong> ' + escapeWorkflowHtml(styleSummary) +
+                ' · <strong>Operating system:</strong> ' + escapeWorkflowHtml(selectedOSLabel) +
+                '<br><strong>Starting point:</strong> ' + escapeWorkflowHtml(stage.title) +
+            '</div>' + longWorkflowNote +
+            '<div class="protocol-actions"><button type="button" class="button button-secondary" id="print-workflow">Print / save protocol as PDF</button><button type="button" class="button button-secondary" id="edit-inputs">Edit inputs</button></div>' +
+            '<div class="planner-results-list">' +
+                steps.map(function(step, index) { return makeStep(step, index, selectedOS, preference, inputState.available); }).join("") +
+            '</div>' +
+            '<p class="planner-method-note">Catalogue matches are ranked from ChemIsFree records using task tags and interface preference. Interface classifications may be provisional or unconfirmed. External references are starting points, not endorsements. Thresholds labelled as working defaults are project heuristics rather than universal rules. Predicted poses, activity scores and ADMET outputs are not experimental confirmation.</p>';
 
+    const thisEvidenceRequest = ++liveEvidenceRequestId;
+    const evidencePanel = document.getElementById("live-target-evidence");
+    const needsTargetEvidence = ["target-context","ligand-landscape","hit-identification","structure-based","interactions","qsar","analogues","de-novo"].some(function(id) { return objectives.includes(id); });
+    if (needsTargetEvidence && inputState.target && inputState.organism && evidencePanel) {
+        retrieveLiveTargetEvidence(inputState.target, inputState.organism).then(function(evidence) {
+            if (thisEvidenceRequest !== liveEvidenceRequestId) return;
+            const panel = document.getElementById("live-target-evidence");
+            if (panel) panel.outerHTML = targetEvidenceHtml(evidence);
+        }).catch(function(error) {
+            if (thisEvidenceRequest !== liveEvidenceRequestId) return;
+            const panel = document.getElementById("live-target-evidence");
+            if (panel) panel.outerHTML = renderLiveEvidenceUnavailable(inputState.target, inputState.organism, error && error.message ? error.message : "");
+        });
+    }
+    const printButton = document.getElementById("print-workflow");
+    if (printButton) printButton.addEventListener("click", function() { window.print(); });
+    const editButton = document.getElementById("edit-inputs");
+    if (editButton) editButton.addEventListener("click", function() {
+        const form = document.getElementById("workflow-form");
+        if (form) form.scrollIntoView({behavior:"smooth", block:"start"});
+    });
     results.focus();
 }
+
 
 function resetWorkflow() {
     const results = document.getElementById("workflow-results");

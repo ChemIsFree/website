@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workflow Planner — ChemIsFree</title>
-    <meta name="description" content="Build a step-by-step medicinal chemistry workflow by combining tools and methods around your project stage and research objectives.">
-    <link rel="stylesheet" href="css/style.css?v=15">
+    <title>Workflows &amp; Protocols — ChemIsFree</title>
+    <meta name="description" content="Generate rigorous, gated computational chemistry protocols with evidence checks, prerequisites, validation criteria and tools from the ChemIsFree catalogue.">
+    <link rel="stylesheet" href="css/style.css?v=16">
 </head>
 <body>
 <header class="site-header">
@@ -16,8 +16,7 @@
         </a>
         <nav class="main-nav">
             <a href="tools.html">Explore</a>
-            <a href="tutorials.html">Tutorials</a>
-            <a href="planner.html" aria-current="page">Workflow planner</a>
+            <a href="planner.html" aria-current="page">Workflows &amp; tutorials</a>
             <a href="index.html#categories">Categories</a>
             <a href="about.html">About</a>
             <a href="contribute.html">Contribute</a>
@@ -34,12 +33,12 @@
             </div>
             <div class="planner-hero-grid">
                 <div>
-                    <p class="eyebrow">THE MEDICINAL CHEMISTRY WORKFLOW PLANNER</p>
-                    <h1>Plan a workflow.<br><em>Not a tool list.</em></h1>
+                    <p class="eyebrow">THE CHEMISFREE PROTOCOL BUILDER</p>
+                    <h1>Build a protocol.<br><em>Test every gate.</em></h1>
                 </div>
                 <div class="planner-hero-copy">
-                    <p>Real discovery projects combine methods. Build a step-by-step route through data analysis, screening, molecular design, structural interpretation, property assessment, and synthesis planning—based on what you are trying to accomplish.</p>
-                    <p class="planner-hero-note">Select more than one objective. Your choices are combined, not used to exclude entire approaches.</p>
+                    <p>A workflow is more than a sequence of tools. Generate a decision-led protocol with prerequisites, validation gates, stop conditions, common failure modes, literature references and catalogue-matched tools.</p>
+                    <p class="planner-hero-note">This single protocol engine powers both workflow planning and tutorials. Select several objectives to combine compatible phases into one plan.</p>
                 </div>
             </div>
         </div>
@@ -56,6 +55,14 @@
             </div>
 
             <form id="workflow-form" class="planner-form">
+                <section class="planner-project-context">
+                    <div class="planner-context-heading"><p class="eyebrow">PROJECT BRIEF</p><h3>What are you trying to decide?</h3><p>Specific context makes the protocol useful. Missing evidence will be flagged rather than silently assumed.</p></div>
+                    <div class="planner-context-fields">
+                        <div class="planner-context-field"><label for="planner-target" class="planner-field-title">Target / biological entity</label><input id="planner-target" name="target" class="planner-input" type="text" placeholder="e.g. EGFR, GSK3β, SIK3"></div>
+                        <div class="planner-context-field"><label for="planner-organism" class="planner-field-title">Organism / species</label><input id="planner-organism" name="organism" class="planner-input" type="text" placeholder="e.g. Homo sapiens"></div>
+                        <div class="planner-context-field planner-context-field-wide"><label for="planner-project-focus" class="planner-field-title">Research question / decision</label><textarea id="planner-project-focus" name="project-focus" class="planner-textarea" rows="2" placeholder="e.g. Find inhibitors worth buying or making, then validate whether docking can prioritize them."></textarea><p class="planner-field-help">Use a decision-focused question. This text will appear verbatim in the generated protocol.</p></div>
+                    </div>
+                </section>
                 <div class="planner-operating-system">
                     <div>
                         <label for="planner-os" class="planner-field-title">Operating system</label>
@@ -231,11 +238,27 @@
                     </div>
                 </fieldset>
 
+<fieldset class="planner-fieldset planner-assets-fieldset">
+                    <legend>Which inputs do you already have?</legend>
+                    <p class="planner-field-help">Tick only assets you can provide now. These declarations expose missing prerequisites; they do not count as validation of the data or method.</p>
+                    <div class="planner-assets-grid">
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="structure"><span>Experimental / selected protein structure</span></label>
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="native-ligand"><span>Native or co-crystal ligand / pose reference</span></label>
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="known-actives"><span>Known actives with traceable evidence</span></label>
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="decoys"><span>Property-matched decoy / control set</span></label>
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="library"><span>Defined screening library and source</span></label>
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="activity-data"><span>Measured activity dataset with assay metadata</span></label>
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="compound-set"><span>Compound structures / SMILES with stable IDs</span></label>
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="synthesis-constraints"><span>Synthesis / procurement constraints</span></label>
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="validated-docking"><span>Docking setup passed pose and enrichment controls</span></label>
+                    </div>
+                </fieldset>
+
                 <div class="planner-form-actions">
                     <button type="submit" class="button button-primary">Build my workflow <span>↗</span></button>
                     <button type="reset" id="planner-reset" class="planner-reset">Reset selections</button>
                 </div>
-                <p class="planner-form-note">Tool suggestions are drawn from the current ChemIsFree catalogue. Where a dedicated tool is not listed, the tutorial will identify the gap rather than imply that another tool can perform that task.</p>
+                <p class="planner-form-note">Protocols are assembled from the selected objectives. Missing catalogue coverage will be identified explicitly; suggested tools are candidates for a method step, not proof that the method is valid.</p>
             </form>
 
             <section id="workflow-results" class="planner-results" aria-live="polite" tabindex="-1"></section>
@@ -253,7 +276,7 @@
             <div>
                 <span>EXPLORE</span>
                 <a href="tools.html">Tools</a>
-                <a href="planner.html">Workflow planner</a>
+                <a href="planner.html">Workflows &amp; tutorials</a>
                 <a href="index.html#categories">Categories</a>
             </div>
             <div>
@@ -272,6 +295,7 @@
     </div>
 </footer>
 
-<script src="js/planner.js?v=4"></script>
+<script src="js/protocols.js?v=1"></script>
+<script src="js/planner.js?v=5"></script>
 </body>
 </html>
