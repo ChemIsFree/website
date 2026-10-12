@@ -1482,6 +1482,23 @@ function renderWorkflow(event) {
             '</div>' +
             '<p class="planner-method-note">Catalogue matches are ranked from ChemIsFree records using task tags and interface preference. Interface classifications may be provisional or unconfirmed. External references are starting points, not endorsements. Thresholds labelled as working defaults are project heuristics rather than universal rules. Predicted poses, activity scores and ADMET outputs are not experimental confirmation.</p>';
 
+    results.querySelectorAll(".planner-copy-code").forEach(function(button) {
+        button.addEventListener("click", function() {
+            let code = "";
+            try { code = decodeURIComponent(button.getAttribute("data-copy-code") || ""); }
+            catch (error) { code = button.getAttribute("data-copy-code") || ""; }
+            if (!navigator.clipboard || !navigator.clipboard.writeText) {
+                button.textContent = "Clipboard unavailable";
+                return;
+            }
+            navigator.clipboard.writeText(code).then(function() {
+                button.textContent = "Copied";
+            }).catch(function() {
+                button.textContent = "Copy failed";
+            });
+        });
+    });
+
     const thisEvidenceRequest = ++liveEvidenceRequestId;
     const evidencePanel = document.getElementById("live-target-evidence");
     const needsTargetEvidence = ["target-context","ligand-landscape","hit-identification","structure-based","interactions","qsar","analogues","de-novo"].some(function(id) { return objectives.includes(id); });
