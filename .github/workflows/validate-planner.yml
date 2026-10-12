@@ -1,0 +1,56 @@
+name: Validate Workflows & Tutorials planner
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out website
+        uses: actions/checkout@v6
+        with:
+          path: website
+
+      - name: Check out the live tool catalogue
+        uses: actions/checkout@v6
+        with:
+          repository: ChemIsFree/tools
+          path: catalogue
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install catalogue build dependency
+        run: pip install pyyaml
+
+      - name: Build the exact catalogue the website will publish
+        working-directory: website
+        run: python scripts/build_catalogue.py
+
+      - name: Check JavaScript syntax
+        working-directory: website
+        run: |
+          node --check js/protocols.js
+          node --check js/workflow-recipes.js
+          node --check js/planner.js
+
+      - name: Test workflow ordering, UI choices, tool IDs and recipe rendering
+        working-directory: website
+        run: node scripts/test_workflow_planner.js
