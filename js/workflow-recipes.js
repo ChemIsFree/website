@@ -447,7 +447,7 @@
         },
         {
           "title": "VirtualFlow (large-scale screening)",
-          "url": "https://github.com/VirtualFlow"
+          "url": "https://github.com/VirtualFlow/VirtualFlow"
         },
         {
           "title": "Ringtail result analysis",
