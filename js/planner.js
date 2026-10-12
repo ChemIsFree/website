@@ -559,7 +559,7 @@ function adaptStepForAvailableInputs(step, availableInputs) {
     // Treat the questionnaire as an actual starting-state declaration:
     // verify user-provided assets rather than blindly repeating acquisition steps.
     if (step.id === "structure.choose" && has("structure")) {
-        adapted.title = "Audit the protein structure you already have";
+        adapted.title = "Audit existing structure — " + step.title;
         adapted.intro = "Start from your file and verify that it represents the intended target, construct and binding-site state.";
         adapted.actions = [
             "Record source/PDB ID, chain, biological assembly, organism, isoform/construct, resolution and refinement statistics if experimental.",
@@ -570,7 +570,7 @@ function adaptStepForAvailableInputs(step, availableInputs) {
     }
 
     if (step.id === "ligand.query" && has("activity-data")) {
-        adapted.title = "Audit and extend the activity data you already have";
+        adapted.title = "Audit/extend existing activity data — " + step.title;
         adapted.intro = "Do not redownload the same dataset by default. Validate provenance and retrieve only the records or metadata that are missing.";
         adapted.actions = [
             "Check that compound IDs, structures, target, assay IDs, endpoint, units, standard relation, source document and organism are preserved.",
@@ -581,7 +581,7 @@ function adaptStepForAvailableInputs(step, availableInputs) {
     }
 
     if (step.id === "data.curate" && has("compound-set")) {
-        adapted.title = "Quality-check the compound file you already have";
+        adapted.title = "Quality-check existing compound file — " + step.title;
         adapted.intro = "Retain the original file and create a traceable cleaned copy rather than overwriting structures or identifiers.";
         adapted.actions = [
             "Validate SMILES/SDF parsing, stable IDs, stereochemistry, salts, charge, duplicates and missing structures.",
@@ -646,7 +646,7 @@ function adaptStepForAvailableInputs(step, availableInputs) {
     }
 
     if (step.id === "design.enumerate" && has("generated-compounds")) {
-        adapted.title = "Audit and prioritize the designed compounds you already have";
+        adapted.title = "Audit designed compounds — " + step.title;
         adapted.intro = "Reuse the existing generated set as the starting point. Do not generate a duplicate library until you have checked which constraints and validation stages were already applied.";
         adapted.actions = [
             "Preserve generator/version, prompt or scaffold, fixed seed where available, building-block constraints and original output strings.",
@@ -657,7 +657,7 @@ function adaptStepForAvailableInputs(step, availableInputs) {
     }
 
     if (step.id === "screen.validate" && has("validated-docking") && !(has("known-actives") && has("decoys"))) {
-        adapted.title = "Audit the existing docking validation and define its scope";
+        adapted.title = "Audit existing docking validation — " + step.title;
         adapted.intro = "Treat an existing validation as applicable only to the receptor states, ligand chemistry, preparation and scoring settings it actually tested.";
         adapted.actions = [
             "Retrieve the original native-pose recovery and active/control enrichment reports, raw score tables, compound IDs, software versions and setup parameters.",
@@ -668,7 +668,7 @@ function adaptStepForAvailableInputs(step, availableInputs) {
     }
 
     if (step.id === "screen.library" && has("library")) {
-        adapted.title = "Prepare the screening library you already have";
+        adapted.title = "Reuse existing screening library — " + step.title;
         adapted.intro = "Start from the current library and prove that compound identity, source and preparation are reproducible.";
         adapted.actions = [
             "Record the source/version, stable compound ID, availability, license/use conditions and original structure for each entry.",
@@ -701,7 +701,7 @@ function adaptStepForAvailableInputs(step, availableInputs) {
     }
 
     if (step.id === "develop.profile" && has("admet-results")) {
-        adapted.title = "Reconcile the ADMET results you already have";
+        adapted.title = "Reconcile existing ADMET data — " + step.title;
         adapted.intro = "Keep experimental and predicted results distinct, and add predictions only for missing endpoints or unresolved risks.";
         adapted.actions = [
             "Track source/model, prediction date, endpoint definitions, units, structure standardization and uncertainty/applicability warnings.",
