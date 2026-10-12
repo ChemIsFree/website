@@ -124,6 +124,29 @@
           "url": "https://github.com/docking-org/dock6"
         }
       ]
+    },
+    {
+      "title": "Run a self-/cross-docking matrix across receptors and 10 conformers",
+      "note": "Prepare an SDF/PDBQT conformer set once, then run each ligand conformer against every receptor state. This Cartesian-product run includes both self-docking pairs and cross-docking pairs; keep a manifest mapping each native ligand to its source receptor so results can be labelled correctly. Define and record a separate validated box for each receptor. This is a starter script, not a claim that all receptors/states are biologically interchangeable.",
+      "code": "#!/usr/bin/env bash\nset -euo pipefail\n\n# Expected:\n#   receptors/stateA.pdb and receptors/stateA.pdbqt\n#   receptors/stateB.pdb and receptors/stateB.pdbqt\n#   ligand_pdbqt/compound_conf00.pdbqt ... compound_conf09.pdbqt\n#   boxes.tsv: receptor<TAB>cx<TAB>cy<TAB>cz<TAB>sx<TAB>sy<TAB>sz\n# Put one validated box row per receptor in boxes.tsv.\nmkdir -p ensemble_results/{gnina,smina,vina}\n\nwhile IFS=$'\\t' read -r state cx cy cz sx sy sz; do\n  [[ -z \"${state:-}\" || \"$state\" == \"#receptor\" ]] && continue\n  for ligand in ligand_pdbqt/*.pdbqt; do\n    [[ -e \"$ligand\" ]] || { echo \"No ligands found\" >&2; exit 1; }\n    name=\"$(basename \"${ligand%.pdbqt}\")\"\n    tag=\"${name}__in__${state}\"\n\n    # GNINA uses the receptor PDB here; box settings are state-specific.\n    gnina -r \"receptors/${state}.pdb\" -l \"$ligand\" \\\n      --center_x \"$cx\" --center_y \"$cy\" --center_z \"$cz\" \\\n      --size_x \"$sx\" --size_y \"$sy\" --size_z \"$sz\" \\\n      --exhaustiveness 16 --seed 20261012 --pose_sort_order CNNscore \\\n      -o \"ensemble_results/gnina/${tag}.sdf\" \\\n      --log \"ensemble_results/gnina/${tag}.log\"\n\n    smina -r \"receptors/${state}.pdbqt\" -l \"$ligand\" \\\n      --center_x \"$cx\" --center_y \"$cy\" --center_z \"$cz\" \\\n      --size_x \"$sx\" --size_y \"$sy\" --size_z \"$sz\" \\\n      --exhaustiveness 16 --seed 20261012 \\\n      --out \"ensemble_results/smina/${tag}.pdbqt\"\n\n    vina --receptor \"receptors/${state}.pdbqt\" --ligand \"$ligand\" \\\n      --center_x \"$cx\" --center_y \"$cy\" --center_z \"$cz\" \\\n      --size_x \"$sx\" --size_y \"$sy\" --size_z \"$sz\" \\\n      --exhaustiveness 16 --seed 20261012 \\\n      --out \"ensemble_results/vina/${tag}.pdbqt\"\n  done\ndone < boxes.tsv\n\n# Build a results table linking ligand ID, source/native receptor, docking\n# receptor state, engine, engine-specific score field, seed and pose filepath.\n# self-docking: source/native receptor == docking receptor state\n# cross-docking: source/native receptor != docking receptor state\n# Compare native-pose RMSD only for chemically identical ligands and the\n# matching crystallographic reference. Rank scores separately by engine.",
+      "links": [
+        {
+          "title": "GNINA",
+          "url": "https://github.com/gnina/gnina"
+        },
+        {
+          "title": "SMINA",
+          "url": "https://github.com/mwojcikowski/smina"
+        },
+        {
+          "title": "AutoDock Vina",
+          "url": "https://autodock-vina.readthedocs.io/"
+        },
+        {
+          "title": "DOCK 6 (different scoring/search lineage)",
+          "url": "https://github.com/docking-org/dock6"
+        }
+      ]
     }
   ],
   "screen.validate": [
@@ -272,6 +295,37 @@
           "url": "https://pharmit.csb.pitt.edu/"
         }
       ]
+    },
+    {
+      "type": "guide",
+      "title": "Fragment growing, fragment linking, scaffold decoration and de novo design",
+      "note": "Choose the design operation that matches your evidence. Do not treat the methods as interchangeable: a growing operation expands from one anchored fragment; a linker-generation method connects two fragments; scaffold decoration changes substituents around a retained core; de novo design may replace most or all of the starting scaffold.",
+      "steps": [
+        "Fragment growing: keep the experimentally supported fragment anchor and its coordinates/pharmacophore features fixed. Choose one solvent-exposed growth vector at a time; enumerate chemically plausible substituents/fragment extensions using RDKit or a constrained generator. Re-dock/inspect the grown poses, strain and clashes, and compare to a matched un-grown fragment control.",
+        "Fragment linking: use REINVENT4 LinkInvent (or another linker generator) when two positioned fragments/warheads should be connected. Preserve both anchors and exit vectors; score linker geometry, strain, flexibility, properties and synthetic feasibility.",
+        "Scaffold decoration: use REINVENT4 LibInvent or RDKit-based R-group enumeration when you want to preserve a core/pharmacophore and vary selected positions. Keep matched pairs so each substitution tests a defined hypothesis.",
+        "De novo / pocket-conditioned generation: use REINVENT4 Mol2Mol or a pocket-conditioned method such as Pocket2Mol/PocketXMol when new molecular graphs or scaffold changes are justified. Fix hard constraints and rejection rules before sampling.",
+        "For all approaches: retain generator/version, seed/settings, starting ligand/fragments, anchor atom mapping, all generated/rejected structures and rejection reasons. Sanitize, standardize and deduplicate outputs; independently check binding hypotheses, ADMET and synthesis.",
+        "Compare at least one baseline: a simple enumerated analogue set or known-ligand nearest neighbours. Promote molecules only when they provide a testable, discriminating experiment and a plausible make/buy route."
+      ],
+      "links": [
+        {
+          "title": "REINVENT4",
+          "url": "https://github.com/MolecularAI/REINVENT4"
+        },
+        {
+          "title": "Pocket2Mol",
+          "url": "https://github.com/pengxingang/pocket2mol"
+        },
+        {
+          "title": "PocketXMol",
+          "url": "https://github.com/pengxingang/PocketXMol"
+        },
+        {
+          "title": "RDKit documentation",
+          "url": "https://www.rdkit.org/docs/"
+        }
+      ]
     }
   ],
   "develop.profile": [
@@ -377,6 +431,38 @@
         {
           "title": "RCSB PDB",
           "url": "https://www.rcsb.org/"
+        }
+      ]
+    }
+  ],
+  "screen.library": [
+    {
+      "title": "Run a small, reproducible GNINA virtual-screening pilot",
+      "note": "Use this only after the receptor, box, native-pose recovery and active/control enrichment have passed. Start with a small subset, confirm the output score fields, then scale. The loop docks every prepared ligand conformer; aggregate conformers to compound IDs before ranking the compound library. For larger campaigns or high-performance computing, tools such as VirtualFlow can manage distributed screening.",
+      "code": "#!/usr/bin/env bash\nset -euo pipefail\n\nRECEPTOR=\"receptor_clean.pdb\"\nCENTER_X=12.0   # replace with your validated box centre\nCENTER_Y=18.0\nCENTER_Z=24.0\nSIZE_X=22.0     # replace with your validated box dimensions\nSIZE_Y=22.0\nSIZE_Z=22.0\nOUT=\"gnina_screen\"\nmkdir -p \"$OUT\"\n\nfor ligand in ligand_pdbqt/*.pdbqt; do\n  [[ -e \"$ligand\" ]] || { echo \"No ligand PDBQT files found\" >&2; exit 1; }\n  name=\"$(basename \"${ligand%.pdbqt}\")\"\n  echo \"Docking $name\"\n  gnina -r \"$RECEPTOR\" -l \"$ligand\" \\\n    --center_x \"$CENTER_X\" --center_y \"$CENTER_Y\" --center_z \"$CENTER_Z\" \\\n    --size_x \"$SIZE_X\" --size_y \"$SIZE_Y\" --size_z \"$SIZE_Z\" \\\n    --exhaustiveness 16 --seed 20261012 --pose_sort_order CNNscore \\\n    --cpu 1 --log \"$OUT/${name}.log\" \\\n    -o \"$OUT/${name}.sdf\"\ndone\n\n# Inspect the first output SDF and logs before scaling up.\n# Preserve compound IDs; a file per conformer is not yet a compound-level ranking.",
+      "links": [
+        {
+          "title": "GNINA official README",
+          "url": "https://github.com/gnina/gnina"
+        },
+        {
+          "title": "VirtualFlow (large-scale screening)",
+          "url": "https://github.com/VirtualFlow"
+        },
+        {
+          "title": "Ringtail result analysis",
+          "url": "https://ringtail.readthedocs.io/"
+        }
+      ]
+    },
+    {
+      "title": "Aggregate the best GNINA pose per compound and create a ranking table",
+      "note": "Expects output files named compoundID_conf00.sdf, compoundID_conf01.sdf, etc. It uses each file's first pose (GNINA sorts poses by CNNscore by default, explicitly set above), then selects the highest-CNNscore pose across the prepared conformers of each compound. The resulting list is a ranking hypothesis, not an activity prediction.",
+      "code": "import re\nfrom pathlib import Path\nimport pandas as pd\nfrom rdkit import Chem\n\nROOT = Path(\"gnina_screen\")\nrows = []\n\nfor path in sorted(ROOT.glob(\"*.sdf\")):\n    supplier = Chem.SDMolSupplier(str(path), removeHs=False)\n    mol = next((item for item in supplier if item is not None), None)\n    if mol is None:\n        print(f\"SKIP unreadable SDF: {path}\")\n        continue\n\n    def read_num(*keys):\n        for key in keys:\n            if mol.HasProp(key):\n                try:\n                    return float(mol.GetProp(key))\n                except (TypeError, ValueError):\n                    pass\n        return None\n\n    stem = path.stem\n    compound_id = re.sub(r\"_conf\\d+$\", \"\", stem)\n    rows.append({\n        \"compound_id\": compound_id,\n        \"conformer_file\": path.name,\n        \"CNNscore\": read_num(\"CNNscore\", \"CNN_score\"),\n        \"CNNaffinity\": read_num(\"CNNaffinity\", \"CNN_affinity\"),\n        \"minimizedAffinity\": read_num(\"minimizedAffinity\", \"Affinity\"),\n    })\n\nposes = pd.DataFrame(rows)\nif poses.empty or poses[\"CNNscore\"].notna().sum() == 0:\n    raise ValueError(\"No CNNscore property was found; inspect the GNINA SDF fields first.\")\n\n# Pick best conformer per compound using CNNscore (higher is better).\nranked = (poses.dropna(subset=[\"CNNscore\"])\n          .sort_values(\"CNNscore\", ascending=False)\n          .drop_duplicates(\"compound_id\", keep=\"first\")\n          .reset_index(drop=True))\nranked.insert(0, \"rank\", ranked.index + 1)\nranked.to_csv(\"gnina_compound_ranking.csv\", index=False)\nprint(ranked.head(20).to_string(index=False))\n\n# Separately inspect alternative score fields and pose diversity.\n# Do not average CNNscore, CNNaffinity and energy: their meanings/units differ.",
+      "links": [
+        {
+          "title": "GNINA score fields and pose sorting",
+          "url": "https://github.com/gnina/gnina"
         }
       ]
     }
