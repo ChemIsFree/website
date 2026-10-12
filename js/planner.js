@@ -641,20 +641,44 @@ function composeProtocolSteps(objectives, primaryId, approach) {
         const definition = protocolLibrary[id];
         if (!definition) return;
         definition.steps.forEach(function(step) {
-            const key = String(step.id || "") + "|" + String(step.title || "");
+            // Shared identifiers represent the same workflow phase across objectives.
+            // Keep the version from the highest-priority selected protocol, rather than
+            // showing several near-duplicate versions of the same step.
+            const key = String(step.id || step.title || "");
             if (!seen[key]) {
                 seen[key] = true;
                 steps.push(step);
             }
         });
     });
+
+    const phaseOrder = {
+        "target.resolve": 0, "structure.choose": 10, "pocket.audit": 20, "pocket.alternatives": 25,
+        "ligand.query": 30, "data.inventory": 35, "data.curate": 40, "ligand.search": 45, "ligand.series": 50, "data.audit": 55,
+        "structure.prepare": 60, "docking.ensemble": 65, "structure.redock": 70, "structure.crossdock": 75, "docking.rmsd": 78, "screen.validate": 80,
+        "interactions.report": 90, "interaction.fingerprint": 95, "pharmacophore.map": 100, "screen.library": 105, "screen.triage": 110, "screen.rescore": 115,
+        "design.hypothesis": 120, "design.enumerate": 125, "generation.enumerate": 130, "generation.curate": 135, "generation.triage": 140,
+        "develop.descriptors": 145, "develop.profile": 150, "admet.risk-plan": 155, "model.baseline": 160, "model.validate": 165, "model.domain": 170,
+        "synthesis.input": 180, "synthesis.route": 185, "synthesis.risk": 190, "workflow.design": 200, "workflow.build": 205, "workflow.validate": 210, "workflow.audit": 220
+    };
+    const phaseRank = {
+        "target.resolve": 0, "structure.choose": 0, "pocket.audit": 0, "pocket.alternatives": 0,
+        "ligand.query": 1, "data.inventory": 1, "data.curate": 1, "ligand.search": 1, "ligand.series": 1, "data.audit": 1,
+        "structure.prepare": 2, "docking.ensemble": 2, "structure.redock": 2, "structure.crossdock": 2, "docking.rmsd": 2, "screen.validate": 2,
+        "interactions.report": 3, "interaction.fingerprint": 3, "pharmacophore.map": 3, "screen.library": 3, "screen.triage": 3, "screen.rescore": 3,
+        "design.hypothesis": 4, "design.enumerate": 4, "generation.enumerate": 4, "generation.curate": 4, "generation.triage": 4,
+        "develop.descriptors": 4, "develop.profile": 4, "admet.risk-plan": 4, "model.baseline": 4, "model.validate": 4, "model.domain": 4,
+        "synthesis.input": 5, "synthesis.route": 5, "synthesis.risk": 5, "workflow.design": 5, "workflow.build": 5, "workflow.validate": 5, "workflow.audit": 5
+    };
     steps.sort(function(a, b) {
-        if (approach !== "ligand-based") {
-            const rankA = a.id === "target.resolve" ? 0 : (a.id === "structure.choose" ? 1 : 2);
-            const rankB = b.id === "target.resolve" ? 0 : (b.id === "structure.choose" ? 1 : 2);
-            if (rankA !== rankB) return rankA - rankB;
-        }
-        if (a.order !== b.order) return a.order - b.order;
+        const aId = String(a.id || "");
+        const bId = String(b.id || "");
+        const aPhase = phaseRank[aId] === undefined ? 4 : phaseRank[aId];
+        const bPhase = phaseRank[bId] === undefined ? 4 : phaseRank[bId];
+        if (aPhase !== bPhase) return aPhase - bPhase;
+        const aPriority = phaseOrder[aId] === undefined ? (Number(a.order) || 999) : phaseOrder[aId];
+        const bPriority = phaseOrder[bId] === undefined ? (Number(b.order) || 999) : phaseOrder[bId];
+        if (aPriority !== bPriority) return aPriority - bPriority;
         return String(a.title || "").localeCompare(String(b.title || ""));
     });
     return steps;
@@ -1387,6 +1411,39 @@ function renderLiveEvidenceUnavailable(target, organism, message) {
         '<p><a href="https://www.uniprot.org/" target="_blank" rel="noopener noreferrer">Search UniProt ↗</a> · <a href="https://www.rcsb.org/" target="_blank" rel="noopener noreferrer">Search RCSB PDB ↗</a></p></div></section>';
 }
 
+function workflowPhaseForStep(step) {
+    const id = String(step.id || "");
+    const definitions = [
+        {id:"target-structure",title:"1. Qualify the target and choose the structure",intro:"Resolve the biological entity, compare experimental structures, and establish which pocket is being investigated.",match:["target.resolve","structure.choose","pocket.audit","pocket.alternatives"]},
+        {id:"ligand-evidence",title:"2. Retrieve and curate ligand evidence",intro:"Download source-traceable compounds and activity measurements, then standardize structures without losing provenance.",match:["ligand.query","data.inventory","data.curate","ligand.search","ligand.series","data.audit"]},
+        {id:"docking-validation",title:"3. Prepare and validate the docking setup",intro:"Prepare receptor and ligands consistently, run pose-recovery and cross-docking controls, then test active-versus-decoy enrichment before screening.",match:["structure.prepare","docking.ensemble","structure.redock","structure.crossdock","docking.rmsd","screen.validate"]},
+        {id:"binding-screening",title:"4. Map interactions and search chemical space",intro:"Use interaction analysis and pharmacophore hypotheses to interpret poses and prioritize compounds with orthogonal evidence.",match:["interactions.report","interaction.fingerprint","pharmacophore.map","screen.library","screen.triage","screen.rescore"]},
+        {id:"design-prediction",title:"5. Design, model, and assess developability",intro:"Explore focused analogues or constrained generation, then review properties, ADMET, and model reliability.",match:["design.hypothesis","design.enumerate","generation.enumerate","generation.curate","generation.triage","develop.descriptors","develop.profile","admet.risk-plan","model.baseline","model.validate","model.domain"]},
+        {id:"synthesis-reproducibility",title:"6. Assess synthesis and package the workflow",intro:"Check availability and route uncertainty, record assumptions, and make the procedure reproducible.",match:["synthesis.input","synthesis.route","synthesis.risk","workflow.design","workflow.build","workflow.validate","workflow.audit"]}
+    ];
+    const found = definitions.find(function(phase) { return phase.match.includes(id); });
+    return found || definitions[4];
+}
+
+function renderProtocolPhases(steps, selectedOS, preference, availableInputs) {
+    const phaseMap = new Map();
+    steps.forEach(function(step, index) {
+        const phase = workflowPhaseForStep(step);
+        if (!phaseMap.has(phase.id)) {
+            phaseMap.set(phase.id, {definition:phase, steps:[]});
+        }
+        phaseMap.get(phase.id).steps.push({step:step, index:index});
+    });
+    const groups = Array.from(phaseMap.values());
+    return '<div class="planner-results-list">' + groups.map(function(group, groupIndex) {
+        return '<details class="planner-protocol-phase"' + (groupIndex === 0 ? ' open' : '') + '>' +
+            '<summary class="planner-protocol-phase-summary"><span class="planner-protocol-phase-copy"><strong>' + escapeWorkflowHtml(group.definition.title) + '</strong><small>' + escapeWorkflowHtml(group.definition.intro) + '</small></span>' +
+            '<span class="planner-protocol-phase-count">' + group.steps.length + ' step' + (group.steps.length === 1 ? '' : 's') + '</span><span class="planner-step-chevron" aria-hidden="true">+</span></summary>' +
+            '<div class="planner-protocol-phase-body">' +
+                group.steps.map(function(item) { return makeStep(item.step, item.index, selectedOS, preference, availableInputs); }).join("") +
+            '</div></details>';
+    }).join("") + '</div>';
+}
 function renderWorkflow(event) {
     if (event) event.preventDefault();
     const results = document.getElementById("workflow-results");
@@ -1497,9 +1554,7 @@ function renderWorkflow(event) {
                 '<br><strong>Starting point:</strong> ' + escapeWorkflowHtml(stage.title) +
             '</div>' + longWorkflowNote +
             '<div class="protocol-actions"><button type="button" class="button button-secondary" id="print-workflow">Print / save protocol as PDF</button><button type="button" class="button button-secondary" id="edit-inputs">Edit inputs</button></div>' +
-            '<div class="planner-results-list">' +
-                steps.map(function(step, index) { return makeStep(step, index, selectedOS, preference, inputState.available); }).join("") +
-            '</div>' +
+            renderProtocolPhases(steps, selectedOS, preference, inputState.available) +
             '<p class="planner-method-note">Catalogue matches are ranked from ChemIsFree records using task tags and interface preference. Interface classifications may be provisional or unconfirmed. External references are starting points, not endorsements. Thresholds labelled as working defaults are project heuristics rather than universal rules. Predicted poses, activity scores and ADMET outputs are not experimental confirmation.</p>';
 
     results.querySelectorAll(".planner-copy-code").forEach(function(button) {
@@ -1534,7 +1589,17 @@ function renderWorkflow(event) {
         });
     }
     const printButton = document.getElementById("print-workflow");
-    if (printButton) printButton.addEventListener("click", function() { window.print(); });
+    if (printButton) printButton.addEventListener("click", function() {
+        const expandable = Array.from(results.querySelectorAll("details"));
+        const previous = expandable.map(function(item) { return item.open; });
+        expandable.forEach(function(item) { item.open = true; });
+        const restore = function() {
+            expandable.forEach(function(item, index) { item.open = previous[index]; });
+            window.removeEventListener("afterprint", restore);
+        };
+        window.addEventListener("afterprint", restore);
+        window.print();
+    });
     const editButton = document.getElementById("edit-inputs");
     if (editButton) editButton.addEventListener("click", function() {
         const form = document.getElementById("workflow-form");
