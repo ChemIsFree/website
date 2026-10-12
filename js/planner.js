@@ -361,7 +361,12 @@ function rankWorkflowTools(config, preference) {
         });
         score += interfaceSuitability(tool, preference);
         return { tool: tool, score: score };
-    }).filter(function(item) { return item.score > 0; });
+    }).filter(function(item) {
+        if (item.score <= 0) return false;
+        if (preference !== "visual-first") return true;
+        // "GUI only" is a constraint, not just a soft preference.
+        return getInterfaceItems(item.tool).some(function(value) { return value === "gui" || value === "web"; });
+    });
 
     ranked.sort(function(a, b) {
         if (b.score !== a.score) return b.score - a.score;
@@ -555,7 +560,9 @@ function makeStep(step, index, selectedOS, preference, availableInputs) {
         ? '<div class="planner-tool-recommendations">' +
             recommendations.map(function(tool, toolIndex) { return makeToolCard(tool, selectedOS, preference, toolIndex, step); }).join("") +
           '</div>'
-        : '<div class="planner-coverage-note"><strong>No directly matched catalogue entry yet.</strong> The method is still listed, but no catalogue tool is being claimed as a direct match. Suggest a relevant resource through the contribution page.</div>';
+        : (preference === "visual-first"
+            ? '<div class="planner-coverage-note"><strong>No GUI/browser tool is currently matched for this step.</strong> The available catalogue route appears to require command-line or programming use. This is a real limitation under your GUI-only constraint; either skip this step consciously, use an external graphical workflow, or change the preference to allow technical tools.</div>'
+            : '<div class="planner-coverage-note"><strong>No directly matched catalogue entry yet.</strong> The method is still listed, but no catalogue tool is being claimed as a direct match. Suggest a relevant resource through the contribution page.</div>');
     const coverage = step.coverageNote
         ? '<div class="planner-coverage-note"><strong>Important limitation.</strong> ' + escapeWorkflowHtml(step.coverageNote) + '</div>'
         : "";
@@ -580,8 +587,8 @@ function makeStep(step, index, selectedOS, preference, availableInputs) {
           }).join(" · ") + '</div>'
         : "";
 
-    const codeHtml = Array.isArray(step.codeExamples) && step.codeExamples.length
-        ? '<div class="planner-code-examples"><h4>Code / command examples</h4>' +
+    const codeExamplesHtml = Array.isArray(step.codeExamples) && step.codeExamples.length
+        ? '<div class="planner-code-examples-inner"><h4>Code / command examples</h4>' +
             step.codeExamples.map(function(example) {
                 const label = escapeWorkflowHtml(example.label || "Example");
                 const lang = escapeWorkflowHtml(example.language || "bash");
@@ -592,8 +599,13 @@ function makeStep(step, index, selectedOS, preference, availableInputs) {
                     '<button type="button" class="planner-copy-code" data-copy-code="' + encodeURIComponent(example.code || "") + '">Copy example</button></details>';
             }).join("") + '</div>'
         : "";
+    const codeHtml = codeExamplesHtml
+        ? (preference === "visual-first"
+            ? '<details class="planner-code-examples planner-code-examples-technical"><summary>Optional technical alternative (requires code / command line)</summary>' + codeExamplesHtml + '</details>'
+            : '<div class="planner-code-examples">' + codeExamplesHtml + '</div>')
+        : "";
 
-    return '<details class="planner-workflow-step"' + (index === 0 ? ' open' : '') + '>' +
+    return '<details class="planner-workflow-step">' +
         '<summary class="planner-step-summary">' +
             '<span class="planner-step-number">' + String(index + 1).padStart(2, "0") + '</span>' +
             '<span class="planner-step-summary-main">' +
