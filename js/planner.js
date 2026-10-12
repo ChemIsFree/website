@@ -724,15 +724,22 @@ async function searchRcsbEntries(uniprotAccession, target, organism) {
         }
     };
 
-    let response = await fetchJsonResource("https://search.rcsb.org/rcsbsearch/v2/query", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(accessionQuery)
-    });
-    let results = Array.isArray(response.result_set) ? response.result_set : [];
+    let response = null;
+    let accessionSearchError = null;
+    try {
+        response = await fetchJsonResource("https://search.rcsb.org/rcsbsearch/v2/query", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(accessionQuery)
+        });
+    } catch (error) {
+        accessionSearchError = error;
+    }
+    let results = response && Array.isArray(response.result_set) ? response.result_set : [];
     if (results.length) return { results: results, total: response.total_count || results.length, exactAccession: true };
 
     // Fallback search is deliberately labelled weaker because text matches are less specific than UniProt cross-references.
+    // It also gives the user a chance to recover when the accession query is unsupported by the live service.
     const generalQuery = {
         query: {
             type: "group",
@@ -761,7 +768,12 @@ async function searchRcsbEntries(uniprotAccession, target, organism) {
         body: JSON.stringify(generalQuery)
     });
     results = Array.isArray(response.result_set) ? response.result_set : [];
-    return { results: results, total: response.total_count || results.length, exactAccession: false };
+    return {
+        results: results,
+        total: response.total_count || results.length,
+        exactAccession: false,
+        accessionSearchError: accessionSearchError ? String(accessionSearchError.message || accessionSearchError) : ""
+    };
 }
 
 function numberOrNull(value) {
@@ -820,6 +832,41 @@ async function loadRcsbStructureRecord(pdbId) {
     };
 }
 
+
+async function loadRcsbComponent(pdbId, entityId) {
+    const url = "https://data.rcsb.org/rest/v1/core/nonpolymer_entity/" +
+        encodeURIComponent(String(pdbId || "").toUpperCase()) + "/" +
+        encodeURIComponent(String(entityId || ""));
+    try {
+        const entity = await fetchJsonResource(url);
+        const containers = entity.rcsb_nonpolymer_entity_container_identifiers || {};
+        const chemComp = entity.chem_comp || {};
+        const legacy = entity.pdbx_entity_nonpoly || {};
+        const annotation = entity.rcsb_nonpolymer_entity || {};
+        const componentId = containers.non_polymer_comp_id || legacy.comp_id || chemComp.id || String(entityId);
+        const description = legacy.name || legacy.pdbx_description || annotation.pdbx_description || chemComp.name || "";
+        const molecularWeight = numberOrNull(annotation.formula_weight || chemComp.formula_weight || legacy.formula_weight);
+        return {
+            id: String(componentId),
+            description: String(description || ""),
+            molecularWeight: molecularWeight
+        };
+    } catch (error) {
+        return { id: String(entityId), description: "", molecularWeight: null };
+    }
+}
+
+async function enrichStructureComponents(records) {
+    return Promise.all(records.map(async function(record) {
+        const entityIds = record.nonpolymerIds.slice(0, 3);
+        const loaded = await Promise.all(entityIds.map(function(entityId) {
+            return loadRcsbComponent(record.id, entityId);
+        }));
+        record.components = loaded;
+        return record;
+    }));
+}
+
 function targetEvidenceHtml(evidence) {
     const uniprotRows = evidence.matches.map(function(match) {
         const accessionUrl = match.accession ? "https://www.uniprot.org/uniprotkb/" + encodeURIComponent(match.accession) : "https://www.uniprot.org/";
@@ -834,18 +881,23 @@ function targetEvidenceHtml(evidence) {
     if (evidence.structures && evidence.structures.length) {
         structures = '<h4>Experimental structure shortlist</h4>' +
             '<p class="live-evidence-note">Sorted by a transparent triage heuristic, not by docking or ligand potency. Inspect the full record before selecting a receptor.</p>' +
-            '<div class="live-evidence-table-wrap"><table class="live-evidence-table"><thead><tr><th>PDB</th><th>Resolution (Å)</th><th>R-free</th><th>Method</th><th>Non-polymer IDs</th><th>Triage / 10</th></tr></thead><tbody>' +
+            '<div class="live-evidence-table-wrap"><table class="live-evidence-table"><thead><tr><th>PDB</th><th>Resolution (Å)</th><th>R-free</th><th>Method</th><th>Bound non-polymer components</th><th>Triage / 10</th></tr></thead><tbody>' +
             evidence.structures.map(function(record) {
                 const pdbUrl = "https://www.rcsb.org/structure/" + encodeURIComponent(record.id);
                 return '<tr><td><a href="' + escapeWorkflowHtml(pdbUrl) + '" target="_blank" rel="noopener noreferrer"><strong>' + escapeWorkflowHtml(record.id) + '</strong> ↗</a></td>' +
                     '<td>' + (record.resolution === null ? "n/a" : record.resolution.toFixed(2)) + '</td>' +
                     '<td>' + (record.rfree === null ? "n/a" : record.rfree.toFixed(3)) + '</td>' +
                     '<td>' + escapeWorkflowHtml(record.method) + '</td>' +
-                    '<td>' + escapeWorkflowHtml(record.nonpolymerIds.length ? record.nonpolymerIds.join(", ") : "None listed") + '</td>' +
+                    '<td>' + escapeWorkflowHtml(record.components && record.components.length
+                        ? record.components.map(function(component) {
+                            const detail = component.description ? component.id + " — " + component.description : component.id;
+                            return component.molecularWeight !== null ? detail + " (" + component.molecularWeight.toFixed(1) + " Da)" : detail;
+                          }).join("; ")
+                        : (record.nonpolymerIds.length ? record.nonpolymerIds.join(", ") : "None listed")) + '</td>' +
                     '<td>' + record.score.toFixed(1) + '</td></tr>';
             }).join("") +
             '</tbody></table></div>' +
-            '<p class="live-evidence-note">Triage score components: resolution (0–4), R-free (0–3 when reported), non-polymer component IDs (+2), and X-ray diffraction (+1). This simple heuristic may favour well-refined X-ray structures over cryo-EM structures and does not score site completeness, ligand medicinal relevance, mutation state, clashes or binding-mode suitability. Non-polymer IDs can include cofactors/ions, so they do not prove that a drug-like ligand is bound.</p>';
+            '<p class="live-evidence-note">Triage score components: resolution (0–4), R-free (0–3 when reported), non-polymer component presence (+2), and X-ray diffraction (+1). This simple heuristic may favour well-refined X-ray structures over cryo-EM structures and does not score site completeness, ligand medicinal relevance, mutation state, clashes or binding-mode suitability. Non-polymer IDs can include cofactors/ions, so they do not prove that a drug-like ligand is bound.</p>';
     } else {
         structures = '<div class="live-evidence-empty"><strong>No experimental structures were returned by the accession-specific query.</strong> The target may lack a matching structure, the cross-reference may be missing, or the API query may be incomplete. Check the manual RCSB search before concluding there are no structures.</div>';
     }
@@ -855,7 +907,7 @@ function targetEvidenceHtml(evidence) {
         : "";
     const searchMode = evidence.exactAccession
         ? "Structures matched through the selected UniProt accession."
-        : "Fallback text search used because the accession-specific search returned no entries; inspect target/organism mapping carefully.";
+        : "Fallback text search used because the accession-specific search returned no entries or could not be completed; inspect target/organism mapping carefully.";
     return '<section class="live-target-evidence" id="live-target-evidence">' +
         '<div class="live-evidence-heading"><p class="eyebrow">LIVE DATABASE LOOKUP</p><h3>Target and structure evidence</h3><p>Retrieved from UniProt and RCSB PDB in the browser. This is discovery metadata, not a structural validation.</p></div>' +
         '<h4>UniProt target matches</h4>' +
@@ -877,7 +929,7 @@ async function retrieveLiveTargetEvidence(target, organism) {
     const structureSearch = await searchRcsbEntries(selected.accession, target, organism);
     const ids = structureSearch.results.map(function(item) { return item.identifier; }).filter(Boolean);
     const metadataResults = await Promise.allSettled(ids.slice(0, 12).map(loadRcsbStructureRecord));
-    const structures = metadataResults.filter(function(item) { return item.status === "fulfilled"; }).map(function(item) {
+    const sortedStructures = metadataResults.filter(function(item) { return item.status === "fulfilled"; }).map(function(item) {
         const record = item.value;
         record.score = scoreStructureRecord(record);
         return record;
@@ -886,11 +938,13 @@ async function retrieveLiveTargetEvidence(target, organism) {
         if (a.resolution !== null && b.resolution !== null && a.resolution !== b.resolution) return a.resolution - b.resolution;
         return a.id.localeCompare(b.id);
     });
+    const structures = await enrichStructureComponents(sortedStructures.slice(0, 8));
     return {
         matches: matches,
-        structures: structures.slice(0, 8),
+        structures: structures,
         structureTotal: structureSearch.total,
-        exactAccession: structureSearch.exactAccession
+        exactAccession: structureSearch.exactAccession,
+        accessionSearchError: structureSearch.accessionSearchError || ""
     };
 }
 
@@ -935,9 +989,9 @@ function renderWorkflow(event) {
     const requirementKeys = getProtocolRequirements(objectives);
     const missingRequirements = unmetInputNames(requirementKeys, inputState.available);
     const question = focus || primary.question.replace("the specified target", inputState.target || "the target of interest").replace("the stated organism", inputState.organism || "the relevant organism");
-    const targetLine = inputState.target
+    const targetLine = inputState.target && inputState.organism
         ? escapeWorkflowHtml(inputState.target) + " · " + escapeWorkflowHtml(inputState.organism)
-        : "Not specified yet";
+        : (inputState.target ? escapeWorkflowHtml(inputState.target) + " · organism not specified" : "Not specified yet");
     const goalNames = objectives.map(objectiveDisplayName);
     const experienceSummary = experience === "new"
         ? "Beginner explanation"
