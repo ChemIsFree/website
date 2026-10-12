@@ -650,19 +650,50 @@ function choosePrimaryProtocol(objectives) {
 
 function composeProtocolSteps(objectives, primaryId, approach) {
     const orderedObjectives = [primaryId].concat(objectives.filter(function(id) { return id !== primaryId; }));
-    const seen = {};
+    const positions = new Map();
     const steps = [];
+    const mergedArrayFields = ["actions", "tools", "tasks", "domains", "sources", "codeExamples"];
+
+    function arrayKey(field, item) {
+        if (field === "sources") return String(item && (item.url || item.title) || JSON.stringify(item));
+        if (field === "codeExamples") return String(item && (item.label || item.code) || JSON.stringify(item));
+        return typeof item === "string" ? item : JSON.stringify(item);
+    }
+    function mergeSteps(primary, additional) {
+        const merged = Object.assign({}, primary);
+        mergedArrayFields.forEach(function(field) {
+            const items = (Array.isArray(primary[field]) ? primary[field] : [])
+                .concat(Array.isArray(additional[field]) ? additional[field] : []);
+            const seenItems = new Set();
+            merged[field] = items.filter(function(item) {
+                const key = arrayKey(field, item);
+                if (seenItems.has(key)) return false;
+                seenItems.add(key);
+                return true;
+            });
+        });
+        // Preserve the first protocol's narrative/order. Fill missing metadata from
+        // other selected goals without letting a less-specific duplicate overwrite it.
+        ["intro", "kicker", "deliverable", "before", "gate", "commonFailure", "coverageNote", "order"].forEach(function(field) {
+            if ((merged[field] === undefined || merged[field] === null || merged[field] === "") &&
+                additional[field] !== undefined && additional[field] !== null && additional[field] !== "") {
+                merged[field] = additional[field];
+            }
+        });
+        return merged;
+    }
+
     orderedObjectives.forEach(function(id) {
         const definition = protocolLibrary[id];
         if (!definition) return;
         definition.steps.forEach(function(step) {
-            // Shared identifiers represent the same workflow phase across objectives.
-            // Keep the version from the highest-priority selected protocol, rather than
-            // showing several near-duplicate versions of the same step.
             const key = String(step.id || step.title || "");
-            if (!seen[key]) {
-                seen[key] = true;
+            if (!positions.has(key)) {
+                positions.set(key, steps.length);
                 steps.push(step);
+            } else {
+                const index = positions.get(key);
+                steps[index] = mergeSteps(steps[index], step);
             }
         });
     });
