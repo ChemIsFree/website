@@ -724,6 +724,14 @@ function adaptStepForAvailableInputs(step, availableInputs) {
         adapted.deliverable = "Validated pharmacophore-screening specification and a traceable ranked output once a library is supplied.";
     }
 
+    if (step.id === "screen.library" && has("pharmacophore") && has("library")) {
+        adapted.actions = (adapted.actions || []).concat([
+            "Also reuse the existing pharmacophore only after verifying its reference ligand(s), feature definitions/tolerances, conformer settings and software version.",
+            "Evaluate the pharmacophore on a held-out active/control set, then compare its enrichment and false positives against the validated docking baseline instead of treating either ranking as ground truth."
+        ]);
+        adapted.deliverable = "Versioned screening output with both docking and pharmacophore evidence, validation metrics and traceable compound IDs.";
+    }
+
     if (step.id === "interactions.report" && has("interaction-fingerprints")) {
         adapted.title = "Audit and extend the interaction fingerprints you already have";
         adapted.intro = "First verify the protein/ligand preparation, pose identity and fingerprint definitions. Then compare matched active and control sets.";
