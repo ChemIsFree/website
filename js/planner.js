@@ -430,7 +430,10 @@ function toolQuickStart(tool, step) {
         return "Start with a File Reader node, inspect the columns, then add only the required filtering, duplicate-checking, or plotting nodes. Save the workflow and export a result table; begin visually rather than writing code.";
     }
     if (haystack.includes("datawarrior")) {
-        return "Open the CSV or SDF and identify the structure/SMILES column. Inspect structures, create the descriptors or plots relevant to the question, group related compounds, and export a table that retains compound IDs.";
+        if (String(step && step.id || "") === "ligand.query") {
+            return "In DataWarrior, choose Database > Search ChEMBL database. Search by target and select the relevant organism/assay/activity filters in the dialog; retrieve structures with their activities directly into DataWarrior. Inspect structures and property–activity plots in-app—no CSV export from ChEMBL is needed just to visualize them. Preserve compound IDs and assay metadata when exporting the curated subset.";
+        }
+        return "Open the relevant SDF/table and confirm the structure column and stable compound IDs. Calculate descriptors or plots, compare related compounds and export a table with source identifiers retained.";
     }
     if (haystack.includes("autodock-vina") || haystack.includes("gnina")) {
         return "This is mainly a command-line docking workflow. Prepare compatible receptor and ligand files, define the box from a justified binding site, and run a known-ligand control first. Inspect poses in a viewer; do not rank by score alone.";
