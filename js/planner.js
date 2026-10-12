@@ -811,16 +811,25 @@ function makeStep(step, index, selectedOS, preference, availableInputs, guiOnly)
           }).join(" · ") + '</div>'
         : "";
 
+    const expandLabel = missing.length
+        ? "Expand instructions, tools and validation gate · " + missing.length + " input gap(s)"
+        : "Expand instructions, tools and validation gate";
+
     return '<article class="planner-workflow-step">' +
         '<div class="planner-step-number">' + String(index + 1).padStart(2, "0") + '</div>' +
         '<div class="planner-step-content">' +
             '<p class="planner-step-kicker">' + escapeWorkflowHtml(step.kicker || "PROTOCOL STEP") + '</p>' +
             '<h3>' + escapeWorkflowHtml(step.title) + '</h3>' +
             '<p class="planner-step-intro">' + escapeWorkflowHtml(step.intro) + '</p>' +
-            '<ol class="planner-step-actions">' + actions + '</ol>' +
-            '<p class="planner-deliverable"><strong>Record / deliverable.</strong> ' + escapeWorkflowHtml(step.deliverable || "Save the result, source identifiers and relevant settings.") + '</p>' +
-            recipeHtml + prereqHtml + gateHtml + failureHtml + sourcesHtml +
-            toolsHtml + coverage +
+            '<details class="planner-workflow-step-details">' +
+                '<summary><span>' + escapeWorkflowHtml(expandLabel) + '</span></summary>' +
+                '<div class="planner-workflow-step-body">' +
+                    '<ol class="planner-step-actions">' + actions + '</ol>' +
+                    '<p class="planner-deliverable"><strong>Record / deliverable.</strong> ' + escapeWorkflowHtml(step.deliverable || "Save the result, source identifiers and relevant settings.") + '</p>' +
+                    recipeHtml + prereqHtml + gateHtml + failureHtml + sourcesHtml +
+                    toolsHtml + coverage +
+                '</div>' +
+            '</details>' +
         '</div>' +
     '</article>';
 }
