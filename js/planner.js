@@ -1703,7 +1703,7 @@ async function fetchChemblActivities() {
                 const molecules = Array.isArray(response.value.molecules) ? response.value.molecules : [];
                 molecules.forEach(function(molecule) {
                     const structures = molecule.molecule_structures || {};
-                    structuresById[molecule.molecule_chembl_id] = structures.canonical_smiles || structures.standard_inchi || "";
+                    structuresById[molecule.molecule_chembl_id] = structures.canonical_smiles || "";
                 });
             });
             if (results) results.textContent = "Adding canonical structures… " +
