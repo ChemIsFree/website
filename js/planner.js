@@ -748,7 +748,7 @@ function choosePrimaryProtocol(objectives) {
     return objectives.find(function(id) { return Boolean(protocolLibrary[id]); }) || "target-context";
 }
 
-function composeProtocolSteps(objectives, primaryId) {
+function composeProtocolSteps(objectives, primaryId, approach) {
     const orderedObjectives = [primaryId].concat(objectives.filter(function(id) { return id !== primaryId; }));
     const seen = {};
     const steps = [];
@@ -767,7 +767,57 @@ function composeProtocolSteps(objectives, primaryId) {
         if (a.order !== b.order) return a.order - b.order;
         return String(a.title || "").localeCompare(String(b.title || ""));
     });
-    return steps;
+    return orderWorkflowStepsForApproach(steps, approach);
+}
+
+function orderWorkflowStepsForApproach(steps, approach) {
+    // The target definition comes first in every route. SBDD/mixed then starts
+    // with structure selection before activity retrieval; ligand-based starts
+    // with traceable activity/ligand evidence. Validation gates precede screening.
+    const priorities = {
+        "ligand-based": [
+            "target.resolve", "ligand.query", "data.inventory", "data.curate", "data.audit",
+            "ligand.search", "ligand.series", "model.baseline", "model.validate", "model.domain",
+            "design.hypothesis", "design.enumerate", "analogue.triage", "screen.validate",
+            "screen.library", "screen.triage", "develop.descriptors", "develop.profile",
+            "admet.risk-plan", "synthesis.route", "synthesis.risk",
+            "structure.choose", "pocket.audit", "interactions.native", "structure.prepare",
+            "structure.redock", "structure.crossdock", "interactions.report", "screen.rescore",
+            "generation.triage", "workflow.design", "workflow.build", "workflow.validate", "workflow.audit"
+        ],
+        "structure-based": [
+            "target.resolve", "structure.choose", "pocket.audit", "ligand.query", "data.inventory",
+            "data.curate", "interactions.native", "structure.prepare", "structure.redock",
+            "structure.crossdock", "screen.validate", "interactions.report", "ligand.search",
+            "ligand.series", "design.hypothesis", "screen.library", "screen.triage", "screen.rescore",
+            "develop.descriptors", "develop.profile", "admet.risk-plan", "model.baseline",
+            "model.validate", "model.domain", "design.enumerate", "analogue.triage",
+            "generation.triage", "synthesis.route", "synthesis.risk", "data.audit",
+            "workflow.design", "workflow.build", "workflow.validate", "workflow.audit"
+        ],
+        "mixed": [
+            "target.resolve", "structure.choose", "pocket.audit", "ligand.query", "data.inventory",
+            "data.curate", "interactions.native", "structure.prepare", "structure.redock",
+            "structure.crossdock", "screen.validate", "interactions.report", "ligand.search",
+            "ligand.series", "design.hypothesis", "screen.library", "screen.triage", "screen.rescore",
+            "develop.descriptors", "develop.profile", "admet.risk-plan", "model.baseline",
+            "model.validate", "model.domain", "design.enumerate", "analogue.triage",
+            "generation.triage", "synthesis.route", "synthesis.risk", "data.audit",
+            "workflow.design", "workflow.build", "workflow.validate", "workflow.audit"
+        ]
+    };
+    const order = priorities[approach] || priorities.mixed;
+    const rank = Object.create(null);
+    order.forEach(function(id, index) {
+        if (rank[id] === undefined) rank[id] = index;
+    });
+    return steps.map(function(step, index) {
+        return { step: step, index: index, rank: rank[step.id] === undefined ? 1000 : rank[step.id] };
+    }).sort(function(a, b) {
+        if (a.rank !== b.rank) return a.rank - b.rank;
+        if (a.step.order !== b.step.order) return a.step.order - b.step.order;
+        return a.index - b.index;
+    }).map(function(item) { return item.step; });
 }
 
 function getProtocolRequirements(objectives) {
@@ -1143,9 +1193,19 @@ function renderWorkflow(event) {
         return;
     }
 
-    const primaryId = choosePrimaryProtocol(objectives);
+    let primaryId = choosePrimaryProtocol(objectives);
+    if (approach === "ligand-based" && objectives.includes("ligand-landscape")) {
+        primaryId = "ligand-landscape";
+    } else if (approach === "structure-based" && objectives.includes("structure-based")) {
+        primaryId = "structure-based";
+    } else if (approach === "mixed" && objectives.includes("structure-based")) {
+        primaryId = "structure-based";
+    }
     const primary = protocolLibrary[primaryId];
-    const steps = composeProtocolSteps(objectives, primaryId);
+    const steps = composeProtocolSteps(objectives, primaryId, approach);
+    const workflowTitle = approach === "mixed" && objectives.includes("ligand-landscape") && objectives.includes("structure-based")
+        ? "Integrated ligand- and structure-based discovery workflow"
+        : primary.title;
     const requirementKeys = getProtocolRequirements(objectives);
     const missingRequirements = unmetInputNames(requirementKeys, inputState.available);
     const question = focus || primary.question.replace("the specified target", inputState.target || "the target of interest").replace("the stated organism", inputState.organism || "the relevant organism");
@@ -1194,7 +1254,7 @@ function renderWorkflow(event) {
         '<div class="protocol-results-header">' +
             '<div class="protocol-kicker">02 / GENERATED SCIENTIFIC PROTOCOL</div>' +
             '<div class="protocol-state ' + (missingRequirements.length ? "is-provisional" : "is-input-complete") + '">' + escapeWorkflowHtml(assetsSummary) + '</div>' +
-            '<h2>' + escapeWorkflowHtml(primary.title) + '</h2>' +
+            '<h2>' + escapeWorkflowHtml(workflowTitle) + '</h2>' +
             '<p class="protocol-summary">' + escapeWorkflowHtml(primary.question.replace("the specified target", inputState.target || "the target of interest").replace("the stated organism", inputState.organism || "the relevant organism")) + '</p>' +
             '<div class="protocol-decision-grid">' +
                 '<div><span>QUESTION</span><p>' + escapeWorkflowHtml(question) + '</p></div>' +
