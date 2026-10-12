@@ -89,6 +89,12 @@ assert.ok(plannerSource.includes("https://www.ebi.ac.uk/chembl/api/data/molecule
     "ChEMBL molecule-structure lookup URL is missing.");
 assert.ok(plannerSource.includes("if (!accessionOverride && matches.length > 1)"),
     "Ambiguous UniProt results must not silently use the first accession.");
+assert.ok(plannerSource.includes("function isCandidateLigandComponent") &&
+    plannerSource.includes("/ligand-validation/"),
+    "PDB shortlist should flag ligand-sized components and link RCSB ligand validation.");
+assert.ok(plannerSource.includes("Inspect chain / mutations"),
+    "The PDB shortlist must link to manual chain/mutation review.");
+
 assert.ok(plannerSource.includes("uniprot-accession-choice") &&
     plannerSource.includes("search-selected-uniprot-structures"),
     "The UI must let the user choose a UniProt accession before the PDB shortlist is generated.");
