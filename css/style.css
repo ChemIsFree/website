@@ -5617,3 +5617,58 @@ button {
 .planner-recipe-steps li:last-child {
     margin-bottom: 0;
 }
+
+
+/* Generated protocol: keep only the phase heading and one-sentence intent visible */
+.planner-workflow-step-details {
+    margin-top: 16px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.38);
+}
+.planner-workflow-step-details > summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 15px;
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 11px;
+    line-height: 1.55;
+    list-style: none;
+}
+.planner-workflow-step-details > summary::-webkit-details-marker {
+    display: none;
+}
+.planner-workflow-step-details > summary::after {
+    content: "+";
+    flex: 0 0 auto;
+    color: var(--violet);
+    font-size: 19px;
+    line-height: 1;
+}
+.planner-workflow-step-details[open] > summary {
+    background: var(--paper-light);
+    border-bottom: 1px solid var(--line);
+}
+.planner-workflow-step-details[open] > summary::after {
+    content: "−";
+}
+.planner-workflow-step-body {
+    padding: 18px;
+}
+.planner-workflow-step-body > .planner-step-actions {
+    margin-top: 0;
+}
+.planner-workflow-step-body > .planner-deliverable {
+    margin-top: 18px;
+}
+@media (max-width: 600px) {
+    .planner-workflow-step-details > summary {
+        align-items: flex-start;
+        padding: 12px;
+    }
+    .planner-workflow-step-body {
+        padding: 12px;
+    }
+}
