@@ -1167,6 +1167,16 @@ function numberOrNull(value) {
     return Number.isFinite(parsed) ? parsed : null;
 }
 
+function isCandidateLigandComponent(component) {
+    const weight = numberOrNull(component && component.molecularWeight);
+    const description = String(component && component.description || "").toLowerCase();
+    if (weight === null || weight <= 150 || weight > 1200) return false;
+    // A conservative filter for common crystallization/solvent components.
+    // It is only a prioritization clue; every component still needs inspection.
+    const commonAdditive = /\b(water|glycerol|ethylene glycol|polyethylene glycol|peg|ethanol|methanol|acetate|formate|chloride|bromide|iodide|sulfate|phosphate|sodium|potassium|calcium|magnesium|zinc|ammonium|imidazole|tris|hepes|mes|bicine|citrate)\b/i;
+    return !commonAdditive.test(description);
+}
+
 function scoreStructureRecord(record) {
     let score = 0;
     const resolution = record.resolution;
@@ -1185,7 +1195,11 @@ function scoreStructureRecord(record) {
         else if (rfree <= 0.30) score += 1.5;
         else score += 0.5;
     }
-    if (record.nonpolymerIds.length) score += 2;
+    const candidateComponents = Array.isArray(record.components)
+        ? record.components.filter(isCandidateLigandComponent)
+        : [];
+    if (candidateComponents.length) score += 2;
+    else if (record.nonpolymerIds.length) score += 0.5;
     if (String(record.method).toUpperCase().includes("X-RAY")) score += 1;
     return Math.min(10, score);
 }
@@ -1269,23 +1283,30 @@ function targetEvidenceHtml(evidence) {
     } else if (evidence.structures && evidence.structures.length) {
         structures = '<h4>Experimental structure shortlist</h4>' +
             '<p class="live-evidence-note">Sorted by a transparent triage heuristic, not by docking or ligand potency. Inspect the full record before selecting a receptor.</p>' +
-            '<div class="live-evidence-table-wrap"><table class="live-evidence-table"><thead><tr><th>PDB</th><th>Resolution (Å)</th><th>R-free</th><th>Method</th><th>Bound non-polymer components</th><th>Triage / 10</th></tr></thead><tbody>' +
+            '<div class="live-evidence-table-wrap"><table class="live-evidence-table"><thead><tr><th>PDB</th><th>Resolution (Å)</th><th>R-free</th><th>Method</th><th>Bound non-polymer components</th><th>Chain / mutation check</th><th>Metadata score / 10</th></tr></thead><tbody>' +
             evidence.structures.map(function(record) {
                 const pdbUrl = "https://www.rcsb.org/structure/" + encodeURIComponent(record.id);
                 return '<tr><td><a href="' + escapeWorkflowHtml(pdbUrl) + '" target="_blank" rel="noopener noreferrer"><strong>' + escapeWorkflowHtml(record.id) + '</strong> ↗</a></td>' +
                     '<td>' + (record.resolution === null ? "n/a" : record.resolution.toFixed(2)) + '</td>' +
                     '<td>' + (record.rfree === null ? "n/a" : record.rfree.toFixed(3)) + '</td>' +
                     '<td>' + escapeWorkflowHtml(record.method) + '</td>' +
-                    '<td>' + escapeWorkflowHtml(record.components && record.components.length
+                    '<td>' + escapeWorkflowHtml("") + (record.components && record.components.length
                         ? record.components.map(function(component) {
                             const detail = component.description ? component.id + " — " + component.description : component.id;
-                            return component.molecularWeight !== null ? detail + " (" + component.molecularWeight.toFixed(1) + " Da)" : detail;
-                          }).join("; ")
-                        : (record.nonpolymerIds.length ? record.nonpolymerIds.join(", ") : "None listed")) + '</td>' +
+                            const withWeight = component.molecularWeight !== null ? detail + " (" + component.molecularWeight.toFixed(1) + " Da)" : detail;
+                            const validationUrl = component.molecularWeight !== null && component.molecularWeight > 150
+                                ? "https://www.rcsb.org/ligand-validation/" + encodeURIComponent(record.id) + "/" + encodeURIComponent(component.id)
+                                : "";
+                            return validationUrl
+                                ? '<a href="' + escapeWorkflowHtml(validationUrl) + '" target="_blank" rel="noopener noreferrer">' + escapeWorkflowHtml(withWeight) + ' · ligand validation ↗</a>'
+                                : escapeWorkflowHtml(withWeight);
+                          }).join("<br>")
+                        : (record.nonpolymerIds.length ? escapeWorkflowHtml(record.nonpolymerIds.join(", ")) : "None listed")) + '</td>' +
+                    '<td><a href="https://www.rcsb.org/structure/' + escapeWorkflowHtml(encodeURIComponent(record.id)) + '" target="_blank" rel="noopener noreferrer">Inspect chain / mutations ↗</a></td>' +
                     '<td>' + record.score.toFixed(1) + '</td></tr>';
             }).join("") +
             '</tbody></table></div>' +
-            '<p class="live-evidence-note">Triage score components: resolution (0–4), R-free (0–3 when reported), non-polymer component presence (+2), and X-ray diffraction (+1). This simple heuristic may favour well-refined X-ray structures over cryo-EM structures and does not score site completeness, ligand medicinal relevance, mutation state, clashes or binding-mode suitability. Non-polymer IDs can include cofactors/ions, so they do not prove that a drug-like ligand is bound.</p>';
+            '<p class="live-evidence-note">Metadata score components: resolution (0–4), R-free (0–3 when reported), a candidate ligand-sized organic component (+2, based on reported molecular weight and a conservative common-additive name filter; otherwise any non-polymer component contributes only +0.5), and X-ray diffraction (+1). It remains a triage heuristic. It does not validate binding-site completeness, prove that a component is the biologically relevant ligand, or automatically certify a wild-type/no-mutation construct. Inspect the chain/sequence link for mutations and the linked RCSB ligand-validation page for density-fit and geometry metrics where available.</p>';
     } else {
         structures = '<div class="live-evidence-empty"><strong>No experimental structures were returned by the accession-specific query.</strong> The target may lack a matching structure, the cross-reference may be missing, or the API query may be incomplete. Check the manual RCSB search before concluding there are no structures.</div>';
     }
@@ -1366,7 +1387,15 @@ async function retrieveLiveTargetEvidence(target, organism, accessionOverride) {
         if (a.resolution !== null && b.resolution !== null && a.resolution !== b.resolution) return a.resolution - b.resolution;
         return a.id.localeCompare(b.id);
     });
+    // Enrich the initial shortlist, then re-rank it using the retrieved non-polymer descriptions/MWs.
+    // This avoids treating a sodium ion or solvent as equivalent to a ligand-sized organic component.
     const structures = await enrichStructureComponents(sortedStructures.slice(0, 8));
+    structures.forEach(function(record) { record.score = scoreStructureRecord(record); });
+    structures.sort(function(a, b) {
+        if (b.score !== a.score) return b.score - a.score;
+        if (a.resolution !== null && b.resolution !== null && a.resolution !== b.resolution) return a.resolution - b.resolution;
+        return a.id.localeCompare(b.id);
+    });
     return {
         matches: matches,
         structures: structures,
