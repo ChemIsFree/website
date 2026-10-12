@@ -5,20 +5,28 @@
   "structure.choose": [
     {
       "title": "Find and compare alternative pockets with fpocket",
-      "note": "Run cavity detection on the correctly prepared biological assembly or chain. Pocket IDs and scores are hypotheses, not evidence that a cavity is ligandable or biologically relevant. Do not discard the known co-crystal site unless the research question requires an alternative site.",
+      "note": "Use at least two complementary cavity methods when the binding site is uncertain. fpocket is a fast Voronoi-based cavity detector; P2Rank/PrankWeb predicts ligand-binding sites with machine learning and offers a GUI/web route; CAVIAR detects cavities and decomposes them into subpockets, but its upstream GitHub project is currently marked paused. I could not verify a standalone pocket-finding tool named PocketMol. If you meant Pocket2Mol, it is a pocket-conditioned molecular generator—not a cavity detector. Treat every predicted cavity as a hypothesis to inspect against experimental ligands, conservation, biology and literature.",
       "code": "# Install (conda-forge)\nconda install -c conda-forge fpocket\n\n# Run cavity detection on a cleaned protein structure\nfpocket -f receptor_clean.pdb\n\n# Inspect the generated pocket summary and pocket coordinate files.\n# Open the output pocket PDBs together with receptor_clean.pdb in PyMOL.\n# Compare pockets with known ligand sites, conservation, catalytic residues,\n# domain interfaces, membrane context, and experimental literature.",
       "links": [
         {
-          "title": "fpocket documentation",
+          "title": "P2Rank / PrankWeb",
+          "url": "https://github.com/rdk/p2rank"
+        },
+        {
+          "title": "PrankWeb graphical server",
+          "url": "https://prankweb.cz/"
+        },
+        {
+          "title": "fpocket",
           "url": "https://github.com/Discngine/fpocket"
         },
         {
-          "title": "CAVIAR (upstream project currently paused)",
-          "url": "https://github.com/MarcosLlorens/CAVIAR"
+          "title": "CAVIAR (project paused)",
+          "url": "https://github.com/jr-marchand/caviar"
         },
         {
-          "title": "RCSB PDB",
-          "url": "https://www.rcsb.org/"
+          "title": "Pocket2Mol (molecule generation, not pocket detection)",
+          "url": "https://github.com/pengxingang/pocket2mol"
         }
       ]
     }
@@ -274,6 +282,39 @@
         {
           "title": "ChemIsFree tool catalogue",
           "url": "https://github.com/ChemIsFree/tools"
+        }
+      ]
+    }
+  ],
+  "ligand.series": [
+    {
+      "type": "guide",
+      "title": "Build and validate a pharmacophore hypothesis",
+      "note": "Pharmacophores should encode a stated structural/SAR hypothesis. Do not create features from a single docked pose and immediately call the resulting screen validated. Use independent known actives, property-matched decoys or suitable controls, and keep a holdout set for evaluation.",
+      "steps": [
+        "For ligand-based mapping, curate a set of potent, assay-compatible actives, generate plausible conformers, align the series and identify recurring donor/acceptor, hydrophobic, aromatic and charged features. Inspect outliers and alternative binding modes.",
+        "For structure-based mapping, begin with a well-supported crystallographic complex and correctly identified ligand. Use the receptor to distinguish ligand features that participate in the binding interaction from features irrelevant to the pocket; consider conserved waters only with explicit justification.",
+        "For a GUI-first route, use Pharmit to construct a query from a PDB/ligand or feature file and screen available conformer libraries. Its receptor-derived feature elucidation is labelled experimental, so don't rely on it as the only method.",
+        "For a local GUI workflow, OpenPharmaco provides protein-based pharmacophore modeling and library screening; for Python workflows, OpenPharmacophore provides a library for ligand-, ligand–receptor- and receptor-based models.",
+        "Freeze feature definitions/radii before evaluating a holdout active/control set. Report active recovery, enrichment, library size and false-positive patterns, then inspect which features drive the ranking.",
+        "Record the hypothesis version, reference ligands, conformer/protonation policy, feature settings, training/holdout membership and software version."
+      ],
+      "links": [
+        {
+          "title": "Pharmit (browser-based pharmacophore screening)",
+          "url": "https://pharmit.csb.pitt.edu/"
+        },
+        {
+          "title": "Pharmit help and PDB/ligand workflow",
+          "url": "https://pharmit.csb.pitt.edu/help.html"
+        },
+        {
+          "title": "OpenPharmaco (GUI protein-based pharmacophore)",
+          "url": "https://github.com/SeonghwanSeo/OpenPharmaco"
+        },
+        {
+          "title": "OpenPharmacophore (Python library)",
+          "url": "https://github.com/uibcdf/OpenPharmacophore"
         }
       ]
     }
