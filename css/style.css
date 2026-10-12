@@ -4534,3 +4534,506 @@ button {
     }
 }
 
+/* =========================================================
+   PRACTICAL TUTORIALS — END-TO-END SCIENTIFIC RECIPES
+   ========================================================= */
+.tutorials-hero {
+    background: var(--ink);
+    color: var(--text-on-dark);
+    border-bottom: 1px solid var(--line-dark);
+}
+
+.tutorials-hero .container {
+    padding-top: 28px;
+    padding-bottom: 84px;
+}
+
+.tutorials-hero-top {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 14px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--line-dark);
+    color: var(--text-on-dark-muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: .12em;
+}
+
+.tutorials-hero-top strong {
+    color: var(--lime);
+}
+
+.tutorials-hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(300px, .9fr);
+    gap: 70px;
+    align-items: end;
+    padding-top: 76px;
+}
+
+.tutorials-hero h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(48px, 7vw, 92px);
+    line-height: .98;
+    font-weight: 500;
+    letter-spacing: -.07em;
+}
+
+.tutorials-hero h1 em {
+    color: var(--lime);
+    font-style: normal;
+}
+
+.tutorials-hero-copy p {
+    max-width: 610px;
+    color: var(--text-on-dark-muted);
+    font-size: 13px;
+    line-height: 1.85;
+}
+
+.tutorials-hero-copy .tutorial-primary-link {
+    display: inline-flex;
+    gap: 24px;
+    align-items: center;
+    margin-top: 12px;
+    padding: 13px 16px;
+    background: var(--lime);
+    color: var(--ink);
+    font-size: 12px;
+}
+
+.tutorials-index {
+    padding: 70px 0 76px;
+    border-bottom: 1px solid var(--line);
+}
+
+.tutorials-section-intro {
+    margin-bottom: 28px;
+}
+
+.tutorials-section-intro .eyebrow {
+    color: var(--violet);
+}
+
+.tutorials-section-intro h2 {
+    margin: 0 0 10px;
+    font-family: var(--font-display);
+    font-size: clamp(29px, 4vw, 46px);
+    font-weight: 500;
+    letter-spacing: -.06em;
+}
+
+.tutorials-section-intro > p:last-child {
+    max-width: 660px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+.tutorials-index-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-top: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+}
+
+.tutorials-index-card {
+    display: flex;
+    min-height: 145px;
+    flex-direction: column;
+    padding: 20px;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    transition: background 160ms ease;
+}
+
+.tutorials-index-card:hover {
+    background: rgba(255,255,255,.58);
+}
+
+.tutorials-index-card > span {
+    color: var(--violet);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    margin-bottom: 14px;
+}
+
+.tutorials-index-card strong {
+    font-size: 13px;
+    line-height: 1.55;
+    font-weight: 600;
+}
+
+.tutorials-index-card small {
+    margin-top: auto;
+    padding-top: 16px;
+    color: var(--text-muted);
+    font-size: 9px;
+    line-height: 1.5;
+}
+
+.tutorial-recipes {
+    padding: 28px 0 78px;
+}
+
+.tutorial-recipe {
+    display: grid;
+    grid-template-columns: 68px minmax(0, 1fr);
+    gap: 30px;
+    padding: 58px 0 64px;
+    border-bottom: 1px solid var(--line);
+    scroll-margin-top: 20px;
+}
+
+.tutorial-recipe-number {
+    color: var(--violet);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding-top: 6px;
+}
+
+.tutorial-recipe-body {
+    min-width: 0;
+}
+
+.tutorial-recipe-topline {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 10px;
+    color: #72821c;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: .1em;
+}
+
+.tutorial-recipe h2 {
+    max-width: 880px;
+    margin: 14px 0 13px;
+    font-family: var(--font-display);
+    font-size: clamp(28px, 4vw, 45px);
+    line-height: 1.08;
+    font-weight: 500;
+    letter-spacing: -.06em;
+}
+
+.tutorial-recipe-lede {
+    max-width: 820px;
+    margin: 0 0 25px;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.8;
+}
+
+.tutorial-recipe-meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    margin: 0 0 28px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.42);
+}
+
+.tutorial-recipe-meta > div {
+    min-width: 0;
+    padding: 15px 16px;
+}
+
+.tutorial-recipe-meta > div + div {
+    border-left: 1px solid var(--line);
+}
+
+.tutorial-recipe-meta strong,
+.tutorial-result-check strong {
+    display: block;
+    margin-bottom: 7px;
+    color: var(--ink);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+.tutorial-recipe-meta span {
+    display: block;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.7;
+}
+
+.tutorial-recipe-meta a,
+.tutorial-links a,
+.tutorial-inline-link {
+    color: var(--violet);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.tutorial-steps {
+    display: grid;
+    gap: 0;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    counter-reset: tutorial-step;
+}
+
+.tutorial-steps li {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    column-gap: 14px;
+    padding: 19px 0 20px;
+    border-bottom: 1px solid rgba(217,216,209,.75);
+    counter-increment: tutorial-step;
+}
+
+.tutorial-steps li::before {
+    content: counter(tutorial-step, decimal-leading-zero);
+    grid-row: span 2;
+    padding-top: 2px;
+    color: var(--violet);
+    font-family: var(--font-mono);
+    font-size: 10px;
+}
+
+.tutorial-step-title {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    line-height: 1.5;
+    font-weight: 700;
+}
+
+.tutorial-steps li p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.8;
+}
+
+.tutorial-steps code {
+    padding: 2px 4px;
+    background: rgba(16,17,22,.06);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    overflow-wrap: anywhere;
+}
+
+.tutorial-steps pre {
+    max-width: 100%;
+    margin: 13px 0;
+    padding: 15px;
+    overflow-x: auto;
+    background: var(--ink);
+    color: var(--text-on-dark);
+    font-size: 11px;
+    line-height: 1.8;
+}
+
+.tutorial-steps pre code {
+    padding: 0;
+    background: none;
+    color: inherit;
+    white-space: pre;
+}
+
+.tutorial-result-check {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+    margin-top: 25px;
+    border: 1px solid var(--line);
+}
+
+.tutorial-result-check > div {
+    padding: 18px;
+}
+
+.tutorial-result-check > div + div {
+    border-left: 1px solid var(--line);
+}
+
+.tutorial-result-check > div:first-child {
+    border-top: 3px solid var(--lime);
+}
+
+.tutorial-result-check > div:last-child {
+    border-top: 3px solid var(--violet);
+}
+
+.tutorial-result-check p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.75;
+}
+
+.tutorial-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 22px;
+    margin-top: 20px;
+}
+
+.tutorial-links a {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    line-height: 1.6;
+}
+
+.tutorial-next {
+    padding: 68px 0;
+    background: var(--ink);
+    color: var(--text-on-dark);
+}
+
+.tutorials-next-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    gap: 40px;
+}
+
+.tutorials-next-inner .eyebrow {
+    color: var(--lime);
+}
+
+.tutorials-next-inner h2 {
+    margin: 0 0 12px;
+    font-family: var(--font-display);
+    font-size: clamp(28px, 4vw, 44px);
+    line-height: 1.05;
+    font-weight: 500;
+    letter-spacing: -.06em;
+}
+
+.tutorials-next-inner p:not(.eyebrow) {
+    max-width: 670px;
+    margin: 0;
+    color: var(--text-on-dark-muted);
+    font-size: 12px;
+    line-height: 1.8;
+}
+
+.tutorials-next-inner .button {
+    flex: 0 0 auto;
+}
+
+.tutorial-promo-section {
+    padding: 64px 0 72px;
+    border-bottom: 1px solid var(--line);
+}
+
+.tutorial-promo {
+    display: grid;
+    grid-template-columns: 130px minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 35px;
+}
+
+.tutorial-promo-index {
+    align-self: start;
+    padding-top: 4px;
+    color: var(--violet);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: .09em;
+}
+
+.tutorial-promo-copy .eyebrow {
+    color: var(--violet);
+}
+
+.tutorial-promo-copy h2 {
+    margin: 0 0 13px;
+    font-family: var(--font-display);
+    font-size: clamp(28px, 4vw, 46px);
+    font-weight: 500;
+    line-height: 1.05;
+    letter-spacing: -.06em;
+}
+
+.tutorial-promo-copy h2 em {
+    color: var(--violet);
+    font-style: normal;
+}
+
+.tutorial-promo-copy p:last-child {
+    max-width: 690px;
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.8;
+}
+
+.tutorial-promo > .button {
+    white-space: nowrap;
+}
+
+.tutorial-inline-link {
+    font-size: 12px;
+}
+
+@media (max-width: 1000px) {
+    .tutorials-hero-grid {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+    .tutorials-index-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .tutorial-promo {
+        grid-template-columns: 100px minmax(0, 1fr);
+    }
+    .tutorial-promo > .button {
+        grid-column: 2;
+        justify-self: start;
+    }
+}
+
+@media (max-width: 700px) {
+    .tutorials-hero .container {
+        padding-bottom: 60px;
+    }
+    .tutorials-hero-grid {
+        padding-top: 48px;
+    }
+    .tutorials-index-grid {
+        grid-template-columns: 1fr;
+    }
+    .tutorial-recipe {
+        grid-template-columns: 32px minmax(0, 1fr);
+        gap: 12px;
+        padding: 38px 0 44px;
+    }
+    .tutorial-recipe-meta {
+        grid-template-columns: 1fr;
+    }
+    .tutorial-recipe-meta > div + div {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+    }
+    .tutorial-result-check {
+        grid-template-columns: 1fr;
+    }
+    .tutorial-result-check > div + div {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+    }
+    .tutorials-next-inner {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 26px;
+    }
+    .tutorial-promo {
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+    .tutorial-promo > .button {
+        grid-column: 1;
+    }
+}
+
