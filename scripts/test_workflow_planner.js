@@ -119,11 +119,11 @@ vm.runInContext(
     '{id:"unrelated-gui",name:"GUI visualization",tasks:["molecular-visualization"],domain:["visualization"],interface:["gui"],type:"software",status:"active"});',
     context
 );
-const guiOnly = context.rankWorkflowTools(
+const guiOnly = Array.from(context.rankWorkflowTools(
     { tasks: ["molecular-docking"], domains: [], tools: [] },
     "visual-first",
     "yes"
-).map((tool) => tool.id);
+), (tool) => tool.id);
 assert.deepEqual(guiOnly, ["gui-docking"],
     "GUI-only mode should return relevant GUI tools, never CLI-only or unrelated entries.");
 
@@ -133,7 +133,7 @@ const allObjectives = [
 ];
 const mixedSteps = context.composeProtocolSteps(allObjectives, "structure-based", "mixed");
 const ligandSteps = context.composeProtocolSteps(allObjectives, "ligand-landscape", "ligand-based");
-const stepIds = mixedSteps.map((step) => step.id);
+const stepIds = Array.from(mixedSteps, (step) => step.id);
 assert.equal(new Set(stepIds).size, stepIds.length, "Combined workflow should not duplicate the same scientific phase.");
 assert.ok(stepIds.indexOf("target.resolve") < stepIds.indexOf("structure.choose"));
 assert.ok(stepIds.indexOf("structure.choose") < stepIds.indexOf("ligand.query"),
