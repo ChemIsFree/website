@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Workflows &amp; Protocols — ChemIsFree</title>
     <meta name="description" content="Generate rigorous, gated computational chemistry protocols with evidence checks, prerequisites, validation criteria and tools from the ChemIsFree catalogue.">
-    <link rel="stylesheet" href="css/style.css?v=16">
+    <link rel="stylesheet" href="css/style.css?v=17">
 </head>
 <body>
 <header class="site-header">
@@ -44,226 +44,172 @@
         </div>
     </section>
 
-    <section class="planner-builder">
-        <div class="container">
-            <div class="planner-section-heading">
-                <div>
-                    <p class="eyebrow">01 / DEFINE YOUR PROJECT</p>
-                    <h2>What are you<br>working towards?</h2>
-                </div>
-                <p>Choose the closest project stage and check every activity that applies. The operating system adds practical compatibility notes; it will not silently remove a relevant method or tool.</p>
+    <section class="planner-builder guided-planner">
+    <div class="container">
+        <div class="planner-section-heading guided-planner-intro">
+            <div>
+                <p class="eyebrow">WORKFLOW BUILDER</p>
+                <h2>Start with your<br>research question.</h2>
             </div>
-
-            <form id="workflow-form" class="planner-form">
-                <section class="planner-project-context">
-                    <div class="planner-context-heading"><p class="eyebrow">PROJECT BRIEF</p><h3>What are you trying to decide?</h3><p>Specific context makes the protocol useful. Missing evidence will be flagged rather than silently assumed.</p></div>
-                    <div class="planner-context-fields">
-                        <div class="planner-context-field"><label for="planner-target" class="planner-field-title">Target / biological entity</label><input id="planner-target" name="target" class="planner-input" type="text" placeholder="e.g. EGFR, GSK3β, SIK3"></div>
-                        <div class="planner-context-field"><label for="planner-organism" class="planner-field-title">Organism / species</label><input id="planner-organism" name="organism" class="planner-input" type="text" placeholder="e.g. Homo sapiens"></div>
-                        <div class="planner-context-field planner-context-field-wide"><label for="planner-project-focus" class="planner-field-title">Research question / decision</label><textarea id="planner-project-focus" name="project-focus" class="planner-textarea" rows="2" placeholder="e.g. Find inhibitors worth buying or making, then validate whether docking can prioritize them."></textarea><p class="planner-field-help">Use a decision-focused question. This text will appear verbatim in the generated protocol.</p></div>
-                    </div>
-                </section>
-                <div class="planner-operating-system">
-                    <div>
-                        <label for="planner-os" class="planner-field-title">Operating system</label>
-                        <p class="planner-field-help">Used for platform notes, not as a scientific filter.</p>
-                    </div>
-                    <div>
-                        <select id="planner-os" name="operating-system" class="planner-select">
-                            <option value="any">No preference</option>
-                            <option value="linux">Linux</option>
-                            <option value="macos">macOS</option>
-                            <option value="windows">Windows</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="planner-guidance-options">
-                    <div class="planner-guidance-field">
-                        <label for="planner-experience" class="planner-field-title">How familiar are you with computational chemistry?</label>
-                        <select id="planner-experience" name="experience" class="planner-select">
-                            <option value="new" selected>New to it — explain the basics</option>
-                            <option value="some">Some experience with scientific software</option>
-                            <option value="comfortable">Comfortable with Python or command line</option>
-                        </select>
-                    </div>
-                    <div class="planner-guidance-field">
-                        <label for="planner-tool-style" class="planner-field-title">Preferred tool style</label>
-                        <select id="planner-tool-style" name="tool-style" class="planner-select">
-                            <option value="visual-first" selected>Browser / desktop apps first (no coding)</option>
-                            <option value="mixed">A mix of visual and technical tools</option>
-                            <option value="programmatic">Command line / programming is fine</option>
-                        </select>
-                    </div>
-                </div>
-                <p class="planner-field-help planner-guidance-help">The planner favours tools that match your experience and flags when a step may need installation, command-line use, or programming support.</p>
-
-                <fieldset class="planner-fieldset">
-                    <legend>Where are you in the project?</legend>
-                    <p class="planner-field-help">Choose the stage that best describes your current position. This sets the starting point and order of the tutorial, not a restriction on what comes next.</p>
-                    <div class="planner-stage-grid">
-                        <label class="planner-stage-option">
-                            <input type="radio" name="stage" value="new-project" checked>
-                            <span class="planner-choice-copy">
-                                <strong>New project / target exploration</strong>
-                                <small>Define the question, target context, and evidence base.</small>
-                            </span>
-                        </label>
-                        <label class="planner-stage-option">
-                            <input type="radio" name="stage" value="ligand-landscape">
-                            <span class="planner-choice-copy">
-                                <strong>Target and ligand landscape</strong>
-                                <small>Understand known ligands, activity data, and existing SAR.</small>
-                            </span>
-                        </label>
-                        <label class="planner-stage-option">
-                            <input type="radio" name="stage" value="hit-identification">
-                            <span class="planner-choice-copy">
-                                <strong>Hit identification</strong>
-                                <small>Find and prioritize compounds for experimental testing.</small>
-                            </span>
-                        </label>
-                        <label class="planner-stage-option">
-                            <input type="radio" name="stage" value="hit-to-lead">
-                            <span class="planner-choice-copy">
-                                <strong>Hit-to-lead</strong>
-                                <small>Confirm series, understand SAR, and improve starting hits.</small>
-                            </span>
-                        </label>
-                        <label class="planner-stage-option">
-                            <input type="radio" name="stage" value="lead-optimization">
-                            <span class="planner-choice-copy">
-                                <strong>Lead optimization</strong>
-                                <small>Balance potency, selectivity, properties, and synthetic options.</small>
-                            </span>
-                        </label>
-                        <label class="planner-stage-option">
-                            <input type="radio" name="stage" value="candidate-profiling">
-                            <span class="planner-choice-copy">
-                                <strong>Candidate profiling</strong>
-                                <small>Consolidate evidence and identify the main remaining risks.</small>
-                            </span>
-                        </label>
-                    </div>
-                </fieldset>
-
-                <fieldset class="planner-fieldset">
-                    <legend>What would you like to do?</legend>
-                    <p class="planner-field-help">Select any combination. The resulting tutorial will combine compatible methods into a single ordered workflow.</p>
-                    <div class="planner-objectives-grid">
-                        <label class="planner-objective-option">
-                            <input type="checkbox" name="objective" value="target-context">
-                            <span class="planner-choice-copy">
-                                <strong>Understand the target and binding site</strong>
-                                <small>Review target evidence, structures, pocket geometry, and key residues.</small>
-                            </span>
-                        </label>
-                        <label class="planner-objective-option">
-                            <input type="checkbox" name="objective" value="ligand-landscape">
-                            <span class="planner-choice-copy">
-                                <strong>Analyze known ligands and SAR</strong>
-                                <small>Curate bioactivity data, compare series, and identify reliable trends.</small>
-                            </span>
-                        </label>
-                        <label class="planner-objective-option">
-                            <input type="checkbox" name="objective" value="hit-identification">
-                            <span class="planner-choice-copy">
-                                <strong>Find and prioritize hits</strong>
-                                <small>Search chemical space and combine screening evidence.</small>
-                            </span>
-                        </label>
-                        <label class="planner-objective-option">
-                            <input type="checkbox" name="objective" value="structure-based">
-                            <span class="planner-choice-copy">
-                                <strong>Dock compounds and evaluate poses</strong>
-                                <small>Prepare structures, validate docking, and compare binding modes.</small>
-                            </span>
-                        </label>
-                        <label class="planner-objective-option">
-                            <input type="checkbox" name="objective" value="interactions">
-                            <span class="planner-choice-copy">
-                                <strong>Analyze protein–ligand interactions</strong>
-                                <small>Inspect hydrogen bonds, hydrophobic contacts, and interaction patterns.</small>
-                            </span>
-                        </label>
-                        <label class="planner-objective-option">
-                            <input type="checkbox" name="objective" value="qsar">
-                            <span class="planner-choice-copy">
-                                <strong>Build QSAR or predictive models</strong>
-                                <small>Prepare data, train models, and validate their applicability.</small>
-                            </span>
-                        </label>
-                        <label class="planner-objective-option">
-                            <input type="checkbox" name="objective" value="analogues">
-                            <span class="planner-choice-copy">
-                                <strong>Design analogues or explore scaffold hops</strong>
-                                <small>Translate SAR and binding hypotheses into testable changes.</small>
-                            </span>
-                        </label>
-                        <label class="planner-objective-option">
-                            <input type="checkbox" name="objective" value="de-novo">
-                            <span class="planner-choice-copy">
-                                <strong>Explore de novo or generative design</strong>
-                                <small>Define molecule constraints, generate ideas, and apply independent filters.</small>
-                            </span>
-                        </label>
-                        <label class="planner-objective-option">
-                            <input type="checkbox" name="objective" value="admet">
-                            <span class="planner-choice-copy">
-                                <strong>Assess properties, ADMET, or CNS fit</strong>
-                                <small>Evaluate physicochemical properties and identify developability risks.</small>
-                            </span>
-                        </label>
-                        <label class="planner-objective-option">
-                            <input type="checkbox" name="objective" value="synthesis">
-                            <span class="planner-choice-copy">
-                                <strong>Plan synthesis or retrosynthesis</strong>
-                                <small>Compare routes and assess whether designs are practical to make.</small>
-                            </span>
-                        </label>
-                        <label class="planner-objective-option">
-                            <input type="checkbox" name="objective" value="curation">
-                            <span class="planner-choice-copy">
-                                <strong>Prepare molecules and curate datasets</strong>
-                                <small>Standardize structures, resolve identifiers, and preserve provenance.</small>
-                            </span>
-                        </label>
-                        <label class="planner-objective-option">
-                            <input type="checkbox" name="objective" value="automation">
-                            <span class="planner-choice-copy">
-                                <strong>Build a repeatable workflow</strong>
-                                <small>Connect tools, record settings, and make analyses reproducible.</small>
-                            </span>
-                        </label>
-                    </div>
-                </fieldset>
-
-<fieldset class="planner-fieldset planner-assets-fieldset">
-                    <legend>Which inputs do you already have?</legend>
-                    <p class="planner-field-help">Tick only assets you can provide now. These declarations expose missing prerequisites; they do not count as validation of the data or method.</p>
-                    <div class="planner-assets-grid">
-                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="structure"><span>Experimental / selected protein structure</span></label>
-                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="native-ligand"><span>Native or co-crystal ligand / pose reference</span></label>
-                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="known-actives"><span>Known actives with traceable evidence</span></label>
-                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="decoys"><span>Property-matched decoy / control set</span></label>
-                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="library"><span>Defined screening library and source</span></label>
-                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="activity-data"><span>Measured activity dataset with assay metadata</span></label>
-                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="compound-set"><span>Compound structures / SMILES with stable IDs</span></label>
-                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="synthesis-constraints"><span>Synthesis / procurement constraints</span></label>
-                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="validated-docking"><span>Docking setup passed pose and enrichment controls</span></label>
-                    </div>
-                </fieldset>
-
-                <div class="planner-form-actions">
-                    <button type="submit" class="button button-primary">Build my workflow <span>↗</span></button>
-                    <button type="reset" id="planner-reset" class="planner-reset">Reset selections</button>
-                </div>
-                <p class="planner-form-note">Protocols are assembled from the selected objectives. Missing catalogue coverage will be identified explicitly; suggested tools are candidates for a method step, not proof that the method is valid.</p>
-            </form>
-
-            <section id="workflow-results" class="planner-results" aria-live="polite" tabindex="-1"></section>
+            <p>Answer a few focused questions to build one ordered, practical workflow from ChemIsFree tools. Each step starts with a short instruction; expand it for prerequisites, command examples, validation checks, and alternatives. Your selections guide the plan—they do not replace scientific judgment or validation.</p>
         </div>
-    </section>
+
+        <form id="workflow-form" class="planner-form guided-planner-form">
+            <section class="planner-question" id="question-target">
+                <div class="planner-question-number">01</div>
+                <div class="planner-question-body">
+                    <p class="eyebrow">PROJECT CONTEXT</p>
+                    <h3>Do you have a specific target?</h3>
+                    <p class="planner-question-help">A protein, enzyme, receptor, nucleic-acid target, or other biological entity. We can search ChEMBL live and use the selected organism for UniProt and PDB lookups.</p>
+                    <fieldset class="planner-choice-row" aria-label="Do you have a specific target?">
+                        <label class="planner-radio-option"><input type="radio" name="target-status" value="yes"><span>Yes, I have a target</span></label>
+                        <label class="planner-radio-option"><input type="radio" name="target-status" value="private"><span>Rather not say</span></label>
+                    </fieldset>
+
+                    <div class="planner-followup" id="target-search-panel" hidden>
+                        <label for="planner-target" class="planner-field-title">Search target name, gene symbol, or ChEMBL target ID</label>
+                        <input id="planner-target" name="target" class="planner-input" type="search" autocomplete="off" placeholder="Start typing, e.g. EGFR, GSK3β, SIK3, CHEMBL203" aria-describedby="target-search-help">
+                        <p id="target-search-help" class="planner-field-help">Suggestions update as you type. Choose a match to anchor activity retrieval to its ChEMBL target ID. If the target is absent, you can still enter its name and organism and continue.</p>
+                        <div id="target-search-status" class="planner-live-status" role="status" aria-live="polite"></div>
+                        <div id="target-search-results" class="planner-target-results" role="listbox" aria-label="ChEMBL target matches"></div>
+
+                        <div class="planner-followup-fields">
+                            <div>
+                                <label for="planner-organism" class="planner-field-title">Organism / species</label>
+                                <input id="planner-organism" name="organism" class="planner-input" type="text" placeholder="Filled from a match, or enter e.g. Homo sapiens">
+                            </div>
+                            <div>
+                                <label for="planner-project-focus" class="planner-field-title">Research question <span class="planner-optional-label">optional</span></label>
+                                <textarea id="planner-project-focus" name="project-focus" class="planner-textarea" rows="2" placeholder="e.g. Find inhibitors and establish whether docking can prioritize known actives."></textarea>
+                            </div>
+                        </div>
+
+                        <input id="planner-chembl-target-id" type="hidden" value="">
+                        <section class="planner-selected-target" id="selected-target-info" hidden aria-live="polite"></section>
+
+                        <section class="planner-activity-panel" id="chembl-activity-panel" hidden>
+                            <div class="planner-activity-heading">
+                                <div>
+                                    <p class="eyebrow">LIVE CHEMBL BIOACTIVITY</p>
+                                    <h4>Retrieve reported activity data</h4>
+                                </div>
+                                <label for="planner-activity-endpoint" class="planner-field-title">Endpoint
+                                    <select id="planner-activity-endpoint" class="planner-select">
+                                        <option value="IC50">IC50</option>
+                                        <option value="Ki">Ki</option>
+                                        <option value="EC50">EC50</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <p class="planner-field-help">Only the selected endpoint is queried. Keep IC50, Ki, and EC50 separate: they describe different measurements and should not be pooled as if interchangeable. Activity values are reported measurements, not a uniformly curated potency series.</p>
+                            <div id="chembl-activity-status" class="planner-live-status" role="status" aria-live="polite"></div>
+                            <div id="chembl-activity-results" class="planner-activity-results"></div>
+                            <div class="planner-activity-actions">
+                                <button type="button" id="chembl-load-more" class="button button-secondary" hidden>Load more records</button>
+                                <button type="button" id="chembl-download-all" class="button button-secondary" hidden>Download all matching records as CSV</button>
+                            </div>
+                            <p class="planner-field-help">The export preserves assay IDs, units, relations, document IDs, and compound IDs; canonical SMILES are included when the ChEMBL molecule endpoint returns them. Inspect assay type, confidence, duplicates, and measurement conditions before modelling.</p>
+                        </section>
+                    </div>
+                </div>
+            </section>
+
+            <section class="planner-question" id="question-approach" hidden>
+                <div class="planner-question-number">02</div>
+                <div class="planner-question-body">
+                    <p class="eyebrow">METHOD STRATEGY</p>
+                    <h3>Do you prefer a ligand-based, structure-based, or mixed approach?</h3>
+                    <p class="planner-question-help">A mixed workflow uses ligand evidence and structural hypotheses together, with independent checks rather than relying on one score.</p>
+                    <fieldset class="planner-choice-row" aria-label="Preferred discovery approach">
+                        <label class="planner-radio-option"><input type="radio" name="approach" value="ligand-based"><span>Ligand-based</span></label>
+                        <label class="planner-radio-option"><input type="radio" name="approach" value="structure-based"><span>Structure-based</span></label>
+                        <label class="planner-radio-option"><input type="radio" name="approach" value="mixed"><span>Mixed</span></label>
+                    </fieldset>
+                </div>
+            </section>
+
+            <section class="planner-question" id="question-gui-only" hidden>
+                <div class="planner-question-number">03</div>
+                <div class="planner-question-body">
+                    <p class="eyebrow">TOOL PREFERENCE</p>
+                    <h3>Do you only need tools with a graphical interface?</h3>
+                    <p class="planner-question-help">A graphical interface includes desktop applications and browser-based tools. Some robust preparation, docking, and analysis steps may still need a command line.</p>
+                    <fieldset class="planner-choice-row" aria-label="Graphical interface preference">
+                        <label class="planner-radio-option"><input type="radio" name="gui-only" value="yes"><span>Yes, GUI / browser only</span></label>
+                        <label class="planner-radio-option"><input type="radio" name="gui-only" value="no"><span>Not necessarily</span></label>
+                    </fieldset>
+                </div>
+            </section>
+
+            <section class="planner-question" id="question-objectives" hidden>
+                <div class="planner-question-number">04</div>
+                <div class="planner-question-body">
+                    <p class="eyebrow">WORKFLOW GOALS</p>
+                    <h3>What would you like to do?</h3>
+                    <p class="planner-question-help">Select any combination. The resulting tutorial combines compatible methods into a single ordered workflow. All goals start selected; remove the ones you do not need.</p>
+                    <div class="planner-objectives-grid guided-objectives-grid">
+                        <label class="planner-objective-option"><input type="checkbox" name="objective" value="target-context" checked><span class="planner-choice-copy"><strong>Understand the target and binding site</strong><small>Review target evidence, structures, pocket geometry, and key residues.</small></span></label>
+                        <label class="planner-objective-option"><input type="checkbox" name="objective" value="ligand-landscape" checked><span class="planner-choice-copy"><strong>Analyze known ligands and SAR</strong><small>Curate bioactivity data, compare series, and identify reliable trends.</small></span></label>
+                        <label class="planner-objective-option"><input type="checkbox" name="objective" value="hit-identification" checked><span class="planner-choice-copy"><strong>Find and prioritize hits</strong><small>Search chemical space and combine screening evidence.</small></span></label>
+                        <label class="planner-objective-option"><input type="checkbox" name="objective" value="structure-based" checked><span class="planner-choice-copy"><strong>Dock compounds and evaluate poses</strong><small>Prepare structures, validate docking, and compare binding modes.</small></span></label>
+                        <label class="planner-objective-option"><input type="checkbox" name="objective" value="interactions" checked><span class="planner-choice-copy"><strong>Analyze protein–ligand interactions</strong><small>Inspect hydrogen bonds, hydrophobic contacts, and interaction patterns.</small></span></label>
+                        <label class="planner-objective-option"><input type="checkbox" name="objective" value="qsar" checked><span class="planner-choice-copy"><strong>Build QSAR or predictive models</strong><small>Prepare data, train models, and validate their applicability.</small></span></label>
+                        <label class="planner-objective-option"><input type="checkbox" name="objective" value="analogues" checked><span class="planner-choice-copy"><strong>Design analogues or explore scaffold hops</strong><small>Translate SAR and binding hypotheses into testable changes.</small></span></label>
+                        <label class="planner-objective-option"><input type="checkbox" name="objective" value="de-novo" checked><span class="planner-choice-copy"><strong>Explore de novo or generative design</strong><small>Define molecule constraints, generate ideas, and apply independent filters.</small></span></label>
+                        <label class="planner-objective-option"><input type="checkbox" name="objective" value="admet" checked><span class="planner-choice-copy"><strong>Assess properties, ADMET, or CNS fit</strong><small>Evaluate physicochemical properties and identify developability risks.</small></span></label>
+                        <label class="planner-objective-option"><input type="checkbox" name="objective" value="synthesis" checked><span class="planner-choice-copy"><strong>Plan synthesis or retrosynthesis</strong><small>Compare routes and assess whether designs are practical to make.</small></span></label>
+                    </div>
+                </div>
+            </section>
+
+            <section class="planner-question" id="question-assets" hidden>
+                <div class="planner-question-number">05</div>
+                <div class="planner-question-body">
+                    <p class="eyebrow">EXISTING MATERIALS</p>
+                    <h3>Do you already have data or files?</h3>
+                    <p class="planner-question-help">Choose everything available now. These selections change which prerequisites are flagged; they do not imply that an input has been checked or validated.</p>
+                    <div class="planner-assets-grid guided-assets-grid">
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="structure"><span>Experimental / selected protein structure (PDB/mmCIF)</span></label>
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="prepared-protein"><span>Prepared receptor or docking-ready protein</span></label>
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="native-ligand"><span>Native or co-crystal ligand / reference pose</span></label>
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="binding-site"><span>Binding-site coordinates or pocket definition</span></label>
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="known-actives"><span>Known actives with traceable evidence</span></label>
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="known-inactives"><span>Known inactives or experimentally tested controls</span></label>
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="decoys"><span>Property-matched decoy / control set</span></label>
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="activity-data"><span>Measured bioactivity data with assay metadata</span></label>
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="compound-set"><span>Ligand structures / SMILES / SDF with stable IDs</span></label>
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="prepared-ligands"><span>Prepared ligands or generated conformers</span></label>
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="library"><span>Defined screening library and source</span></label>
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="pocket-hypotheses"><span>Alternative pocket predictions</span></label>
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="pharmacophore"><span>Pharmacophore hypothesis or interaction constraints</span></label>
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="admet-data"><span>Property / ADMET data</span></label>
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="qsar-model"><span>Existing QSAR / predictive model</span></label>
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="validated-docking"><span>Docking setup passed pose and enrichment controls</span></label>
+                        <label class="planner-asset-option"><input type="checkbox" name="asset" value="synthesis-constraints"><span>Synthesis, building-block, or procurement constraints</span></label>
+                    </div>
+
+                    <details class="planner-advanced-preferences" id="planner-advanced-preferences">
+                        <summary>Optional preferences and project notes</summary>
+                        <div class="planner-advanced-grid">
+                            <div><label for="planner-os" class="planner-field-title">Operating system</label><select id="planner-os" name="operating-system" class="planner-select"><option value="any">No preference</option><option value="linux">Linux</option><option value="macos">macOS</option><option value="windows">Windows</option></select></div>
+                            <div><label for="planner-experience" class="planner-field-title">Experience level</label><select id="planner-experience" name="experience" class="planner-select"><option value="new" selected>New to computational chemistry</option><option value="some">Some experience with scientific software</option><option value="comfortable">Comfortable with Python / command line</option></select></div>
+                            <div><label for="planner-tool-style" class="planner-field-title">Tool style when code is acceptable</label><select id="planner-tool-style" name="tool-style" class="planner-select"><option value="mixed" selected>Mix of visual and technical tools</option><option value="programmatic">Command line / programming preferred</option><option value="visual-first">Prefer visual tools</option></select></div>
+                        </div>
+                    </details>
+                </div>
+            </section>
+
+            <input type="radio" name="stage" value="new-project" checked hidden>
+            <div class="planner-form-actions guided-form-actions" id="planner-form-actions" hidden>
+                <button type="submit" class="button button-primary">Build my workflow <span>↗</span></button>
+                <button type="reset" id="planner-reset" class="planner-reset">Reset selections</button>
+            </div>
+            <p class="planner-form-note">The builder recommends tools and explains the checks needed to use them responsibly. It does not execute docking, validate a model, or prove a predicted compound is active.</p>
+        </form>
+
+        <section id="workflow-results" class="planner-results" aria-live="polite" tabindex="-1"></section>
+    </div>
+</section>
 </main>
 
 <footer class="site-footer">
@@ -296,6 +242,6 @@
 </footer>
 
 <script src="js/protocols.js?v=1"></script>
-<script src="js/planner.js?v=5"></script>
+<script src="js/planner.js?v=6"></script>
 </body>
 </html>
