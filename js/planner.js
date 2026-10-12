@@ -1264,7 +1264,9 @@ function targetEvidenceHtml(evidence) {
     }).join("");
 
     let structures = "";
-    if (evidence.structures && evidence.structures.length) {
+    if (evidence.requiresAccessionChoice) {
+        structures = '<div class="live-evidence-empty"><strong>Choose the correct UniProt record first.</strong> Several possible target records were returned, so no structure shortlist has been generated yet.</div>';
+    } else if (evidence.structures && evidence.structures.length) {
         structures = '<h4>Experimental structure shortlist</h4>' +
             '<p class="live-evidence-note">Sorted by a transparent triage heuristic, not by docking or ligand potency. Inspect the full record before selecting a receptor.</p>' +
             '<div class="live-evidence-table-wrap"><table class="live-evidence-table"><thead><tr><th>PDB</th><th>Resolution (Å)</th><th>R-free</th><th>Method</th><th>Bound non-polymer components</th><th>Triage / 10</th></tr></thead><tbody>' +
@@ -1288,8 +1290,25 @@ function targetEvidenceHtml(evidence) {
         structures = '<div class="live-evidence-empty"><strong>No experimental structures were returned by the accession-specific query.</strong> The target may lack a matching structure, the cross-reference may be missing, or the API query may be incomplete. Check the manual RCSB search before concluding there are no structures.</div>';
     }
 
-    const targetMatchesNote = evidence.matches.length > 1
-        ? '<p class="live-evidence-note"><strong>Target match needs human review.</strong> UniProt returned several records. The structure search uses the first result above; confirm the intended accession before using any structure.</p>'
+    const accessionOptions = evidence.matches.map(function(match) {
+        const accession = String(match.accession || "");
+        const label = accession + " — " + String(match.name || "Unnamed protein") +
+            (match.gene ? " (" + String(match.gene) + ")" : "") +
+            " · " + String(match.organism || "Organism unknown") +
+            (match.reviewed ? " · reviewed" : "");
+        return '<option value="' + escapeWorkflowHtml(accession) + '">' + escapeWorkflowHtml(label) + '</option>';
+    }).join("");
+    const accessionChooser = evidence.requiresAccessionChoice
+        ? '<div class="uniprot-accession-selector">' +
+            '<label for="uniprot-accession-choice"><strong>Select the exact UniProt record</strong><small>Confirm the accession, protein name, organism and gene before retrieving structures.</small></label>' +
+            '<select id="uniprot-accession-choice" class="planner-select"><option value="">Choose a UniProt accession…</option>' + accessionOptions + '</select>' +
+            '<button type="button" id="search-selected-uniprot-structures" class="button button-secondary">Search PDB for this accession</button>' +
+            '<p id="uniprot-accession-status" class="live-evidence-note" aria-live="polite"></p>' +
+          '</div>'
+        : "";
+    const targetMatchesNote = evidence.matches.length > 1 && evidence.selectedAccession
+        ? '<p class="live-evidence-note"><strong>Accession selected:</strong> Structure retrieval is scoped to ' +
+            escapeWorkflowHtml(evidence.selectedAccession) + '. Verify the protein/construct alignment before choosing a receptor.</p>'
         : "";
     const searchMode = evidence.exactAccession
         ? "Structures matched through the selected UniProt accession."
@@ -1298,20 +1317,38 @@ function targetEvidenceHtml(evidence) {
         '<div class="live-evidence-heading"><p class="eyebrow">LIVE DATABASE LOOKUP</p><h3>Target and structure evidence</h3><p>Retrieved from UniProt and RCSB PDB in the browser. This is discovery metadata, not a structural validation.</p></div>' +
         '<h4>UniProt target matches</h4>' +
         '<div class="live-evidence-table-wrap"><table class="live-evidence-table"><thead><tr><th>Accession</th><th>Protein / gene</th><th>Organism</th><th>Length (aa)</th><th>Record type</th></tr></thead><tbody>' + uniprotRows + '</tbody></table></div>' +
-        targetMatchesNote +
+        accessionChooser + targetMatchesNote +
         '<p class="live-evidence-note">' + escapeWorkflowHtml(searchMode) + ' Total reported RCSB results: ' + String(evidence.structureTotal) + '.</p>' +
         structures +
         '<p class="live-evidence-note"><a href="https://www.uniprot.org/" target="_blank" rel="noopener noreferrer">Open UniProt ↗</a> · <a href="https://www.rcsb.org/" target="_blank" rel="noopener noreferrer">Open RCSB PDB ↗</a></p>' +
     '</section>';
 }
 
-async function retrieveLiveTargetEvidence(target, organism) {
+async function retrieveLiveTargetEvidence(target, organism, accessionOverride) {
     const rawMatches = await lookupUniProtTarget(target, organism);
-    const matches = rawMatches.map(extractUniProtMatch);
-    if (!matches.length || !matches[0].accession) {
+    const matches = rawMatches.map(extractUniProtMatch).filter(function(match) { return Boolean(match.accession); });
+    if (!matches.length) {
         throw new Error("No UniProt match was returned for this target and organism.");
     }
-    const selected = matches[0];
+
+    // Never silently choose the first accession when the target mapping is ambiguous.
+    if (!accessionOverride && matches.length > 1) {
+        return {
+            matches: matches,
+            structures: [],
+            structureTotal: 0,
+            exactAccession: false,
+            requiresAccessionChoice: true,
+            selectedAccession: ""
+        };
+    }
+
+    const selected = accessionOverride
+        ? matches.find(function(match) { return match.accession === accessionOverride; })
+        : matches[0];
+    if (!selected) {
+        throw new Error("The selected UniProt accession was not among the current target matches. Search again and select a listed record.");
+    }
     const structureSearch = await searchRcsbEntries(selected.accession, target, organism);
     const ids = structureSearch.results.map(function(item) { return item.identifier; }).filter(Boolean);
     const metadataResults = await Promise.allSettled(ids.slice(0, 12).map(loadRcsbStructureRecord));
@@ -1330,8 +1367,44 @@ async function retrieveLiveTargetEvidence(target, organism) {
         structures: structures,
         structureTotal: structureSearch.total,
         exactAccession: structureSearch.exactAccession,
-        accessionSearchError: structureSearch.accessionSearchError || ""
+        accessionSearchError: structureSearch.accessionSearchError || "",
+        requiresAccessionChoice: false,
+        selectedAccession: selected.accession
     };
+}
+
+function bindUniProtAccessionChoice(target, organism, requestId) {
+    const selector = document.getElementById("uniprot-accession-choice");
+    const button = document.getElementById("search-selected-uniprot-structures");
+    const status = document.getElementById("uniprot-accession-status");
+    if (!selector || !button) return;
+
+    button.addEventListener("click", function() {
+        const accession = selector.value;
+        if (!accession) {
+            if (status) status.textContent = "Select a UniProt accession before searching PDB.";
+            return;
+        }
+        button.disabled = true;
+        if (status) status.textContent = "Retrieving PDB structures for " + accession + "…";
+        const panel = document.getElementById("live-target-evidence");
+        if (panel) {
+            panel.innerHTML = '<div class="live-evidence-heading"><p class="eyebrow">LIVE DATABASE LOOKUP</p><h3>Target and structure evidence</h3><p>Searching structures for the selected UniProt accession ' + escapeWorkflowHtml(accession) + '…</p></div>';
+        }
+
+        retrieveLiveTargetEvidence(target, organism, accession).then(function(evidence) {
+            if (requestId !== liveEvidenceRequestId) return;
+            const currentPanel = document.getElementById("live-target-evidence");
+            if (currentPanel) currentPanel.outerHTML = targetEvidenceHtml(evidence);
+            bindUniProtAccessionChoice(target, organism, requestId);
+        }).catch(function(error) {
+            if (requestId !== liveEvidenceRequestId) return;
+            const currentPanel = document.getElementById("live-target-evidence");
+            if (currentPanel) currentPanel.outerHTML = renderLiveEvidenceUnavailable(
+                target, organism, error && error.message ? error.message : ""
+            );
+        });
+    });
 }
 
 function renderLiveEvidenceUnavailable(target, organism, message) {
@@ -1476,6 +1549,7 @@ function renderWorkflow(event) {
             if (thisEvidenceRequest !== liveEvidenceRequestId) return;
             const panel = document.getElementById("live-target-evidence");
             if (panel) panel.outerHTML = targetEvidenceHtml(evidence);
+            bindUniProtAccessionChoice(inputState.target, inputState.organism, thisEvidenceRequest);
         }).catch(function(error) {
             if (thisEvidenceRequest !== liveEvidenceRequestId) return;
             const panel = document.getElementById("live-target-evidence");
