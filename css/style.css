@@ -5489,3 +5489,115 @@ button {
     text-decoration: underline;
     text-underline-offset: 2px;
 }
+
+
+/* Expandable code recipes inside generated workflow steps */
+.planner-code-recipes {
+    margin: 20px 0 22px;
+    border-top: 1px solid var(--line);
+}
+.planner-recipe-label {
+    margin: 13px 0 8px;
+    color: var(--violet);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: .12em;
+}
+.planner-code-detail {
+    margin: 8px 0;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.44);
+}
+.planner-code-detail > summary {
+    padding: 13px 15px;
+    cursor: pointer;
+    color: var(--ink);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.55;
+    list-style-position: inside;
+}
+.planner-code-detail[open] > summary {
+    border-bottom: 1px solid var(--line);
+    background: var(--paper-light);
+}
+.planner-code-detail-body {
+    padding: 16px;
+}
+.planner-code-detail-body > p:first-child {
+    margin: 0 0 14px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.7;
+}
+.planner-code-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 12px;
+    border: 1px solid var(--line-dark);
+    border-bottom: 0;
+    background: var(--paper-light);
+}
+.planner-code-toolbar > span {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: .12em;
+}
+.planner-copy-code {
+    padding: 6px 9px;
+    border: 1px solid var(--line);
+    background: var(--white);
+    color: var(--ink);
+    font: inherit;
+    font-size: 10px;
+    cursor: pointer;
+}
+.planner-copy-code:hover,
+.planner-copy-code:focus-visible {
+    outline: 1px solid var(--violet);
+    outline-offset: 1px;
+}
+.planner-code-detail pre {
+    max-width: 100%;
+    margin: 0;
+    padding: 15px;
+    overflow: auto;
+    border: 1px solid var(--line-dark);
+    background: #171a22;
+    color: #eef0f4;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.65;
+    tab-size: 4;
+    white-space: pre;
+}
+.planner-code-detail pre code {
+    color: inherit;
+    font: inherit;
+}
+.planner-recipe-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px 14px;
+    margin: 13px 0 0;
+    font-size: 11px;
+    line-height: 1.6;
+}
+.planner-recipe-links a {
+    color: var(--violet);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+@media (max-width: 600px) {
+    .planner-code-detail-body {
+        padding: 10px;
+    }
+    .planner-code-detail pre {
+        padding: 11px;
+        font-size: 10px;
+    }
+}
