@@ -342,7 +342,7 @@ function interfaceSuitability(tool, preference) {
     return score;
 }
 
-function rankWorkflowTools(config, preference) {
+function rankWorkflowTools(config, preference, guiOnly) {
     const preferred = config.tools || [];
     const taskIds = config.tasks || [];
     const domainIds = config.domains || [];
@@ -361,7 +361,12 @@ function rankWorkflowTools(config, preference) {
         });
         score += interfaceSuitability(tool, preference);
         return { tool: tool, score: score };
-    }).filter(function(item) { return item.score > 0; });
+    }).filter(function(item) {
+        if (item.score <= 0) return false;
+        if (guiOnly !== "yes") return true;
+        const interfaceItems = getInterfaceItems(item.tool);
+        return interfaceItems.includes("web") || interfaceItems.includes("gui");
+    });
 
     ranked.sort(function(a, b) {
         if (b.score !== a.score) return b.score - a.score;
@@ -546,11 +551,140 @@ function unmetInputNames(keys, available) {
     });
 }
 
-function makeStep(step, index, selectedOS, preference, availableInputs) {
+function adaptStepForAvailableInputs(step, availableInputs) {
+    const adapted = Object.assign({}, step);
+    const available = availableInputs || {};
+    const has = function(key) { return Boolean(available[key]); };
+
+    // Treat the questionnaire as an actual starting-state declaration:
+    // verify user-provided assets rather than blindly repeating acquisition steps.
+    if (step.id === "structure.choose" && has("structure")) {
+        adapted.title = "Audit the protein structure you already have";
+        adapted.intro = "Start from your file and verify that it represents the intended target, construct and binding-site state.";
+        adapted.actions = [
+            "Record source/PDB ID, chain, biological assembly, organism, isoform/construct, resolution and refinement statistics if experimental.",
+            "Check missing atoms/residues in the pocket, mutations versus the reference sequence, alternate locations, cofactors/metals, waters and bound ligand identity.",
+            "Compare the provided structure with an experimental holo structure of the correct target before relying on it; use a predicted model as a hypothesis rather than equivalent evidence."
+        ];
+        adapted.deliverable = "Structure audit with a go/no-go decision and any additional PDB structures needed.";
+    }
+
+    if (step.id === "ligand.query" && has("activity-data")) {
+        adapted.title = "Audit and extend the activity data you already have";
+        adapted.intro = "Do not redownload the same dataset by default. Validate provenance and retrieve only the records or metadata that are missing.";
+        adapted.actions = [
+            "Check that compound IDs, structures, target, assay IDs, endpoint, units, standard relation, source document and organism are preserved.",
+            "Keep IC50, Ki, EC50 and other assay types separate unless a defensible endpoint-specific analysis justifies combination.",
+            "Compare the export with ChEMBL or the original assay source to fill important gaps and document access/query dates."
+        ];
+        adapted.deliverable = "Audited original dataset plus a gap list and a curated analysis copy.";
+    }
+
+    if (step.id === "data.curate" && has("compound-set")) {
+        adapted.title = "Quality-check the compound file you already have";
+        adapted.intro = "Retain the original file and create a traceable cleaned copy rather than overwriting structures or identifiers.";
+        adapted.actions = [
+            "Validate SMILES/SDF parsing, stable IDs, stereochemistry, salts, charge, duplicates and missing structures.",
+            "Separate duplicate structures from repeated measurements and preserve the original-to-clean mapping.",
+            "Record standardization rules, excluded rows and any structures requiring manual review."
+        ];
+        adapted.deliverable = "Validated, traceable structure set and a curation log.";
+    }
+
+    if (step.id === "structure.prepare" && has("structure") && has("prepared-ligands")) {
+        adapted.title = "Audit your existing prepared receptor and ligand files";
+        adapted.intro = "Reuse prepared files only if their provenance and settings are known and compatible with the chosen docking engine.";
+        adapted.actions = [
+            "Record which preparation tool/version created the files and verify atom typing, protonation, charges, stereochemistry and ligand identity.",
+            "Confirm that the receptor contains the intended chain, pocket residues and relevant cofactors/metals, and that the ligand box is centred on the intended site.",
+            "Check that the receptor and ligand preparation policy is consistent across every compound and receptor state; regenerate only incompatible or undocumented files."
+        ];
+        adapted.deliverable = "Preparation audit and a decision to reuse or regenerate each asset.";
+    } else if (step.id === "structure.prepare" && has("structure")) {
+        adapted.actions = (step.actions || []).map(function(action) {
+            return action.replace(/^Repair the structure and inspect/, "Starting from your provided structure, inspect")
+                .replace(/^Choose the binding site/, "Confirm the binding site in your provided structure");
+        });
+    }
+
+    if (step.id === "structure.redock" && has("native-ligand")) {
+        adapted.intro = "Use the available co-crystal ligand as the reference pose, but start docking from an independently prepared ligand conformer.";
+        adapted.actions = [
+            "Verify the native ligand component ID, chain, residue ID, stereochemistry and connectivity; extract its experimental coordinates as the reference.",
+            "Remove the ligand from the receptor and dock an independently generated 3D conformer into a box defined by the crystal ligand.",
+            "Calculate heavy-atom pose RMSD in the receptor coordinate frame, inspect atom mapping/symmetry and visually compare the key contacts."
+        ];
+        adapted.deliverable = "Redocking pose, RMSD and visual review against the native crystallographic reference.";
+    }
+
+    if (step.id === "screen.validate" && has("known-actives") && has("decoys")) {
+        adapted.intro = "Use the active/control sets you already assembled, auditing their labels and property matching before measuring enrichment.";
+        adapted.actions = [
+            "Verify which compounds are experimentally confirmed actives, experimentally measured inactives, generated decoys or untested; do not label untested molecules inactive.",
+            "Compare MW, lipophilicity, charge, HBD/HBA and chemical similarity distributions; document source and decoy-generation settings.",
+            "Run the same preparation and scoring pipeline for all classes and report per-engine ROC-AUC and early-enrichment metrics with class sizes and uncertainty."
+        ];
+        adapted.deliverable = "Per-engine enrichment report plus an audited active/control manifest.";
+    }
+
+    if (step.id === "screen.library" && has("library")) {
+        adapted.title = "Prepare the screening library you already have";
+        adapted.intro = "Start from the current library and prove that compound identity, source and preparation are reproducible.";
+        adapted.actions = [
+            "Record the source/version, stable compound ID, availability, license/use conditions and original structure for each entry.",
+            "Standardize and deduplicate under an explicit policy; retain stereochemistry and map every processed structure back to the source.",
+            "Check that the library's chemistry and scale are compatible with the validated method and the compounds you can actually test."
+        ];
+        adapted.deliverable = "Versioned, standardized library plus source/availability manifest.";
+    }
+
+    if (step.id === "interactions.report" && has("interaction-fingerprints")) {
+        adapted.title = "Audit and extend the interaction fingerprints you already have";
+        adapted.intro = "First verify the protein/ligand preparation, pose identity and fingerprint definitions. Then compare matched active and control sets.";
+        adapted.actions = [
+            "Record the receptor state, protonation/atom typing, selected pose, interaction classes and software version for existing fingerprints.",
+            "Check whether every compound contributes one comparable pose and has a stable ID plus active/control label.",
+            "Compare interaction prevalence by residue and chemical series; use a held-out or independent set where possible and manually inspect key examples."
+        ];
+        adapted.deliverable = "Reproducible PLIF matrix and an active-versus-control interaction report.";
+    }
+
+    if (step.id === "model.baseline" && has("qsar-model")) {
+        adapted.title = "Audit the QSAR model you already have";
+        adapted.intro = "Do not train a replacement model automatically; establish whether the existing model answers the current endpoint and chemistry question.";
+        adapted.actions = [
+            "Record training data, endpoint, label rules, structure standardization, split strategy, software/model version and all model-selection decisions.",
+            "Check for compound/scaffold leakage, class balance, calibration, applicability domain and an untouched external or prospective evaluation.",
+            "Compare the model with simple baselines and test whether the intended new chemistry is represented in the training domain."
+        ];
+        adapted.deliverable = "QSAR qualification note stating permitted use, failure modes and the remaining validation gaps.";
+    }
+
+    if (step.id === "develop.profile" && has("admet-results")) {
+        adapted.title = "Reconcile the ADMET results you already have";
+        adapted.intro = "Keep experimental and predicted results distinct, and add predictions only for missing endpoints or unresolved risks.";
+        adapted.actions = [
+            "Track source/model, prediction date, endpoint definitions, units, structure standardization and uncertainty/applicability warnings.",
+            "Compare available predictions with each other and with measured data; investigate disagreement rather than averaging unlike endpoints.",
+            "Prioritize missing experimental tests according to the project profile, including CNS exposure only when that is a real requirement."
+        ];
+        adapted.deliverable = "Evidence table separating experimental results, model predictions, conflicts and the next informative assay.";
+    }
+
+    if (step.id === "screen.crossdock" && has("validated-docking")) {
+        adapted.intro = "Reuse the established protocol only for receptor states, ligand types and software settings covered by the original validation. Recheck controls when those change.";
+    }
+
+    return adapted;
+}
+
+function makeStep(step, index, selectedOS, preference, availableInputs, guiOnly) {
+    step = adaptStepForAvailableInputs(step, availableInputs);
+    const recipeHtml = guiOnly === "yes" ? "" : (typeof window.renderWorkflowRecipe === "function" ? window.renderWorkflowRecipe(step.id, availableInputs) : "");
     const actions = (step.actions || []).map(function(action) {
         return "<li>" + escapeWorkflowHtml(action) + "</li>";
     }).join("");
-    const recommendations = rankWorkflowTools(step, preference);
+    const recommendations = rankWorkflowTools(step, preference, guiOnly);
     const toolsHtml = recommendations.length
         ? '<div class="planner-tool-recommendations">' +
             recommendations.map(function(tool, toolIndex) { return makeToolCard(tool, selectedOS, preference, toolIndex, step); }).join("") +
@@ -588,7 +722,7 @@ function makeStep(step, index, selectedOS, preference, availableInputs) {
             '<p class="planner-step-intro">' + escapeWorkflowHtml(step.intro) + '</p>' +
             '<ol class="planner-step-actions">' + actions + '</ol>' +
             '<p class="planner-deliverable"><strong>Record / deliverable.</strong> ' + escapeWorkflowHtml(step.deliverable || "Save the result, source identifiers and relevant settings.") + '</p>' +
-            prereqHtml + gateHtml + failureHtml + sourcesHtml +
+            recipeHtml + prereqHtml + gateHtml + failureHtml + sourcesHtml +
             toolsHtml + coverage +
         '</div>' +
     '</article>';
@@ -1049,9 +1183,11 @@ function renderWorkflow(event) {
     const longWorkflowNote = steps.length > 12
         ? '<p class="planner-length-note"><strong>Combined protocol.</strong> This plan is broad because several objectives were selected. Run it phase by phase; do not skip a gate simply to shorten the workflow.</p>'
         : "";
-    const guidance = experience === "new" && preference === "visual-first"
-        ? "Start with browser or graphical tools where the catalogue offers a direct match. Some preparation, docking, QSAR and simulation steps still require command-line use or a configured environment; a web interface does not remove the need for method validation."
-        : "Record inputs, versions, settings, control results and failures. A tool suggestion is not evidence that the method is valid for your target or chemotype.";
+    const guidance = guiOnly === "yes"
+        ? "Recommendations are restricted to catalogue tools with a recorded graphical/web interface. If a method has no GUI match, the planner will say so rather than silently recommending a command-line tool. Code recipes are hidden for this choice."
+        : experience === "new" && preference === "visual-first"
+            ? "Start with browser or graphical tools where the catalogue offers a direct match. Expand the optional code recipes when a technical step needs a reproducible command or script."
+            : "Record inputs, versions, settings, control results and failures. A tool suggestion is not evidence that the method is valid for your target or chemotype.";
     const selectedOSLabel = selectedOS === "any" ? "No preference" : titleLabel(selectedOS);
 
     results.innerHTML =
@@ -1080,7 +1216,7 @@ function renderWorkflow(event) {
             '</div>' + longWorkflowNote +
             '<div class="protocol-actions"><button type="button" class="button button-secondary" id="print-workflow">Print / save protocol as PDF</button><button type="button" class="button button-secondary" id="edit-inputs">Edit inputs</button></div>' +
             '<div class="planner-results-list">' +
-                steps.map(function(step, index) { return makeStep(step, index, selectedOS, preference, inputState.available); }).join("") +
+                steps.map(function(step, index) { return makeStep(step, index, selectedOS, preference, inputState.available, guiOnly); }).join("") +
             '</div>' +
             '<p class="planner-method-note">Catalogue matches are ranked from ChemIsFree records using task tags and interface preference. Interface classifications may be provisional or unconfirmed. External references are starting points, not endorsements. Thresholds labelled as working defaults are project heuristics rather than universal rules. Predicted poses, activity scores and ADMET outputs are not experimental confirmation.</p>';
 
