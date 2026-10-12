@@ -87,6 +87,11 @@ assert.ok(plannerSource.includes("https://www.ebi.ac.uk/chembl/api/data/activity
     "ChEMBL activity query URL is missing.");
 assert.ok(plannerSource.includes("https://www.ebi.ac.uk/chembl/api/data/molecule.json?"),
     "ChEMBL molecule-structure lookup URL is missing.");
+assert.ok(plannerSource.includes("if (!accessionOverride && matches.length > 1)"),
+    "Ambiguous UniProt results must not silently use the first accession.");
+assert.ok(plannerSource.includes("uniprot-accession-choice") &&
+    plannerSource.includes("search-selected-uniprot-structures"),
+    "The UI must let the user choose a UniProt accession before the PDB shortlist is generated.");
 for (const endpoint of ["IC50", "Ki", "EC50"]) {
     assert.ok(html.includes('value="' + endpoint + '"'), "Missing endpoint option " + endpoint + ".");
 }
