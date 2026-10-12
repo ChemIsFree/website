@@ -206,14 +206,54 @@ assert.ok(!ligandGuide.includes("CAVIAR") && !ligandGuide.includes("SIGHTS"),
     ];
     const requestedUrls = [];
     context.fetchJsonResource = async function(url) {
-        requestedUrls.push(String(url));
-        if (String(url).startsWith("https://rest.uniprot.org/uniprotkb/search?")) {
+        const value = String(url);
+        requestedUrls.push(value);
+        if (value.startsWith("https://rest.uniprot.org/uniprotkb/search?")) {
             return { results: mockEntries };
         }
-        if (String(url).startsWith("https://search.rcsb.org/rcsbsearch/v2/query")) {
-            return { result_set: [], total_count: 0 };
+        if (value === "https://search.rcsb.org/rcsbsearch/v2/query") {
+            return { result_set: [{ identifier: "1ABC" }, { identifier: "2DEF" }], total_count: 2 };
         }
-        throw new Error("Unexpected URL in mocked target test: " + url);
+        if (value.startsWith("https://data.rcsb.org/rest/v1/core/entry/1ABC")) {
+            return {
+                rcsb_entry_info: { resolution_combined: [1.8] },
+                refine: [{ ls_R_factor_R_free: 0.21 }],
+                rcsb_entry_container_identifiers: { non_polymer_entity_ids: ["1", "2"] },
+                exptl: [{ method: "X-RAY DIFFRACTION" }],
+                struct: { title: "Protein with inhibitor" }
+            };
+        }
+        if (value.startsWith("https://data.rcsb.org/rest/v1/core/entry/2DEF")) {
+            return {
+                rcsb_entry_info: { resolution_combined: [1.5] },
+                refine: [{ ls_R_factor_R_free: 0.19 }],
+                rcsb_entry_container_identifiers: { non_polymer_entity_ids: ["1"] },
+                exptl: [{ method: "X-RAY DIFFRACTION" }],
+                struct: { title: "Higher-resolution structure with only a small ion" }
+            };
+        }
+        if (value.includes("/core/nonpolymer_entity/1ABC/1")) {
+            return {
+                rcsb_nonpolymer_entity_container_identifiers: { non_polymer_comp_id: "XYZ" },
+                pdbx_entity_nonpoly: { name: "Known inhibitor" },
+                rcsb_nonpolymer_entity: { formula_weight: 300 }
+            };
+        }
+        if (value.includes("/core/nonpolymer_entity/1ABC/2")) {
+            return {
+                rcsb_nonpolymer_entity_container_identifiers: { non_polymer_comp_id: "SO4" },
+                pdbx_entity_nonpoly: { name: "SULFATE" },
+                rcsb_nonpolymer_entity: { formula_weight: 96 }
+            };
+        }
+        if (value.includes("/core/nonpolymer_entity/2DEF/1")) {
+            return {
+                rcsb_nonpolymer_entity_container_identifiers: { non_polymer_comp_id: "SO4" },
+                pdbx_entity_nonpoly: { name: "SULFATE" },
+                rcsb_nonpolymer_entity: { formula_weight: 96 }
+            };
+        }
+        throw new Error("Unexpected URL in mocked target test: " + value);
     };
 
     requestedUrls.length = 0;
@@ -233,6 +273,15 @@ assert.ok(!ligandGuide.includes("CAVIAR") && !ligandGuide.includes("SIGHTS"),
         "Explicit accession selection must scope the structure query.");
     assert.ok(requestedUrls.some((url) => url.includes("rcsbsearch")),
         "PDB lookup should resume after the user selects an accession.");
+    assert.equal(selected.structures[0].id, "1ABC",
+        "The ligand-evidence score should help rank the structure shortlist after component metadata is loaded.");
+    assert.ok(selected.structures[0].score > selected.structures.find((item) => item.id === "2DEF").score,
+        "A candidate ligand-sized organic component should outrank an ion-only entry when other evidence is competitive.");
+    const selectedHtml = context.targetEvidenceHtml(selected);
+    assert.ok(selectedHtml.includes("/ligand-validation/1ABC/XYZ"),
+        "Candidate ligand components should link to RCSB ligand validation.");
+    assert.ok(selectedHtml.includes("Inspect chain / mutations"),
+        "Each PDB shortlist row should expose its chain/mutation check link.");
     console.log("Ambiguous UniProt selection test passed.");
     console.log("Workflow planner integration checks passed.");
     console.log("Protocols: " + Object.keys(protocols).length +
