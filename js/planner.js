@@ -682,9 +682,14 @@ let chemblActivityRows = [];
 let chemblActivityOffset = 0;
 let chemblActivityTotal = 0;
 let chemblActivityBusy = false;
+let chemblActivityRequestId = 0;
 let selectedChemblTarget = null;
 
 function clearChemblSelection() {
+    chemblTargetSearchRequestId += 1;
+    chemblActivityRequestId += 1;
+    chemblActivityBusy = false;
+    if (chemblTargetSearchTimer) window.clearTimeout(chemblTargetSearchTimer);
     selectedChemblTarget = null;
     chemblActivityRows = [];
     chemblActivityOffset = 0;
@@ -967,13 +972,17 @@ async function loadChemblActivities(reset) {
         if (results) results.innerHTML = "";
     }
     chemblActivityBusy = true;
+    const requestId = ++chemblActivityRequestId;
+    const targetId = selectedChemblTarget.target_chembl_id;
     if (status) status.textContent = "Loading " + endpoint + " records from ChEMBL…";
     if (more) more.disabled = true;
     if (download) download.disabled = true;
     try {
-        const payload = await fetchChemblActivities(selectedChemblTarget.target_chembl_id, endpoint, chemblActivityOffset, 20);
+        const payload = await fetchChemblActivities(targetId, endpoint, chemblActivityOffset, 20);
+        if (requestId !== chemblActivityRequestId || !selectedChemblTarget || selectedChemblTarget.target_chembl_id !== targetId) return;
         const incoming = Array.isArray(payload.activities) ? payload.activities : [];
         const enriched = await addChemblMoleculeDetails(incoming);
+        if (requestId !== chemblActivityRequestId || !selectedChemblTarget || selectedChemblTarget.target_chembl_id !== targetId) return;
         chemblActivityRows = chemblActivityRows.concat(enriched);
         chemblActivityOffset += incoming.length;
         chemblActivityTotal = Number(payload.page_meta && payload.page_meta.total_count !== undefined ? payload.page_meta.total_count : chemblActivityRows.length);
@@ -994,7 +1003,7 @@ async function loadChemblActivities(reset) {
         if (more) more.disabled = false;
         if (download) download.disabled = false;
     } finally {
-        chemblActivityBusy = false;
+        if (requestId === chemblActivityRequestId) chemblActivityBusy = false;
     }
 }
 
@@ -1025,6 +1034,8 @@ async function downloadAllChemblActivities() {
     const endpoint = endpointControl ? endpointControl.value : "IC50";
     const target = selectedChemblTarget;
     chemblActivityBusy = true;
+    const requestId = ++chemblActivityRequestId;
+    const targetId = target.target_chembl_id;
     if (download) download.disabled = true;
     const allRows = [];
     let offset = 0;
@@ -1033,7 +1044,8 @@ async function downloadAllChemblActivities() {
     try {
         while (offset < Math.min(total || hardLimit, hardLimit)) {
             if (status) status.textContent = "Preparing CSV export: retrieved " + offset.toLocaleString() + " activity records…";
-            const payload = await fetchChemblActivities(target.target_chembl_id, endpoint, offset, 1000);
+            const payload = await fetchChemblActivities(targetId, endpoint, offset, 1000);
+            if (requestId !== chemblActivityRequestId || !selectedChemblTarget || selectedChemblTarget.target_chembl_id !== targetId) return;
             const incoming = Array.isArray(payload.activities) ? payload.activities : [];
             if (!incoming.length) break;
             allRows.push.apply(allRows, incoming);
@@ -1041,14 +1053,15 @@ async function downloadAllChemblActivities() {
             total = Number(payload.page_meta && payload.page_meta.total_count !== undefined ? payload.page_meta.total_count : (total || offset));
         }
         const enriched = await addChemblMoleculeDetails(allRows);
+        if (requestId !== chemblActivityRequestId || !selectedChemblTarget || selectedChemblTarget.target_chembl_id !== targetId) return;
         const headers = ["molecule_chembl_id","compound_name","canonical_smiles","target_chembl_id","target_pref_name","target_organism","standard_type","standard_relation","standard_value","standard_units","pchembl_value","assay_chembl_id","assay_type","assay_description","bao_label","document_chembl_id","activity_id"];
         saveCsv("chembl_" + target.target_chembl_id + "_" + endpoint.toLowerCase() + "_activities.csv", headers, enriched);
         if (status) status.textContent = "CSV downloaded with " + enriched.length.toLocaleString() + " records." + (total > hardLimit ? " The API record count exceeds the browser safety limit; the export includes the first 100,000 matching records." : "");
     } catch (error) {
         if (status) status.textContent = "The full export failed before completion. The preview remains available; try a smaller target or export from the ChEMBL record.";
     } finally {
-        chemblActivityBusy = false;
-        if (download) download.disabled = false;
+        if (requestId === chemblActivityRequestId) chemblActivityBusy = false;
+        if (download && requestId === chemblActivityRequestId) download.disabled = false;
     }
 }
 
