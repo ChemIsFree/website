@@ -361,7 +361,12 @@ function rankWorkflowTools(config, preference) {
         });
         score += interfaceSuitability(tool, preference);
         return { tool: tool, score: score };
-    }).filter(function(item) { return item.score > 0; });
+    }).filter(function(item) {
+        if (item.score <= 0) return false;
+        if (preference !== "visual-first") return true;
+        // "GUI only" is a constraint, not just a soft preference.
+        return getInterfaceItems(item.tool).some(function(value) { return value === "gui" || value === "web"; });
+    });
 
     ranked.sort(function(a, b) {
         if (b.score !== a.score) return b.score - a.score;
@@ -425,7 +430,10 @@ function toolQuickStart(tool, step) {
         return "Start with a File Reader node, inspect the columns, then add only the required filtering, duplicate-checking, or plotting nodes. Save the workflow and export a result table; begin visually rather than writing code.";
     }
     if (haystack.includes("datawarrior")) {
-        return "Open the CSV or SDF and identify the structure/SMILES column. Inspect structures, create the descriptors or plots relevant to the question, group related compounds, and export a table that retains compound IDs.";
+        if (String(step && step.id || "") === "ligand.query") {
+            return "In DataWarrior, choose Database > Search ChEMBL database. Search by target and select the relevant organism/assay/activity filters in the dialog; retrieve structures with their activities directly into DataWarrior. Inspect structures and property–activity plots in-app—no CSV export from ChEMBL is needed just to visualize them. Preserve compound IDs and assay metadata when exporting the curated subset.";
+        }
+        return "Open the relevant SDF/table and confirm the structure column and stable compound IDs. Calculate descriptors or plots, compare related compounds and export a table with source identifiers retained.";
     }
     if (haystack.includes("autodock-vina") || haystack.includes("gnina")) {
         return "This is mainly a command-line docking workflow. Prepare compatible receptor and ligand files, define the box from a justified binding site, and run a known-ligand control first. Inspect poses in a viewer; do not rank by score alone.";
@@ -506,13 +514,21 @@ function makeToolCard(tool, selectedOS, preference, index, step) {
 
 const plannerInputLabels = {
     target: "Target and organism are specified",
-    structure: "A relevant protein structure has been selected",
+    structure: "A relevant experimental or selected protein structure is available",
+    "prepared-protein": "A prepared receptor is available",
     "native-ligand": "A native/co-crystal ligand or independent pose reference is available",
+    "binding-site": "Binding-site coordinates or pocket definition are available",
     "known-actives": "A traceable known-active set is available",
+    "known-inactives": "Known inactives or experimentally tested controls are available",
     decoys: "A property-matched decoy/control set is available",
     library: "The screening library and source are defined",
-    "activity-data": "A traceable activity dataset is available",
+    "activity-data": "A traceable activity dataset with assay metadata is available",
     "compound-set": "Compound structures/SMILES and stable IDs are available",
+    "prepared-ligands": "Prepared ligands or conformers are available",
+    "pocket-hypotheses": "Alternative pocket predictions are available",
+    pharmacophore: "A pharmacophore hypothesis or interaction constraints are available",
+    "admet-data": "Property or ADMET data are available",
+    "qsar-model": "An existing QSAR/predictive model is available",
     "synthesis-constraints": "Synthesis/procurement constraints are defined",
     "validated-docking": "Docking has passed pose and enrichment controls"
 };
@@ -547,7 +563,9 @@ function makeStep(step, index, selectedOS, preference, availableInputs) {
         ? '<div class="planner-tool-recommendations">' +
             recommendations.map(function(tool, toolIndex) { return makeToolCard(tool, selectedOS, preference, toolIndex, step); }).join("") +
           '</div>'
-        : '<div class="planner-coverage-note"><strong>No directly matched catalogue entry yet.</strong> The method is still listed, but no catalogue tool is being claimed as a direct match. Suggest a relevant resource through the contribution page.</div>';
+        : (preference === "visual-first"
+            ? '<div class="planner-coverage-note"><strong>No GUI/browser tool is currently matched for this step.</strong> The available catalogue route appears to require command-line or programming use. This is a real limitation under your GUI-only constraint; either skip this step consciously, use an external graphical workflow, or change the preference to allow technical tools.</div>'
+            : '<div class="planner-coverage-note"><strong>No directly matched catalogue entry yet.</strong> The method is still listed, but no catalogue tool is being claimed as a direct match. Suggest a relevant resource through the contribution page.</div>');
     const coverage = step.coverageNote
         ? '<div class="planner-coverage-note"><strong>Important limitation.</strong> ' + escapeWorkflowHtml(step.coverageNote) + '</div>'
         : "";
@@ -572,18 +590,42 @@ function makeStep(step, index, selectedOS, preference, availableInputs) {
           }).join(" · ") + '</div>'
         : "";
 
-    return '<article class="planner-workflow-step">' +
-        '<div class="planner-step-number">' + String(index + 1).padStart(2, "0") + '</div>' +
-        '<div class="planner-step-content">' +
-            '<p class="planner-step-kicker">' + escapeWorkflowHtml(step.kicker || "PROTOCOL STEP") + '</p>' +
-            '<h3>' + escapeWorkflowHtml(step.title) + '</h3>' +
-            '<p class="planner-step-intro">' + escapeWorkflowHtml(step.intro) + '</p>' +
+    const codeExamplesHtml = Array.isArray(step.codeExamples) && step.codeExamples.length
+        ? '<div class="planner-code-examples-inner"><h4>Code / command examples</h4>' +
+            step.codeExamples.map(function(example) {
+                const label = escapeWorkflowHtml(example.label || "Example");
+                const lang = escapeWorkflowHtml(example.language || "bash");
+                const code = escapeWorkflowHtml(example.code || "");
+                const note = example.note ? '<p class="planner-code-note">' + escapeWorkflowHtml(example.note) + '</p>' : "";
+                return '<details class="planner-code-example"><summary>' + label + '</summary>' +
+                    note + '<pre><code class="language-' + lang + '">' + code + '</code></pre>' +
+                    '<button type="button" class="planner-copy-code" data-copy-code="' + encodeURIComponent(example.code || "") + '">Copy example</button></details>';
+            }).join("") + '</div>'
+        : "";
+    const codeHtml = codeExamplesHtml
+        ? (preference === "visual-first"
+            ? '<details class="planner-code-examples planner-code-examples-technical"><summary>Optional technical alternative (requires code / command line)</summary>' + codeExamplesHtml + '</details>'
+            : '<div class="planner-code-examples">' + codeExamplesHtml + '</div>')
+        : "";
+
+    return '<details class="planner-workflow-step">' +
+        '<summary class="planner-step-summary">' +
+            '<span class="planner-step-number">' + String(index + 1).padStart(2, "0") + '</span>' +
+            '<span class="planner-step-summary-main">' +
+                '<span class="planner-step-kicker">' + escapeWorkflowHtml(step.kicker || "PROTOCOL STEP") + '</span>' +
+                '<span class="planner-step-title">' + escapeWorkflowHtml(step.title) + '</span>' +
+                '<span class="planner-step-intro">' + escapeWorkflowHtml(step.intro) + '</span>' +
+            '</span>' +
+            '<span class="planner-step-chevron" aria-hidden="true">+</span>' +
+        '</summary>' +
+        '<div class="planner-step-details"><div class="planner-step-content">' +
             '<ol class="planner-step-actions">' + actions + '</ol>' +
+            codeHtml +
             '<p class="planner-deliverable"><strong>Record / deliverable.</strong> ' + escapeWorkflowHtml(step.deliverable || "Save the result, source identifiers and relevant settings.") + '</p>' +
             prereqHtml + gateHtml + failureHtml + sourcesHtml +
             toolsHtml + coverage +
-        '</div>' +
-    '</article>';
+        '</div></div>' +
+    '</details>';
 }
 
 function selectedObjectives() {
@@ -606,23 +648,83 @@ function choosePrimaryProtocol(objectives) {
     return objectives.find(function(id) { return Boolean(protocolLibrary[id]); }) || "target-context";
 }
 
-function composeProtocolSteps(objectives, primaryId) {
+function composeProtocolSteps(objectives, primaryId, approach) {
     const orderedObjectives = [primaryId].concat(objectives.filter(function(id) { return id !== primaryId; }));
-    const seen = {};
+    const positions = new Map();
     const steps = [];
+    const mergedArrayFields = ["actions", "tools", "tasks", "domains", "sources", "codeExamples"];
+
+    function arrayKey(field, item) {
+        if (field === "sources") return String(item && (item.url || item.title) || JSON.stringify(item));
+        if (field === "codeExamples") return String(item && (item.label || item.code) || JSON.stringify(item));
+        return typeof item === "string" ? item : JSON.stringify(item);
+    }
+    function mergeSteps(primary, additional) {
+        const merged = Object.assign({}, primary);
+        mergedArrayFields.forEach(function(field) {
+            const items = (Array.isArray(primary[field]) ? primary[field] : [])
+                .concat(Array.isArray(additional[field]) ? additional[field] : []);
+            const seenItems = new Set();
+            merged[field] = items.filter(function(item) {
+                const key = arrayKey(field, item);
+                if (seenItems.has(key)) return false;
+                seenItems.add(key);
+                return true;
+            });
+        });
+        // Preserve the first protocol's narrative/order. Fill missing metadata from
+        // other selected goals without letting a less-specific duplicate overwrite it.
+        ["intro", "kicker", "deliverable", "before", "gate", "commonFailure", "coverageNote", "order"].forEach(function(field) {
+            if ((merged[field] === undefined || merged[field] === null || merged[field] === "") &&
+                additional[field] !== undefined && additional[field] !== null && additional[field] !== "") {
+                merged[field] = additional[field];
+            }
+        });
+        return merged;
+    }
+
     orderedObjectives.forEach(function(id) {
         const definition = protocolLibrary[id];
         if (!definition) return;
         definition.steps.forEach(function(step) {
-            const key = String(step.id || "") + "|" + String(step.title || "");
-            if (!seen[key]) {
-                seen[key] = true;
+            const key = String(step.id || step.title || "");
+            if (!positions.has(key)) {
+                positions.set(key, steps.length);
                 steps.push(step);
+            } else {
+                const index = positions.get(key);
+                steps[index] = mergeSteps(steps[index], step);
             }
         });
     });
+
+    const phaseOrder = {
+        "target.resolve": 0, "structure.choose": 10, "pocket.audit": 20, "pocket.alternatives": 58,
+        "ligand.query": 30, "data.inventory": 35, "data.curate": 40, "ligand.search": 45, "ligand.series": 50, "data.audit": 55,
+        "structure.prepare": 60, "docking.ensemble": 65, "structure.redock": 70, "structure.crossdock": 75, "docking.rmsd": 78, "screen.validate": 80,
+        "interactions.report": 90, "interaction.fingerprint": 95, "pharmacophore.map": 100, "screen.library": 105, "screen.triage": 110, "screen.rescore": 115,
+        "design.hypothesis": 120, "design.enumerate": 125, "design.fragment-grow": 128, "generation.enumerate": 130, "generation.curate": 135, "generation.triage": 140,
+        "develop.descriptors": 145, "develop.profile": 150, "admet.risk-plan": 155, "model.baseline": 160, "model.validate": 165, "model.domain": 170,
+        "synthesis.input": 180, "synthesis.route": 185, "synthesis.risk": 190, "workflow.design": 200, "workflow.build": 205, "workflow.validate": 210, "workflow.audit": 220
+    };
+    const phaseRank = {
+        "target.resolve": 0, "structure.choose": 0, "pocket.audit": 0, "pocket.alternatives": 2,
+        "ligand.query": 1, "data.inventory": 1, "data.curate": 1, "ligand.search": 1, "ligand.series": 1, "data.audit": 1,
+        "structure.prepare": 2, "docking.ensemble": 2, "structure.redock": 2, "structure.crossdock": 2, "docking.rmsd": 2, "screen.validate": 2,
+        "interactions.report": 3, "interaction.fingerprint": 3, "pharmacophore.map": 3, "screen.library": 3, "screen.triage": 3, "screen.rescore": 3,
+        "design.hypothesis": 4, "design.enumerate": 4, "design.fragment-grow": 4, "generation.enumerate": 4, "generation.curate": 4, "generation.triage": 4,
+        "develop.descriptors": 4, "develop.profile": 4, "admet.risk-plan": 4, "model.baseline": 4, "model.validate": 4, "model.domain": 4,
+        "synthesis.input": 5, "synthesis.route": 5, "synthesis.risk": 5, "workflow.design": 5, "workflow.build": 5, "workflow.validate": 5, "workflow.audit": 5
+    };
     steps.sort(function(a, b) {
-        if (a.order !== b.order) return a.order - b.order;
+        const aId = String(a.id || "");
+        const bId = String(b.id || "");
+        const aPhase = phaseRank[aId] === undefined ? 4 : phaseRank[aId];
+        const bPhase = phaseRank[bId] === undefined ? 4 : phaseRank[bId];
+        if (aPhase !== bPhase) return aPhase - bPhase;
+        const aPriority = phaseOrder[aId] === undefined ? (Number(a.order) || 999) : phaseOrder[aId];
+        const bPriority = phaseOrder[bId] === undefined ? (Number(b.order) || 999) : phaseOrder[bId];
+        if (aPriority !== bPriority) return aPriority - bPriority;
         return String(a.title || "").localeCompare(String(b.title || ""));
     });
     return steps;
@@ -640,6 +742,406 @@ function getProtocolRequirements(objectives) {
         });
     });
     return result;
+}
+
+
+
+let chemblTargetSearchTimer = null;
+let chemblTargetSearchRequestId = 0;
+let chemblActivityRows = [];
+let chemblActivityOffset = 0;
+let chemblActivityTotal = 0;
+let chemblActivityBusy = false;
+let chemblActivityRequestId = 0;
+let selectedChemblTarget = null;
+
+function clearChemblSelection() {
+    chemblTargetSearchRequestId += 1;
+    chemblActivityRequestId += 1;
+    chemblActivityBusy = false;
+    if (chemblTargetSearchTimer) window.clearTimeout(chemblTargetSearchTimer);
+    selectedChemblTarget = null;
+    chemblActivityRows = [];
+    chemblActivityOffset = 0;
+    chemblActivityTotal = 0;
+    const id = document.getElementById("planner-chembl-target-id");
+    const selected = document.getElementById("selected-target-info");
+    const panel = document.getElementById("chembl-activity-panel");
+    const rows = document.getElementById("chembl-activity-results");
+    const status = document.getElementById("chembl-activity-status");
+    const more = document.getElementById("chembl-load-more");
+    const download = document.getElementById("chembl-download-all");
+    if (id) id.value = "";
+    if (selected) { selected.hidden = true; selected.innerHTML = ""; }
+    if (panel) panel.hidden = true;
+    if (rows) rows.innerHTML = "";
+    if (status) status.textContent = "";
+    if (more) more.hidden = true;
+    if (download) download.hidden = true;
+}
+
+function initialiseProgressiveIntake() {
+    const form = document.getElementById("workflow-form");
+    if (!form) return;
+
+    const targetStatusRadios = Array.from(document.querySelectorAll('input[name="target-status"]'));
+    const approachRadios = Array.from(document.querySelectorAll('input[name="approach"]'));
+    const guiRadios = Array.from(document.querySelectorAll('input[name="gui-only"]'));
+    const targetInput = document.getElementById("planner-target");
+    const organismInput = document.getElementById("planner-organism");
+    const searchResults = document.getElementById("target-search-results");
+    const searchStatus = document.getElementById("target-search-status");
+    const endpoint = document.getElementById("planner-activity-endpoint");
+
+    function updateVisibility() {
+        const targetChoice = document.querySelector('input[name="target-status"]:checked');
+        const approachChoice = document.querySelector('input[name="approach"]:checked');
+        const guiChoice = document.querySelector('input[name="gui-only"]:checked');
+        const targetPanel = document.getElementById("target-search-panel");
+        const approachPanel = document.getElementById("question-approach");
+        const guiPanel = document.getElementById("question-gui-only");
+        const goalsPanel = document.getElementById("question-objectives");
+        const assetsPanel = document.getElementById("question-assets");
+        const actions = document.getElementById("planner-form-actions");
+
+        if (targetPanel) targetPanel.hidden = !targetChoice || targetChoice.value !== "yes";
+        if (approachPanel) approachPanel.hidden = !targetChoice;
+        if (guiPanel) guiPanel.hidden = !approachChoice;
+        if (goalsPanel) goalsPanel.hidden = !guiChoice;
+        if (assetsPanel) assetsPanel.hidden = !guiChoice;
+        if (actions) actions.hidden = !guiChoice;
+    }
+
+    targetStatusRadios.forEach(function(radio) {
+        radio.addEventListener("change", function() {
+            const choice = document.querySelector('input[name="target-status"]:checked');
+            if (choice && choice.value !== "yes") {
+                if (targetInput) targetInput.value = "";
+                if (organismInput) organismInput.value = "";
+                if (searchResults) searchResults.innerHTML = "";
+                if (searchStatus) searchStatus.textContent = "";
+                clearChemblSelection();
+            }
+            updateVisibility();
+        });
+    });
+    approachRadios.forEach(function(radio) { radio.addEventListener("change", updateVisibility); });
+    guiRadios.forEach(function(radio) { radio.addEventListener("change", updateVisibility); });
+
+    if (targetInput) {
+        targetInput.addEventListener("input", function() {
+            const query = targetInput.value.trim();
+            const requestId = ++chemblTargetSearchRequestId;
+            if (selectedChemblTarget && query !== String(selectedChemblTarget.pref_name || selectedChemblTarget.target_chembl_id)) {
+                clearChemblSelection();
+                // clearChemblSelection also invalidates pending requests; keep this input's
+                // request token as the one associated with the next query.
+            }
+            if (searchResults) searchResults.innerHTML = "";
+            if (chemblTargetSearchTimer) window.clearTimeout(chemblTargetSearchTimer);
+            if (query.length < 2) {
+                if (searchStatus) searchStatus.textContent = "Type at least two characters to search ChEMBL.";
+                return;
+            }
+            if (searchStatus) searchStatus.textContent = "Searching ChEMBL…";
+            const liveRequestId = chemblTargetSearchRequestId;
+            chemblTargetSearchTimer = window.setTimeout(function() {
+                searchChemblTargets(query, liveRequestId);
+            }, 280);
+        });
+        targetInput.addEventListener("keydown", function(event) {
+            if (event.key === "Escape" && searchResults) searchResults.innerHTML = "";
+        });
+    }
+
+    if (searchResults) {
+        searchResults.addEventListener("click", function(event) {
+            const button = event.target.closest("button[data-target-id]");
+            if (!button) return;
+            const target = {
+                target_chembl_id: button.getAttribute("data-target-id"),
+                pref_name: button.getAttribute("data-target-name") || "",
+                organism: button.getAttribute("data-organism") || "",
+                target_type: button.getAttribute("data-target-type") || "",
+                target_components: []
+            };
+            chooseChemblTarget(target);
+        });
+    }
+    if (endpoint) endpoint.addEventListener("change", function() {
+        if (!selectedChemblTarget) return;
+        // Invalidate an in-flight endpoint request so late results cannot mix IC50/Ki/EC50.
+        chemblActivityRequestId += 1;
+        chemblActivityBusy = false;
+        loadChemblActivities(true);
+    });
+
+    const more = document.getElementById("chembl-load-more");
+    if (more) more.addEventListener("click", function() { loadChemblActivities(false); });
+    const download = document.getElementById("chembl-download-all");
+    if (download) download.addEventListener("click", downloadAllChemblActivities);
+
+    const reset = document.getElementById("planner-reset");
+    if (reset) reset.addEventListener("click", function() {
+        window.setTimeout(function() {
+            clearChemblSelection();
+            if (searchResults) searchResults.innerHTML = "";
+            if (searchStatus) searchStatus.textContent = "";
+            if (targetInput) targetInput.value = "";
+            if (organismInput) organismInput.value = "";
+            updateVisibility();
+        }, 0);
+    });
+    if (form) form.addEventListener("reset", function() {
+        window.setTimeout(function() {
+            clearChemblSelection();
+            if (searchResults) searchResults.innerHTML = "";
+            if (searchStatus) searchStatus.textContent = "";
+            updateVisibility();
+        }, 0);
+    });
+    updateVisibility();
+}
+
+async function searchChemblTargets(query, requestId) {
+    const results = document.getElementById("target-search-results");
+    const status = document.getElementById("target-search-status");
+    if (!results || !status) return;
+    try {
+        const params = new URLSearchParams({ q: query, limit: "10" });
+        const data = await fetchJsonResource("https://www.ebi.ac.uk/chembl/api/data/target/search.json?" + params.toString());
+        if (requestId !== chemblTargetSearchRequestId) return;
+        const rows = Array.isArray(data.targets) ? data.targets : (Array.isArray(data.target_search_results) ? data.target_search_results : []);
+        if (!rows.length) {
+            results.innerHTML = "";
+            status.innerHTML = 'No ChEMBL target matches returned. Check the spelling or continue with the target name and organism. <a href="https://www.ebi.ac.uk/chembl/" target="_blank" rel="noopener noreferrer">Open ChEMBL ↗</a>';
+            return;
+        }
+        status.textContent = rows.length + " possible target match" + (rows.length === 1 ? "" : "es") + ". Choose the correct target and organism.";
+        results.innerHTML = rows.map(function(row) {
+            const id = row.target_chembl_id || "";
+            const name = row.pref_name || row.target_name || id;
+            const organism = row.organism || row.organism_name || "Organism not specified";
+            const type = row.target_type || "Target type unreported";
+            return '<button type="button" class="planner-target-result" role="option" data-target-id="' + escapeWorkflowHtml(id) +
+                '" data-target-name="' + escapeWorkflowHtml(name) + '" data-organism="' + escapeWorkflowHtml(organism === "Organism not specified" ? "" : organism) +
+                '" data-target-type="' + escapeWorkflowHtml(type) + '">' +
+                '<span class="planner-target-result-name">' + escapeWorkflowHtml(name) + '</span>' +
+                '<span class="planner-target-result-meta">' + escapeWorkflowHtml(id) + ' · ' + escapeWorkflowHtml(organism) + ' · ' + escapeWorkflowHtml(type) + '</span></button>';
+        }).join("");
+    } catch (error) {
+        if (requestId !== chemblTargetSearchRequestId) return;
+        results.innerHTML = "";
+        status.innerHTML = 'The live ChEMBL lookup could not be reached from this session. You can enter the target and organism manually, or <a href="https://www.ebi.ac.uk/chembl/" target="_blank" rel="noopener noreferrer">search ChEMBL directly ↗</a>.';
+    }
+}
+
+function chooseChemblTarget(target) {
+    selectedChemblTarget = target;
+    const targetInput = document.getElementById("planner-target");
+    const organismInput = document.getElementById("planner-organism");
+    const idInput = document.getElementById("planner-chembl-target-id");
+    const results = document.getElementById("target-search-results");
+    const searchStatus = document.getElementById("target-search-status");
+    const selected = document.getElementById("selected-target-info");
+    const panel = document.getElementById("chembl-activity-panel");
+    if (targetInput) targetInput.value = target.pref_name || target.target_chembl_id || "";
+    if (organismInput) organismInput.value = target.organism || "";
+    if (idInput) idInput.value = target.target_chembl_id || "";
+    if (results) results.innerHTML = "";
+    if (searchStatus) searchStatus.textContent = "Selected ChEMBL target " + (target.target_chembl_id || "") + ".";
+    if (selected) {
+        const components = Array.isArray(target.target_components) ? target.target_components : [];
+        const accessions = components.map(function(component) { return component.accession; }).filter(Boolean);
+        selected.innerHTML = '<div><strong>' + escapeWorkflowHtml(target.pref_name || target.target_chembl_id) + '</strong>' +
+            '<p>' + escapeWorkflowHtml(target.target_chembl_id) + ' · ' + escapeWorkflowHtml(target.organism || "Organism not reported") +
+            ' · ' + escapeWorkflowHtml(target.target_type || "Target type not reported") + '</p>' +
+            (accessions.length ? '<p>Target component accession(s): ' + accessions.map(escapeWorkflowHtml).join(", ") + '</p>' : '') +
+            '<a href="https://www.ebi.ac.uk/chembl/target_report_card/' + encodeURIComponent(target.target_chembl_id) + '/" target="_blank" rel="noopener noreferrer">Open ChEMBL target record ↗</a></div>';
+        selected.hidden = false;
+    }
+    if (panel) panel.hidden = false;
+    loadChemblActivities(true);
+}
+
+async function fetchChemblActivities(targetId, endpoint, offset, limit) {
+    const params = new URLSearchParams({
+        target_chembl_id: targetId,
+        standard_type: endpoint,
+        limit: String(limit),
+        offset: String(offset)
+    });
+    return fetchJsonResource("https://www.ebi.ac.uk/chembl/api/data/activity.json?" + params.toString());
+}
+
+async function addChemblMoleculeDetails(rows) {
+    const ids = [...new Set(rows.map(function(row) { return row.molecule_chembl_id; }).filter(Boolean))];
+    const details = {};
+    for (let start = 0; start < ids.length; start += 80) {
+        const batch = ids.slice(start, start + 80);
+        try {
+            const params = new URLSearchParams({
+                molecule_chembl_id__in: batch.join(","),
+                limit: String(Math.max(100, batch.length))
+            });
+            const payload = await fetchJsonResource("https://www.ebi.ac.uk/chembl/api/data/molecule.json?" + params.toString());
+            (payload.molecules || []).forEach(function(molecule) {
+                const structures = molecule.molecule_structures || {};
+                details[molecule.molecule_chembl_id] = {
+                    name: molecule.pref_name || "",
+                    smiles: structures.canonical_smiles || ""
+                };
+            });
+        } catch (error) {
+            // Activity records remain useful if molecule-structure enrichment is temporarily unavailable.
+        }
+    }
+    return rows.map(function(row) {
+        const detail = details[row.molecule_chembl_id] || {};
+        row.compound_name = detail.name || row.molecule_pref_name || "";
+        row.canonical_smiles = detail.smiles || "";
+        row.target_pref_name = selectedChemblTarget ? (selectedChemblTarget.pref_name || "") : "";
+        row.target_organism = selectedChemblTarget ? (selectedChemblTarget.organism || "") : "";
+        return row;
+    });
+}
+
+function activityValue(row) {
+    const value = row.standard_value === null || row.standard_value === undefined || row.standard_value === ""
+        ? "Not reported" : String(row.standard_value);
+    const relation = row.standard_relation || "";
+    const unit = row.standard_units || "";
+    return (relation ? relation + " " : "") + value + (unit ? " " + unit : "");
+}
+
+function renderChemblActivityTable() {
+    const container = document.getElementById("chembl-activity-results");
+    if (!container) return;
+    if (!chemblActivityRows.length) {
+        container.innerHTML = '<p class="planner-field-help">No records have been loaded for this endpoint yet.</p>';
+        return;
+    }
+    const countText = "Showing " + chemblActivityRows.length.toLocaleString() + " of " + chemblActivityTotal.toLocaleString() + " matching ChEMBL activity records.";
+    container.innerHTML = '<details class="planner-activity-preview"><summary>' + escapeWorkflowHtml(countText) + ' <span>Expand data preview</span></summary>' +
+        '<div class="planner-activity-table-wrap"><table class="planner-activity-table"><thead><tr><th>Compound</th><th>Activity</th><th>pChEMBL</th><th>Assay</th><th>SMILES available</th></tr></thead><tbody>' +
+        chemblActivityRows.map(function(row) {
+            const compound = row.molecule_chembl_id || "Compound ID missing";
+            const name = row.compound_name ? '<small>' + escapeWorkflowHtml(row.compound_name) + '</small>' : "";
+            const compoundCell = row.molecule_chembl_id
+                ? '<a href="https://www.ebi.ac.uk/chembl/compound_report_card/' + encodeURIComponent(row.molecule_chembl_id) + '/" target="_blank" rel="noopener noreferrer">' + escapeWorkflowHtml(compound) + ' ↗</a>' + name
+                : escapeWorkflowHtml(compound);
+            const pchembl = row.pchembl_value === null || row.pchembl_value === undefined || row.pchembl_value === "" ? "—" : String(row.pchembl_value);
+            const assay = row.assay_chembl_id ? '<a href="https://www.ebi.ac.uk/chembl/assay_report_card/' + encodeURIComponent(row.assay_chembl_id) + '/" target="_blank" rel="noopener noreferrer">' + escapeWorkflowHtml(row.assay_chembl_id) + ' ↗</a>' : "—";
+            return '<tr><td>' + compoundCell + '</td><td>' + escapeWorkflowHtml(activityValue(row)) + '</td><td>' + escapeWorkflowHtml(pchembl) + '</td><td>' + assay + '</td><td>' + (row.canonical_smiles ? "Yes" : "Not returned") + '</td></tr>';
+        }).join("") + '</tbody></table></div></details>';
+}
+
+async function loadChemblActivities(reset) {
+    if (!selectedChemblTarget || chemblActivityBusy) return;
+    const status = document.getElementById("chembl-activity-status");
+    const more = document.getElementById("chembl-load-more");
+    const download = document.getElementById("chembl-download-all");
+    const endpointControl = document.getElementById("planner-activity-endpoint");
+    const endpoint = endpointControl ? endpointControl.value : "IC50";
+    if (reset) {
+        chemblActivityRows = [];
+        chemblActivityOffset = 0;
+        chemblActivityTotal = 0;
+        const results = document.getElementById("chembl-activity-results");
+        if (results) results.innerHTML = "";
+    }
+    chemblActivityBusy = true;
+    const requestId = ++chemblActivityRequestId;
+    const targetId = selectedChemblTarget.target_chembl_id;
+    if (status) status.textContent = "Loading " + endpoint + " records from ChEMBL…";
+    if (more) more.disabled = true;
+    if (download) download.disabled = true;
+    try {
+        const payload = await fetchChemblActivities(targetId, endpoint, chemblActivityOffset, 20);
+        if (requestId !== chemblActivityRequestId || !selectedChemblTarget || selectedChemblTarget.target_chembl_id !== targetId) return;
+        const incoming = Array.isArray(payload.activities) ? payload.activities : [];
+        const enriched = await addChemblMoleculeDetails(incoming);
+        if (requestId !== chemblActivityRequestId || !selectedChemblTarget || selectedChemblTarget.target_chembl_id !== targetId) return;
+        chemblActivityRows = chemblActivityRows.concat(enriched);
+        chemblActivityOffset += incoming.length;
+        chemblActivityTotal = Number(payload.page_meta && payload.page_meta.total_count !== undefined ? payload.page_meta.total_count : chemblActivityRows.length);
+        renderChemblActivityTable();
+        if (status) status.textContent = incoming.length
+            ? "Loaded " + chemblActivityRows.length.toLocaleString() + " of " + chemblActivityTotal.toLocaleString() + " " + endpoint + " records. Check assay details and units before combining measurements."
+            : "No " + endpoint + " records were returned for this ChEMBL target.";
+        if (more) {
+            more.hidden = chemblActivityOffset >= chemblActivityTotal || incoming.length === 0;
+            more.disabled = false;
+        }
+        if (download) {
+            download.hidden = chemblActivityTotal === 0;
+            download.disabled = false;
+        }
+    } catch (error) {
+        if (status) status.textContent = "Could not retrieve activity data from ChEMBL. Check the endpoint and try again or use the target's ChEMBL record.";
+        if (more) more.disabled = false;
+        if (download) download.disabled = false;
+    } finally {
+        if (requestId === chemblActivityRequestId) chemblActivityBusy = false;
+    }
+}
+
+function csvEscape(value) {
+    const text = String(value === undefined || value === null ? "" : value);
+    return '"' + text.replace(/"/g, '""') + '"';
+}
+
+function saveCsv(filename, headers, rows) {
+    const csv = [headers].concat(rows.map(function(row) { return headers.map(function(key) { return row[key]; }); }))
+        .map(function(row) { return row.map(csvEscape).join(","); }).join("\r\n");
+    const blob = new Blob(["\uFEFF" + csv], {type:"text/csv;charset=utf-8;"});
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+}
+
+async function downloadAllChemblActivities() {
+    if (!selectedChemblTarget || chemblActivityBusy) return;
+    const status = document.getElementById("chembl-activity-status");
+    const download = document.getElementById("chembl-download-all");
+    const endpointControl = document.getElementById("planner-activity-endpoint");
+    const endpoint = endpointControl ? endpointControl.value : "IC50";
+    const target = selectedChemblTarget;
+    chemblActivityBusy = true;
+    const requestId = ++chemblActivityRequestId;
+    const targetId = target.target_chembl_id;
+    if (download) download.disabled = true;
+    const allRows = [];
+    let offset = 0;
+    let total = chemblActivityTotal;
+    const hardLimit = 100000;
+    try {
+        while (offset < Math.min(total || hardLimit, hardLimit)) {
+            if (status) status.textContent = "Preparing CSV export: retrieved " + offset.toLocaleString() + " activity records…";
+            const payload = await fetchChemblActivities(targetId, endpoint, offset, 1000);
+            if (requestId !== chemblActivityRequestId || !selectedChemblTarget || selectedChemblTarget.target_chembl_id !== targetId) return;
+            const incoming = Array.isArray(payload.activities) ? payload.activities : [];
+            if (!incoming.length) break;
+            allRows.push.apply(allRows, incoming);
+            offset += incoming.length;
+            total = Number(payload.page_meta && payload.page_meta.total_count !== undefined ? payload.page_meta.total_count : (total || offset));
+        }
+        const enriched = await addChemblMoleculeDetails(allRows);
+        if (requestId !== chemblActivityRequestId || !selectedChemblTarget || selectedChemblTarget.target_chembl_id !== targetId) return;
+        const headers = ["molecule_chembl_id","compound_name","canonical_smiles","target_chembl_id","target_pref_name","target_organism","standard_type","standard_relation","standard_value","standard_units","pchembl_value","assay_chembl_id","assay_type","assay_description","bao_label","document_chembl_id","activity_id"];
+        saveCsv("chembl_" + target.target_chembl_id + "_" + endpoint.toLowerCase() + "_activities.csv", headers, enriched);
+        if (status) status.textContent = "CSV downloaded with " + enriched.length.toLocaleString() + " records." + (total > hardLimit ? " The API record count exceeds the browser safety limit; the export includes the first 100,000 matching records." : "");
+    } catch (error) {
+        if (status) status.textContent = "The full export failed before completion. The preview remains available; try a smaller target or export from the ChEMBL record.";
+    } finally {
+        if (requestId === chemblActivityRequestId) chemblActivityBusy = false;
+        if (download && requestId === chemblActivityRequestId) download.disabled = false;
+    }
 }
 
 
@@ -964,6 +1466,39 @@ function renderLiveEvidenceUnavailable(target, organism, message) {
         '<p><a href="https://www.uniprot.org/" target="_blank" rel="noopener noreferrer">Search UniProt ↗</a> · <a href="https://www.rcsb.org/" target="_blank" rel="noopener noreferrer">Search RCSB PDB ↗</a></p></div></section>';
 }
 
+function workflowPhaseForStep(step) {
+    const id = String(step.id || "");
+    const definitions = [
+        {id:"target-structure",title:"1. Qualify the target and choose the structure",intro:"Resolve the biological entity, compare experimental structures, and establish which pocket is being investigated.",match:["target.resolve","structure.choose","pocket.audit"]},
+        {id:"ligand-evidence",title:"2. Retrieve and curate ligand evidence",intro:"Download source-traceable compounds and activity measurements, then standardize structures without losing provenance.",match:["ligand.query","data.inventory","data.curate","ligand.search","ligand.series","data.audit"]},
+        {id:"docking-validation",title:"3. Prepare and validate the docking setup",intro:"Prepare receptor and ligands consistently, run pose-recovery and cross-docking controls, then test active-versus-decoy enrichment before screening.",match:["pocket.alternatives","structure.prepare","docking.ensemble","structure.redock","structure.crossdock","docking.rmsd","screen.validate"]},
+        {id:"binding-screening",title:"4. Map interactions and search chemical space",intro:"Use interaction analysis and pharmacophore hypotheses to interpret poses and prioritize compounds with orthogonal evidence.",match:["interactions.report","interaction.fingerprint","pharmacophore.map","screen.library","screen.triage","screen.rescore"]},
+        {id:"design-prediction",title:"5. Design, model, and assess developability",intro:"Explore focused analogues or constrained generation, then review properties, ADMET, and model reliability.",match:["design.hypothesis","design.enumerate","generation.enumerate","generation.curate","generation.triage","develop.descriptors","develop.profile","admet.risk-plan","model.baseline","model.validate","model.domain"]},
+        {id:"synthesis-reproducibility",title:"6. Assess synthesis and package the workflow",intro:"Check availability and route uncertainty, record assumptions, and make the procedure reproducible.",match:["synthesis.input","synthesis.route","synthesis.risk","workflow.design","workflow.build","workflow.validate","workflow.audit"]}
+    ];
+    const found = definitions.find(function(phase) { return phase.match.includes(id); });
+    return found || definitions[4];
+}
+
+function renderProtocolPhases(steps, selectedOS, preference, availableInputs) {
+    const phaseMap = new Map();
+    steps.forEach(function(step, index) {
+        const phase = workflowPhaseForStep(step);
+        if (!phaseMap.has(phase.id)) {
+            phaseMap.set(phase.id, {definition:phase, steps:[]});
+        }
+        phaseMap.get(phase.id).steps.push({step:step, index:index});
+    });
+    const groups = Array.from(phaseMap.values());
+    return '<div class="planner-results-list">' + groups.map(function(group, groupIndex) {
+        return '<details class="planner-protocol-phase"' + (groupIndex === 0 ? ' open' : '') + '>' +
+            '<summary class="planner-protocol-phase-summary"><span class="planner-protocol-phase-copy"><strong>' + escapeWorkflowHtml(group.definition.title) + '</strong><small>' + escapeWorkflowHtml(group.definition.intro) + '</small></span>' +
+            '<span class="planner-protocol-phase-count">' + group.steps.length + ' step' + (group.steps.length === 1 ? '' : 's') + '</span><span class="planner-step-chevron" aria-hidden="true">+</span></summary>' +
+            '<div class="planner-protocol-phase-body">' +
+                group.steps.map(function(item) { return makeStep(item.step, item.index, selectedOS, preference, availableInputs); }).join("") +
+            '</div></details>';
+    }).join("") + '</div>';
+}
 function renderWorkflow(event) {
     if (event) event.preventDefault();
     const results = document.getElementById("workflow-results");
@@ -978,10 +1513,24 @@ function renderWorkflow(event) {
     const experienceControl = document.getElementById("planner-experience");
     const experience = experienceControl ? experienceControl.value : "new";
     const preferenceControl = document.getElementById("planner-tool-style");
-    const preference = preferenceControl ? preferenceControl.value : "visual-first";
+    const guiOnlyControl = document.querySelector('input[name="gui-only"]:checked');
+    const preference = guiOnlyControl && guiOnlyControl.value === "yes"
+        ? "visual-first"
+        : (preferenceControl ? preferenceControl.value : "mixed");
+    const approachControl = document.querySelector('input[name="approach"]:checked');
+    const approach = approachControl ? approachControl.value : "mixed";
     const focusControl = document.getElementById("planner-project-focus");
     const focus = focusControl ? focusControl.value.trim() : "";
     const inputState = currentPlannerInputs();
+    const targetStatusControl = document.querySelector('input[name="target-status"]:checked');
+    const targetStatus = targetStatusControl ? targetStatusControl.value : "";
+    const targetEvidencePlaceholder = inputState.target && inputState.organism
+        ? '<section class="live-target-evidence" id="live-target-evidence"><div class="live-evidence-heading"><p class="eyebrow">LIVE DATABASE LOOKUP</p><h3>Target and structure evidence</h3><p>Retrieving UniProt and RCSB records…</p></div></section>'
+        : (targetStatus === "private"
+            ? '<section class="live-target-evidence" id="live-target-evidence"><div class="live-evidence-heading"><p class="eyebrow">TARGET EVIDENCE</p><h3>Target-specific lookup skipped</h3><p>No target details were supplied, so target resolution and PDB prioritization are omitted from the live lookup. The general workflow remains available.</p></div></section>'
+            : (inputState.target
+                ? '<section class="live-target-evidence" id="live-target-evidence"><div class="live-evidence-heading"><p class="eyebrow">TARGET EVIDENCE</p><h3>Target and structure evidence</h3><p>Add an organism / species above to retrieve UniProt matches and an experimental PDB shortlist.</p></div></section>'
+                : '<section class="live-target-evidence" id="live-target-evidence"><div class="live-evidence-heading"><p class="eyebrow">TARGET EVIDENCE</p><h3>Target and structure evidence</h3><p>No target was resolved. Choose “Yes, I have a target” to enable live ChEMBL, UniProt, and RCSB lookup, or continue without target-specific lookup.</p></div></section>'));
 
     if (!objectives.length) {
         results.innerHTML = '<div class="planner-empty-message"><strong>Select at least one objective.</strong> The protocol engine will create an ordered plan from the selected research decision.</div>';
@@ -991,7 +1540,7 @@ function renderWorkflow(event) {
 
     const primaryId = choosePrimaryProtocol(objectives);
     const primary = protocolLibrary[primaryId];
-    const steps = composeProtocolSteps(objectives, primaryId);
+    const steps = composeProtocolSteps(objectives, primaryId, approach);
     const requirementKeys = getProtocolRequirements(objectives);
     const missingRequirements = unmetInputNames(requirementKeys, inputState.available);
     const question = focus || primary.question.replace("the specified target", inputState.target || "the target of interest").replace("the stated organism", inputState.organism || "the relevant organism");
@@ -1033,6 +1582,10 @@ function renderWorkflow(event) {
         ? "Start with browser or graphical tools where the catalogue offers a direct match. Some preparation, docking, QSAR and simulation steps still require command-line use or a configured environment; a web interface does not remove the need for method validation."
         : "Record inputs, versions, settings, control results and failures. A tool suggestion is not evidence that the method is valid for your target or chemotype.";
     const selectedOSLabel = selectedOS === "any" ? "No preference" : titleLabel(selectedOS);
+    const approachLabel = approach === "structure-based" ? "Structure-based" : (approach === "ligand-based" ? "Ligand-based" : "Mixed");
+    const approachConflict = approach === "ligand-based" && objectives.includes("structure-based")
+        ? '<p class="planner-approach-warning"><strong>Note:</strong> Docking/pose evaluation is still selected below, so this is a hybrid plan despite the ligand-based preference. Uncheck that goal for a ligand-only workflow.</p>'
+        : "";
 
     results.innerHTML =
         '<div class="protocol-results-header">' +
@@ -1045,9 +1598,8 @@ function renderWorkflow(event) {
                 '<div><span>TARGET / ORGANISM</span><p>' + targetLine + '</p></div>' +
                 '<div><span>THIS DECIDES</span><p>' + escapeWorkflowHtml(primary.decision) + '</p></div>' +
             '</div>' +
-            (inputState.target && inputState.organism
-                ? '<section class="live-target-evidence" id="live-target-evidence"><div class="live-evidence-heading"><p class="eyebrow">LIVE DATABASE LOOKUP</p><h3>Target and structure evidence</h3><p>Retrieving UniProt and RCSB records…</p></div></section>'
-                : '<section class="live-target-evidence" id="live-target-evidence"><div class="live-evidence-heading"><p class="eyebrow">TARGET EVIDENCE</p><h3>Target and structure evidence</h3><p>Enter both a target and organism above to retrieve UniProt matches and an experimental PDB shortlist when the public APIs are reachable.</p></div></section>') +
+            targetEvidencePlaceholder +
+            '<div class="planner-approach-summary"><strong>Preferred approach:</strong> ' + escapeWorkflowHtml(approachLabel) + (guiOnlyControl && guiOnlyControl.value === "yes" ? ' · <strong>Interface:</strong> GUI / browser only' : ' · <strong>Interface:</strong> coding / command line allowed') + '</div>' + approachConflict +
             additionalGoals + missingHtml +
             '<div class="protocol-stop"><strong>Stop condition</strong><ul>' + stopHtml + '</ul></div>' +
             '<div class="planner-beginner-note"><strong>Execution note.</strong> ' + escapeWorkflowHtml(guidance) +
@@ -1057,10 +1609,25 @@ function renderWorkflow(event) {
                 '<br><strong>Starting point:</strong> ' + escapeWorkflowHtml(stage.title) +
             '</div>' + longWorkflowNote +
             '<div class="protocol-actions"><button type="button" class="button button-secondary" id="print-workflow">Print / save protocol as PDF</button><button type="button" class="button button-secondary" id="edit-inputs">Edit inputs</button></div>' +
-            '<div class="planner-results-list">' +
-                steps.map(function(step, index) { return makeStep(step, index, selectedOS, preference, inputState.available); }).join("") +
-            '</div>' +
+            renderProtocolPhases(steps, selectedOS, preference, inputState.available) +
             '<p class="planner-method-note">Catalogue matches are ranked from ChemIsFree records using task tags and interface preference. Interface classifications may be provisional or unconfirmed. External references are starting points, not endorsements. Thresholds labelled as working defaults are project heuristics rather than universal rules. Predicted poses, activity scores and ADMET outputs are not experimental confirmation.</p>';
+
+    results.querySelectorAll(".planner-copy-code").forEach(function(button) {
+        button.addEventListener("click", function() {
+            let code = "";
+            try { code = decodeURIComponent(button.getAttribute("data-copy-code") || ""); }
+            catch (error) { code = button.getAttribute("data-copy-code") || ""; }
+            if (!navigator.clipboard || !navigator.clipboard.writeText) {
+                button.textContent = "Clipboard unavailable";
+                return;
+            }
+            navigator.clipboard.writeText(code).then(function() {
+                button.textContent = "Copied";
+            }).catch(function() {
+                button.textContent = "Copy failed";
+            });
+        });
+    });
 
     const thisEvidenceRequest = ++liveEvidenceRequestId;
     const evidencePanel = document.getElementById("live-target-evidence");
@@ -1077,7 +1644,17 @@ function renderWorkflow(event) {
         });
     }
     const printButton = document.getElementById("print-workflow");
-    if (printButton) printButton.addEventListener("click", function() { window.print(); });
+    if (printButton) printButton.addEventListener("click", function() {
+        const expandable = Array.from(results.querySelectorAll("details"));
+        const previous = expandable.map(function(item) { return item.open; });
+        expandable.forEach(function(item) { item.open = true; });
+        const restore = function() {
+            expandable.forEach(function(item, index) { item.open = previous[index]; });
+            window.removeEventListener("afterprint", restore);
+        };
+        window.addEventListener("afterprint", restore);
+        window.print();
+    });
     const editButton = document.getElementById("edit-inputs");
     if (editButton) editButton.addEventListener("click", function() {
         const form = document.getElementById("workflow-form");
@@ -1097,6 +1674,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const submit = document.querySelector("#workflow-form button[type='submit']");
     if (submit) submit.disabled = true;
     loadWorkflowCatalogue();
+    initialiseProgressiveIntake();
     if (form) form.addEventListener("submit", renderWorkflow);
     if (form) form.addEventListener("reset", function() { window.setTimeout(resetWorkflow, 0); });
 });
