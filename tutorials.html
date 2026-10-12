@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practical Tutorials — ChemIsFree</title>
+    <meta name="description" content="Short, step-by-step computational chemistry tutorials for medicinal and synthetic chemists, using real tools from the ChemIsFree catalogue.">
+    <link rel="stylesheet" href="css/style.css?v=15">
+</head>
+<body>
+<header class="site-header">
+    <div class="container header-inner">
+        <a href="index.html" class="site-wordmark"><span class="wordmark-main">ChemIsFree</span><span class="wordmark-dot"></span></a>
+        <nav class="main-nav">
+            <a href="tools.html">Explore</a>
+            <a href="tutorials.html" aria-current="page">Tutorials</a>
+            <a href="planner.html">Workflow planner</a>
+            <a href="index.html#categories">Categories</a>
+            <a href="about.html">About</a>
+            <a href="contribute.html">Contribute</a>
+            <a href="#" class="nav-donate">Donate</a>
+        </nav>
+    </div>
+</header>
+
+<main class="tutorials-page">
+    <section class="tutorials-hero">
+        <div class="container">
+            <div class="tutorials-eyebrow">CHEMISFREE / PRACTICAL GUIDES</div>
+            <div class="tutorials-hero-grid">
+                <div>
+                    <h1>Do the science.<br><em>Step by step.</em></h1>
+                </div>
+                <div class="tutorials-hero-copy">
+                    <p>Short, practical workflows for medicinal and synthetic chemists who want to use computational tools without becoming programmers first.</p>
+                    <p>Each guide names the tool, tells you what to enter, what to save, and how to check the result. Start with a small example before scaling up.</p>
+                </div>
+            </div>
+            <div class="tutorials-jump-links">
+                <a href="#sar-guide">01 / Find and analyse known ligands</a>
+                <a href="#interaction-guide">02 / Inspect a protein–ligand complex</a>
+                <a href="#admet-guide">03 / Compare property predictions</a>
+                <a href="#docking-guide">04 / Dock a small compound set</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="tutorials-intro">
+        <div class="container tutorials-intro-grid">
+            <div><p class="eyebrow">BEFORE YOU START</p><h2>Keep the inputs<br>and evidence traceable.</h2></div>
+            <ul>
+                <li>Keep the original files and compound identifiers.</li>
+                <li>Record tool, date, settings, and database or model version.</li>
+                <li>Check one known example before processing a large set.</li>
+                <li>Predictions and docking scores are hypotheses, not experimental proof.</li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="tutorial-guide" id="sar-guide">
+        <div class="container">
+            <div class="tutorial-guide-head">
+                <div class="tutorial-number">01</div>
+                <div><p class="eyebrow">BIOACTIVITY DATA / SAR</p><h2>Find known ligands and build a first SAR view</h2><p class="tutorial-lede">Use this when you have a protein target and want to understand which chemical series have been reported and what the activity data can—and cannot—tell you.</p></div>
+            </div>
+            <div class="tutorial-meta"><span>LEVEL: BEGINNER</span><span>TOOLS: ChEMBL + DataWarrior</span><span>OUTPUT: CURATED ACTIVITY TABLE + SERIES MAP</span></div>
+            <ol class="tutorial-steps">
+                <li><h3>Search the target in ChEMBL</h3><p>Open <a href="https://www.ebi.ac.uk/chembl/" target="_blank" rel="noopener noreferrer">ChEMBL</a>. Search the target name or gene symbol, then open the target record. Confirm the organism and target type; do not assume similarly named targets are interchangeable.</p><p><strong>Save:</strong> the target ID and a note of the organism/target definition.</p></li>
+                <li><h3>Export the activity records</h3><p>Open the target's activity data and export a table that includes compound structure or SMILES, activity value, standard type (for example IC50 or Ki), units, assay ID, activity relation, and source. If the export is large, filter it to one endpoint and a relevant assay type first.</p><p><strong>Check:</strong> keep IC50, Ki, Kd and different assay systems separate. A smaller IC50 generally indicates greater potency only when measurements are comparable.</p></li>
+                <li><h3>Clean the table before comparing compounds</h3><p>Open the CSV in a spreadsheet or <a href="https://openmolecules.org/datawarrior/" target="_blank" rel="noopener noreferrer">DataWarrior</a>. Remove exact duplicate records only after checking their assay/source fields. Flag missing structures, salts, inconsistent units, censored values such as “&gt;10 µM”, and conflicting measurements.</p><p><strong>Save:</strong> the untouched export and a separate cleaned copy. Record every exclusion rule.</p></li>
+                <li><h3>Visualize the chemical series</h3><p>Load the cleaned structures into DataWarrior. Display the structures alongside activity, sort by activity within the same endpoint, and inspect related scaffolds and substituent changes. Use its structure/descriptor views to group compounds; do not compare unrelated assay values as if they were one experiment.</p><p><strong>Ask:</strong> are potency differences repeated across related analogues, or are they driven by one assay or one outlier?</p></li>
+                <li><h3>Turn the plot into a testable hypothesis</h3><p>Choose one chemical series and write down a small number of observed trends, the supporting compound IDs, and any contradictory data. Propose one substituent change at a time for the next synthesis or assay cycle.</p><p><strong>Final output:</strong> a curated CSV, a series plot or structure table, and a short SAR note with source IDs.</p></li>
+            </ol>
+            <div class="tutorial-check"><strong>Common mistake</strong><p>Ranking compounds from mixed IC50, Ki, Kd, different species, or different assay formats without checking comparability can create false SAR. Treat the result as a map of reported evidence, not a definitive potency ranking.</p></div>
+            <div class="tutorial-tool-links"><a href="tool.html?id=chembl">ChEMBL in ChemIsFree ↗</a><a href="tools.html">Find DataWarrior in the catalogue ↗</a><a href="planner.html">Build a related workflow ↗</a></div>
+        </div>
+    </section>
+
+    <section class="tutorial-guide tutorial-guide-alt" id="interaction-guide">
+        <div class="container">
+            <div class="tutorial-guide-head">
+                <div class="tutorial-number">02</div>
+                <div><p class="eyebrow">STRUCTURAL BIOLOGY / INTERACTION ANALYSIS</p><h2>Inspect a known protein–ligand complex</h2><p class="tutorial-lede">Use this when a crystal structure contains a bound ligand and you want to understand its binding mode before designing analogues.</p></div>
+            </div>
+            <div class="tutorial-meta"><span>LEVEL: BEGINNER</span><span>TOOLS: PDB + PyMOL + PLIP</span><span>OUTPUT: ANNOTATED POSE + CONTACT TABLE</span></div>
+            <ol class="tutorial-steps">
+                <li><h3>Choose an appropriate experimental structure</h3><p>Search the <a href="https://www.rcsb.org/" target="_blank" rel="noopener noreferrer">RCSB Protein Data Bank</a> for your target and, if possible, a structure with a co-crystallized ligand. Check species, construct, resolution, mutations, chain identity, and ligand identity in the entry.</p><p><strong>Save:</strong> the PDB ID and citation. Download the structure file.</p></li>
+                <li><h3>Open the structure in PyMOL</h3><p>Open <a href="https://www.pymol.org/" target="_blank" rel="noopener noreferrer">PyMOL</a> and load the downloaded structure. Show the protein as a cartoon and the bound ligand as sticks. Select the ligand by its residue name; use the entry's ligand information if you are unsure of the three-letter code.</p><p><strong>Check:</strong> the ligand is in the intended binding pocket, and you are looking at the correct protein chain. Keep a copy of the original structure.</p></li>
+                <li><h3>Generate an interaction report with PLIP</h3><p>Open the <a href="https://plip-tool.biotec.tu-dresden.de/plip-web/plip/index" target="_blank" rel="noopener noreferrer">PLIP web service</a> and submit the protein–ligand complex in a supported format. If the service asks you to specify a ligand, use the correct ligand residue and chain. Run the analysis and save the report.</p><p><strong>Save:</strong> the interaction report and the exact input structure used. Automated reports depend on correct ligand and chain selection.</p></li>
+                <li><h3>Verify the contacts visually</h3><p>Return to PyMOL and inspect the reported hydrogen bonds, hydrophobic contacts, salt bridges, and any close contacts. Check whether donor/acceptor assignments and geometry make chemical sense. Look for clashes and consider whether waters or cofactors contribute to the site.</p><p><strong>Do not:</strong> treat the number of contacts as a binding-affinity score.</p></li>
+                <li><h3>Compare related ligands and propose one experiment</h3><p>If you have a second complex, repeat the same steps and compare conserved interactions with those that change. If you only have one structure, phrase conclusions as hypotheses. For example: “Adding a donor at this position may strengthen the hinge interaction; test a matched analogue without that donor.”</p><p><strong>Final output:</strong> a PyMOL session/image, PLIP report, and a short table linking each proposed interaction to a design hypothesis.</p></li>
+            </ol>
+            <div class="tutorial-check"><strong>Common mistake</strong><p>A crystal pose is evidence of a bound conformation, but it does not prove that every predicted contact is energetically favourable or that a related compound will bind. Check protonation, waters, chain selection, and ligand identity.</p></div>
+            <div class="tutorial-tool-links"><a href="tool.html?id=pymol-open-source">PyMOL in ChemIsFree ↗</a><a href="tool.html?id=plip-protein-ligand-interaction-profiler">PLIP in ChemIsFree ↗</a><a href="https://www.rcsb.org/" target="_blank" rel="noopener noreferrer">RCSB PDB ↗</a></div>
+        </div>
+    </section>
+
+    <section class="tutorial-guide" id="admet-guide">
+        <div class="container">
+            <div class="tutorial-guide-head">
+                <div class="tutorial-number">03</div>
+                <div><p class="eyebrow">PHYSICOCHEMICAL PROPERTIES / ADMET</p><h2>Compare property predictions for a small compound series</h2><p class="tutorial-lede">Use this to identify potential developability risks and decide which experiments could most usefully distinguish your compounds.</p></div>
+            </div>
+            <div class="tutorial-meta"><span>LEVEL: BEGINNER</span><span>TOOLS: SwissADME + ADMETlab</span><span>OUTPUT: COMPARISON TABLE + RISK LIST</span></div>
+            <ol class="tutorial-steps">
+                <li><h3>Prepare a small, well-identified compound set</h3><p>Create a spreadsheet with one row per compound and a stable compound ID. Standardize structures consistently and export SMILES. Check stereochemistry, salts, charges, and duplicate structures before submitting them.</p><p><strong>Start small:</strong> use 5–20 representative compounds first, not your entire screening library.</p></li>
+                <li><h3>Run the first property pass in SwissADME</h3><p>Open <a href="http://www.swissadme.ch/" target="_blank" rel="noopener noreferrer">SwissADME</a> and paste the SMILES list into its input box, one structure per line. Run the calculation and export or copy the results. Keep the compound order/IDs aligned with your original table.</p><p><strong>Review:</strong> molecular weight, lipophilicity estimates, topological polar surface area, hydrogen-bond donors/acceptors, solubility estimates, and any reported absorption/permeability alerts.</p></li>
+                <li><h3>Check selected risks with a second predictor</h3><p>Submit the same standardized structures to <a href="https://admetlab3.scbdd.com/" target="_blank" rel="noopener noreferrer">ADMETlab</a> and select the endpoints relevant to your project. Do not combine differently defined endpoints as if they were identical. Record model outputs and any warnings.</p><p><strong>Save:</strong> raw output from both services with the date and model/version information where provided.</p></li>
+                <li><h3>Build a comparison table</h3><p>Bring the outputs together using compound ID, not row order alone. Separate experimental measurements from predictions. Mark each endpoint as favourable, concerning, or unknown relative to your project's requirements; explain the reason rather than relying on a single overall score.</p></li>
+                <li><h3>Choose the next experiment</h3><p>For each leading compound, name the main unresolved risk—such as solubility, permeability, metabolic stability, or toxicity—and propose an appropriate experimental assay. For CNS programmes, a predicted BBB value alone is not proof of brain exposure.</p><p><strong>Final output:</strong> a compound-by-property table, a short risk-ranked list, and the next experiment for each major uncertainty.</p></li>
+            </ol>
+            <div class="tutorial-check"><strong>Common mistake</strong><p>Different predictors can disagree because they use different training data, endpoints, and models. Do not average unrelated predictions into a pseudo-experimental value. Use them to prioritize tests, not replace them.</p></div>
+            <div class="tutorial-tool-links"><a href="tools.html">Find SwissADME in the catalogue ↗</a><a href="tools.html">Find ADMETlab in the catalogue ↗</a><a href="planner.html">Build a related workflow ↗</a></div>
+        </div>
+    </section>
+
+    <section class="tutorial-guide tutorial-guide-alt" id="docking-guide">
+        <div class="container">
+            <div class="tutorial-guide-head">
+                <div class="tutorial-number">04</div>
+                <div><p class="eyebrow">MOLECULAR DOCKING / ADVANCED SETUP</p><h2>Dock a small compound set with a validation control</h2><p class="tutorial-lede">This workflow uses GNINA, which is a command-line tool. The scientific steps are beginner-readable, but a prepared environment or computational colleague may be needed to run it.</p></div>
+            </div>
+            <div class="tutorial-meta"><span>LEVEL: INTERMEDIATE</span><span>TOOLS: RCSB PDB + PyMOL + GNINA</span><span>OUTPUT: VALIDATED POSES + RANKED SHORTLIST</span></div>
+            <ol class="tutorial-steps">
+                <li><h3>Choose a structure and define the binding site</h3><p>Find an experimental structure in <a href="https://www.rcsb.org/" target="_blank" rel="noopener noreferrer">RCSB PDB</a>, preferably with a known ligand. In PyMOL, check the protein chain, missing residues, bound ligand, waters, and cofactors. Use the bound ligand to establish a defensible starting region for the docking box.</p><p><strong>Save:</strong> PDB ID, chain, ligand identity, and box centre/size. Do not guess the box around an arbitrary protein region.</p></li>
+                <li><h3>Prepare receptor and ligands consistently</h3><p>Download <a href="https://github.com/gnina/gnina" target="_blank" rel="noopener noreferrer">GNINA</a> and follow its official installation and input-format instructions. Receptor and ligand preparation often require file conversion and explicit handling of hydrogens, protonation, stereochemistry, cofactors, and alternate conformations.</p><p><strong>Before a large run:</strong> have the prepared files checked, and test that GNINA can read both files. Do not silently remove a cofactor that is essential to the binding site.</p></li>
+                <li><h3>Validate using the known ligand</h3><p>Dock the co-crystallized ligand back into the prepared site (redocking), using documented settings. Compare the predicted pose with the experimental pose in PyMOL. A poor reproduction means the setup or method needs investigation before screening new compounds.</p><p><strong>Save:</strong> settings, score output, and a pose comparison image. Redocking is a check, not complete validation of ranking accuracy.</p></li>
+                <li><h3>Run a small pilot set</h3><p>Start with a few known ligands and a handful of test compounds. Confirm all structures are valid, stereochemistry is correct, and outputs are generated as expected. Only then scale to the full set.</p><p><strong>Save:</strong> input files, commands/settings, tool version, and the raw output file.</p></li>
+                <li><h3>Review poses and select compounds</h3><p>Inspect the top poses in PyMOL. Look for sensible placement, plausible interactions, severe clashes, buried unsatisfied polar groups, and differences from known active compounds. Retain chemical diversity and record why each candidate advanced.</p><p><strong>Final output:</strong> a ranked shortlist with pose images, score values, selection rationale, and experimental validation plan.</p></li>
+            </ol>
+            <div class="tutorial-check"><strong>Common mistake</strong><p>Do not equate the best docking score with the strongest binder. Scores can be wrong, protonation and receptor preparation matter, and docking rankings often have limited accuracy. Use docking to help choose experiments, not to claim activity.</p></div>
+            <div class="tutorial-tool-links"><a href="tool.html?id=gnina">GNINA in ChemIsFree ↗</a><a href="tool.html?id=pymol-open-source">PyMOL in ChemIsFree ↗</a><a href="planner.html">Build a related workflow ↗</a></div>
+        </div>
+    </section>
+
+    <section class="tutorial-next">
+        <div class="container tutorial-next-inner">
+            <div><p class="eyebrow">NEXT STEP</p><h2>Need a different workflow?</h2><p>Use the planner to combine objectives, or search the catalogue for a tool that fits your task. These guides are starting recipes; check the current official documentation before running a production workflow.</p></div>
+            <div class="tutorial-next-links"><a href="planner.html">Open workflow planner ↗</a><a href="tools.html">Explore all tools ↗</a><a href="contribute.html">Suggest a tutorial ↗</a></div>
+        </div>
+    </section>
+</main>
+<footer class="site-footer">
+    <div class="container footer-inner">
+        <a href="index.html" class="site-wordmark"><span class="wordmark-main">ChemIsFree</span><span class="wordmark-dot"></span></a>
+        <p>Open tools and resources for chemistry and drug discovery.</p>
+        <a href="contribute.html">Contribute to the catalogue ↗</a>
+    </div>
+</footer>
+</body>
+</html>
