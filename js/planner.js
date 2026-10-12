@@ -607,6 +607,24 @@ function adaptStepForAvailableInputs(step, availableInputs) {
         });
     }
 
+    if (step.id === "interactions.native" && has("interaction-fingerprints")) {
+        adapted.title = "Audit existing crystal-complex interaction fingerprints";
+        adapted.intro = "Reuse the saved PLIF report only if the experimental ligand, chain, protein preparation and interaction settings can be verified.";
+        adapted.actions = [
+            "Check that the fingerprint was generated from the experimental co-crystal ligand and the intended protein chain, not a docking pose or unrelated non-polymer component.",
+            "Record ligand component/residue ID, receptor state, treatment of hydrogens/waters/metals, software/version and interaction definitions.",
+            "Inspect representative contacts manually and save a linked reference report; flag missing provenance and regenerate only where needed."
+        ];
+        adapted.deliverable = "Audited crystal-contact fingerprint with provenance and a decision to reuse or regenerate.";
+    }
+
+    if (step.id === "structure.prepare" && has("docking-box") && !(has("structure") && has("prepared-ligands"))) {
+        adapted.actions = (step.actions || []).concat([
+            "Because a docking box is already available, inspect its centre and dimensions in the receptor coordinate frame and verify that it covers the intended co-crystal ligand/pocket with sensible padding.",
+            "Do not silently replace a documented, previously validated box; preserve the original settings and record any revised box as a new setup."
+        ]);
+    }
+
     if (step.id === "structure.redock" && has("native-ligand")) {
         adapted.intro = "Use the available co-crystal ligand as the reference pose, but start docking from an independently prepared ligand conformer.";
         adapted.actions = [
@@ -625,6 +643,28 @@ function adaptStepForAvailableInputs(step, availableInputs) {
             "Run the same preparation and scoring pipeline for all classes and report per-engine ROC-AUC and early-enrichment metrics with class sizes and uncertainty."
         ];
         adapted.deliverable = "Per-engine enrichment report plus an audited active/control manifest.";
+    }
+
+    if (step.id === "design.enumerate" && has("generated-compounds")) {
+        adapted.title = "Audit and prioritize the designed compounds you already have";
+        adapted.intro = "Reuse the existing generated set as the starting point. Do not generate a duplicate library until you have checked which constraints and validation stages were already applied.";
+        adapted.actions = [
+            "Preserve generator/version, prompt or scaffold, fixed seed where available, building-block constraints and original output strings.",
+            "Sanitize, standardize and deduplicate the molecules; verify that stereochemistry, scaffold/pharmacophore constraints and chemical validity are as intended.",
+            "Apply independent binding hypotheses, property/ADMET filters and synthetic feasibility checks, recording all rejection reasons."
+        ];
+        adapted.deliverable = "Ranked, standardized design set with generation provenance, QC status and explicit evidence gaps.";
+    }
+
+    if (step.id === "screen.validate" && has("validated-docking") && !(has("known-actives") && has("decoys"))) {
+        adapted.title = "Audit the existing docking validation and define its scope";
+        adapted.intro = "Treat an existing validation as applicable only to the receptor states, ligand chemistry, preparation and scoring settings it actually tested.";
+        adapted.actions = [
+            "Retrieve the original native-pose recovery and active/control enrichment reports, raw score tables, compound IDs, software versions and setup parameters.",
+            "Check whether the current receptor, box, protonation policy, engine versions and chemical series fall within that validation's scope.",
+            "Repeat a minimal control whenever a relevant component changes; expand the benchmark only when the original control set does not cover the intended task."
+        ];
+        adapted.deliverable = "Validation audit defining what is supported, what remains untested and which controls must be repeated.";
     }
 
     if (step.id === "screen.library" && has("library")) {
