@@ -558,6 +558,17 @@ function adaptStepForAvailableInputs(step, availableInputs) {
 
     // Treat the questionnaire as an actual starting-state declaration:
     // verify user-provided assets rather than blindly repeating acquisition steps.
+    if (step.id === "target.resolve" && has("protein-sequence")) {
+        adapted.title = "Verify existing sequence/accession — " + step.title;
+        adapted.intro = "Start from the sequence or accession already in hand; resolve it unambiguously before linking chemistry and structure data.";
+        adapted.actions = [
+            "Record the sequence/accession source, organism, isoform/construct and any mutations or truncations.",
+            "Map the sequence to a species-specific UniProt record and verify that PDB constructs/chain sequences match the intended region.",
+            "Keep the original sequence and an alignment/mapping record so ligand activity and structural evidence are not transferred across unrelated paralogues or constructs."
+        ];
+        adapted.deliverable = "Verified sequence-to-accession/construct mapping, with remaining identity ambiguities documented.";
+    }
+
     if (step.id === "structure.choose" && has("structure")) {
         adapted.title = "Audit existing structure — " + step.title;
         adapted.intro = "Start from your file and verify that it represents the intended target, construct and binding-site state.";
@@ -605,6 +616,17 @@ function adaptStepForAvailableInputs(step, availableInputs) {
             return action.replace(/^Repair the structure and inspect/, "Starting from your provided structure, inspect")
                 .replace(/^Choose the binding site/, "Confirm the binding site in your provided structure");
         });
+    }
+
+    if (step.id === "structure.prepare" && has("prepared-ligands") && !has("structure")) {
+        adapted.title = "Audit existing ligand preparation — " + step.title;
+        adapted.intro = "Reuse prepared ligand files if their chemistry, protonation and engine-specific atom typing are documented; prepare only what is missing.";
+        adapted.actions = [
+            "Verify compound IDs, stereochemistry, protonation/tautomer policy, atom typing, charges, conformer coverage and preparation software/version.",
+            "If ten conformers per compound were generated, confirm the conformer manifest links each file back to the same parent compound and no conformer is counted as an independent compound.",
+            "Prepare or audit the receptor and define the docking box separately; prepared ligand files alone do not define a validated docking setup."
+        ];
+        adapted.deliverable = "Audited ligand files plus a gap list for receptor, box and validation prerequisites.";
     }
 
     if (step.id === "interactions.native" && has("interaction-fingerprints")) {
@@ -657,6 +679,18 @@ function adaptStepForAvailableInputs(step, availableInputs) {
         adapted.deliverable = "Ranked, standardized design set with generation provenance, QC status and explicit evidence gaps.";
     }
 
+    if (step.id === "screen.validate" && (has("known-actives") !== has("decoys")) && !has("validated-docking")) {
+        adapted.title = "Complete the active/control benchmark — " + step.title;
+        adapted.intro = "One side of the benchmark set is already available. Assemble and qualify the missing side before claiming enrichment.";
+        adapted.actions = [
+            "Check the existing set's source, target/assay context, endpoint, labels, structure identity and stable IDs.",
+            "If actives are available but decoys/inactives are missing, first search for credible measured inactives; otherwise create a clearly labelled property-matched decoy set and report its generation method.",
+            "If decoys are available but actives are missing, assemble traceable known actives for the same target and a compatible endpoint; do not substitute arbitrary ligand-like compounds.",
+            "Apply identical preparation and scoring to both classes, compare descriptor distributions and report class sizes, ROC-AUC and early enrichment."
+        ];
+        adapted.deliverable = "Audited active/control manifest with a documented source for the previously missing class.";
+    }
+
     if (step.id === "screen.validate" && has("validated-docking") && !(has("known-actives") && has("decoys"))) {
         adapted.title = "Audit existing docking validation — " + step.title;
         adapted.intro = "Treat an existing validation as applicable only to the receptor states, ligand chemistry, preparation and scoring settings it actually tested.";
@@ -679,6 +713,17 @@ function adaptStepForAvailableInputs(step, availableInputs) {
         adapted.deliverable = "Versioned, standardized library plus source/availability manifest.";
     }
 
+    if (step.id === "screen.library" && has("pharmacophore") && !has("library")) {
+        adapted.title = "Use your existing pharmacophore to screen a defined library — " + step.title;
+        adapted.intro = "A pharmacophore hypothesis is not a screen by itself: define the molecular library and validate feature settings before screening.";
+        adapted.actions = [
+            "Record the pharmacophore's source, reference ligands, feature definitions, tolerances, conformer generation settings and software/version.",
+            "Choose and document a fit-for-purpose library; standardize its molecules and preserve stable source IDs before generating conformers or scoring matches.",
+            "Test the hypothesis on a held-out known-active/control set, then report active recovery, enrichment, library size and representative false positives before scaling."
+        ];
+        adapted.deliverable = "Validated pharmacophore-screening specification and a traceable ranked output once a library is supplied.";
+    }
+
     if (step.id === "interactions.report" && has("interaction-fingerprints")) {
         adapted.title = "Audit and extend the interaction fingerprints you already have";
         adapted.intro = "First verify the protein/ligand preparation, pose identity and fingerprint definitions. Then compare matched active and control sets.";
@@ -699,6 +744,17 @@ function adaptStepForAvailableInputs(step, availableInputs) {
             "Compare the model with simple baselines and test whether the intended new chemistry is represented in the training domain."
         ];
         adapted.deliverable = "QSAR qualification note stating permitted use, failure modes and the remaining validation gaps.";
+    }
+
+    if (step.id === "synthesis.route" && has("synthesis-constraints")) {
+        adapted.title = "Triage routes against your existing synthesis constraints — " + step.title;
+        adapted.intro = "Use the available route, budget, substrate/equipment and scale constraints before spending time on unconstrained retrosynthesis predictions.";
+        adapted.actions = [
+            "Record accessible starting materials, acceptable vendors, deadline, scale, available equipment/chemistry and restrictions on hazardous or specialized transformations.",
+            "Compare predicted route options with literature precedent, substrate scope, regio-/stereoselectivity, protection/deprotection needs, purification burden and route convergence.",
+            "Identify the first uncertain or infeasible transformation, a backup disconnection and whether a route can deliver a matched analogue series and controls."
+        ];
+        adapted.deliverable = "Route short-list mapped to the actual synthesis/procurement constraints, with uncertainty and fallback routes recorded.";
     }
 
     if (step.id === "develop.profile" && has("admet-results")) {
