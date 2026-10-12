@@ -1397,6 +1397,15 @@ function renderWorkflow(event) {
     const focusControl = document.getElementById("planner-project-focus");
     const focus = focusControl ? focusControl.value.trim() : "";
     const inputState = currentPlannerInputs();
+    const targetStatusControl = document.querySelector('input[name="target-status"]:checked');
+    const targetStatus = targetStatusControl ? targetStatusControl.value : "";
+    const targetEvidencePlaceholder = inputState.target && inputState.organism
+        ? '<section class="live-target-evidence" id="live-target-evidence"><div class="live-evidence-heading"><p class="eyebrow">LIVE DATABASE LOOKUP</p><h3>Target and structure evidence</h3><p>Retrieving UniProt and RCSB records…</p></div></section>'
+        : (targetStatus === "private"
+            ? '<section class="live-target-evidence" id="live-target-evidence"><div class="live-evidence-heading"><p class="eyebrow">TARGET EVIDENCE</p><h3>Target-specific lookup skipped</h3><p>No target details were supplied, so target resolution and PDB prioritization are omitted from the live lookup. The general workflow remains available.</p></div></section>'
+            : (inputState.target
+                ? '<section class="live-target-evidence" id="live-target-evidence"><div class="live-evidence-heading"><p class="eyebrow">TARGET EVIDENCE</p><h3>Target and structure evidence</h3><p>Add an organism / species above to retrieve UniProt matches and an experimental PDB shortlist.</p></div></section>'
+                : '<section class="live-target-evidence" id="live-target-evidence"><div class="live-evidence-heading"><p class="eyebrow">TARGET EVIDENCE</p><h3>Target and structure evidence</h3><p>No target was resolved. Choose “Yes, I have a target” to enable live ChEMBL, UniProt, and RCSB lookup, or continue without target-specific lookup.</p></div></section>'));
 
     if (!objectives.length) {
         results.innerHTML = '<div class="planner-empty-message"><strong>Select at least one objective.</strong> The protocol engine will create an ordered plan from the selected research decision.</div>';
@@ -1464,9 +1473,7 @@ function renderWorkflow(event) {
                 '<div><span>TARGET / ORGANISM</span><p>' + targetLine + '</p></div>' +
                 '<div><span>THIS DECIDES</span><p>' + escapeWorkflowHtml(primary.decision) + '</p></div>' +
             '</div>' +
-            (inputState.target && inputState.organism
-                ? '<section class="live-target-evidence" id="live-target-evidence"><div class="live-evidence-heading"><p class="eyebrow">LIVE DATABASE LOOKUP</p><h3>Target and structure evidence</h3><p>Retrieving UniProt and RCSB records…</p></div></section>'
-                : '<section class="live-target-evidence" id="live-target-evidence"><div class="live-evidence-heading"><p class="eyebrow">TARGET EVIDENCE</p><h3>Target and structure evidence</h3><p>Enter both a target and organism above to retrieve UniProt matches and an experimental PDB shortlist when the public APIs are reachable.</p></div></section>') +
+            targetEvidencePlaceholder +
             '<div class="planner-approach-summary"><strong>Preferred approach:</strong> ' + escapeWorkflowHtml(approachLabel) + (guiOnlyControl && guiOnlyControl.value === "yes" ? ' · <strong>Interface:</strong> GUI / browser only' : ' · <strong>Interface:</strong> coding / command line allowed') + '</div>' + approachConflict +
             additionalGoals + missingHtml +
             '<div class="protocol-stop"><strong>Stop condition</strong><ul>' + stopHtml + '</ul></div>' +
