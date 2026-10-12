@@ -1310,15 +1310,20 @@ function targetEvidenceHtml(evidence) {
         ? '<p class="live-evidence-note"><strong>Accession selected:</strong> Structure retrieval is scoped to ' +
             escapeWorkflowHtml(evidence.selectedAccession) + '. Verify the protein/construct alignment before choosing a receptor.</p>'
         : "";
-    const searchMode = evidence.exactAccession
-        ? "Structures matched through the selected UniProt accession."
-        : "Fallback text search used because the accession-specific search returned no entries or could not be completed; inspect target/organism mapping carefully.";
+    const searchMode = evidence.requiresAccessionChoice
+        ? "PDB search is paused until you select the intended UniProt accession."
+        : evidence.exactAccession
+            ? "Structures matched through the selected UniProt accession."
+            : "Fallback text search used because the accession-specific search returned no entries or could not be completed; inspect target/organism mapping carefully.";
+    const structureCountNote = evidence.requiresAccessionChoice
+        ? ""
+        : " Total reported RCSB results: " + String(evidence.structureTotal) + ".";
     return '<section class="live-target-evidence" id="live-target-evidence">' +
         '<div class="live-evidence-heading"><p class="eyebrow">LIVE DATABASE LOOKUP</p><h3>Target and structure evidence</h3><p>Retrieved from UniProt and RCSB PDB in the browser. This is discovery metadata, not a structural validation.</p></div>' +
         '<h4>UniProt target matches</h4>' +
         '<div class="live-evidence-table-wrap"><table class="live-evidence-table"><thead><tr><th>Accession</th><th>Protein / gene</th><th>Organism</th><th>Length (aa)</th><th>Record type</th></tr></thead><tbody>' + uniprotRows + '</tbody></table></div>' +
         accessionChooser + targetMatchesNote +
-        '<p class="live-evidence-note">' + escapeWorkflowHtml(searchMode) + ' Total reported RCSB results: ' + String(evidence.structureTotal) + '.</p>' +
+        '<p class="live-evidence-note">' + escapeWorkflowHtml(searchMode) + structureCountNote + '</p>' +
         structures +
         '<p class="live-evidence-note"><a href="https://www.uniprot.org/" target="_blank" rel="noopener noreferrer">Open UniProt ↗</a> · <a href="https://www.rcsb.org/" target="_blank" rel="noopener noreferrer">Open RCSB PDB ↗</a></p>' +
     '</section>';
