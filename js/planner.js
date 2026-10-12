@@ -586,6 +586,11 @@ function makeStep(step, index, selectedOS, preference, availableInputs) {
     '</article>';
 }
 
+function selectedObjectives() {
+    return Array.from(document.querySelectorAll('input[name="objective"]:checked'))
+        .map(function(input) { return input.value; });
+}
+
 function objectiveDisplayName(id) {
     const input = document.querySelector('input[name="objective"][value="' + id + '"]');
     const label = input ? input.closest("label") : null;
