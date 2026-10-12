@@ -657,7 +657,7 @@ function composeProtocolSteps(objectives, primaryId, approach) {
         "ligand.query": 30, "data.inventory": 35, "data.curate": 40, "ligand.search": 45, "ligand.series": 50, "data.audit": 55,
         "structure.prepare": 60, "docking.ensemble": 65, "structure.redock": 70, "structure.crossdock": 75, "docking.rmsd": 78, "screen.validate": 80,
         "interactions.report": 90, "interaction.fingerprint": 95, "pharmacophore.map": 100, "screen.library": 105, "screen.triage": 110, "screen.rescore": 115,
-        "design.hypothesis": 120, "design.enumerate": 125, "generation.enumerate": 130, "generation.curate": 135, "generation.triage": 140,
+        "design.hypothesis": 120, "design.enumerate": 125, "design.fragment-grow": 128, "generation.enumerate": 130, "generation.curate": 135, "generation.triage": 140,
         "develop.descriptors": 145, "develop.profile": 150, "admet.risk-plan": 155, "model.baseline": 160, "model.validate": 165, "model.domain": 170,
         "synthesis.input": 180, "synthesis.route": 185, "synthesis.risk": 190, "workflow.design": 200, "workflow.build": 205, "workflow.validate": 210, "workflow.audit": 220
     };
@@ -666,7 +666,7 @@ function composeProtocolSteps(objectives, primaryId, approach) {
         "ligand.query": 1, "data.inventory": 1, "data.curate": 1, "ligand.search": 1, "ligand.series": 1, "data.audit": 1,
         "structure.prepare": 2, "docking.ensemble": 2, "structure.redock": 2, "structure.crossdock": 2, "docking.rmsd": 2, "screen.validate": 2,
         "interactions.report": 3, "interaction.fingerprint": 3, "pharmacophore.map": 3, "screen.library": 3, "screen.triage": 3, "screen.rescore": 3,
-        "design.hypothesis": 4, "design.enumerate": 4, "generation.enumerate": 4, "generation.curate": 4, "generation.triage": 4,
+        "design.hypothesis": 4, "design.enumerate": 4, "design.fragment-grow": 4, "generation.enumerate": 4, "generation.curate": 4, "generation.triage": 4,
         "develop.descriptors": 4, "develop.profile": 4, "admet.risk-plan": 4, "model.baseline": 4, "model.validate": 4, "model.domain": 4,
         "synthesis.input": 5, "synthesis.route": 5, "synthesis.risk": 5, "workflow.design": 5, "workflow.build": 5, "workflow.validate": 5, "workflow.audit": 5
     };
