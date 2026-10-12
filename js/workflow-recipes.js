@@ -4,9 +4,9 @@
     const recipes = {
   "structure.choose": [
     {
-      "title": "Find and compare alternative pockets with fpocket",
+      "title": "Compare alternative pockets with fpocket and P2Rank",
       "note": "Use at least two complementary cavity methods when the binding site is uncertain. fpocket is a fast Voronoi-based cavity detector; P2Rank/PrankWeb predicts ligand-binding sites with machine learning and offers a GUI/web route; CAVIAR detects cavities and decomposes them into subpockets, but its upstream GitHub project is currently marked paused. I could not verify a standalone pocket-finding tool named PocketMol. If you meant Pocket2Mol, it is a pocket-conditioned molecular generator—not a cavity detector. Treat every predicted cavity as a hypothesis to inspect against experimental ligands, conservation, biology and literature.",
-      "code": "# Install (conda-forge)\nconda install -c conda-forge fpocket\n\n# Run cavity detection on a cleaned protein structure\nfpocket -f receptor_clean.pdb\n\n# Inspect the generated pocket summary and pocket coordinate files.\n# Open the output pocket PDBs together with receptor_clean.pdb in PyMOL.\n# Compare pockets with known ligand sites, conservation, catalytic residues,\n# domain interfaces, membrane context, and experimental literature.",
+      "code": "# fpocket: fast cavity finding/characterization\nfpocket -f receptor_clean.pdb\n\n# P2Rank: machine-learning ranking of likely ligand-binding sites.\n# Run after installing P2Rank and ensuring the prank command is on PATH:\nprank predict -f receptor_clean.pdb\n\n# Inspect each tool's ranked pocket output and open the predicted pocket\n# coordinates/visualization alongside the protein in PyMOL or ChimeraX.\n# Compare predicted sites with known ligand sites, conserved residues,\n# catalytic sites, interfaces, conservation, biology and literature.\n# Pocket IDs/scores from different programs are not directly comparable.",
       "links": [
         {
           "title": "P2Rank / PrankWeb",
@@ -353,14 +353,19 @@
                             escapeRecipeHtml(link.title || url) + ' ↗</a>'
                         : "";
                 }).filter(Boolean).join(" · ");
+                const body = recipe.type === "guide"
+                    ? '<ol class="planner-recipe-steps">' + (recipe.steps || []).map(function (step) {
+                        return '<li>' + escapeRecipeHtml(step) + '</li>';
+                    }).join("") + '</ol>'
+                    : '<div class="planner-code-toolbar"><span>CODE / EXAMPLE</span>' +
+                        '<button type="button" class="planner-copy-code" data-copy-workflow-recipe="' +
+                            escapeRecipeHtml(key) + '">Copy snippet</button></div>' +
+                        '<pre><code>' + escapeRecipeHtml(recipe.code || "") + '</code></pre>';
                 return '<details class="planner-code-detail">' +
                     '<summary>' + escapeRecipeHtml(recipe.title) + '</summary>' +
                     '<div class="planner-code-detail-body">' +
                         '<p>' + escapeRecipeHtml(recipe.note || "") + '</p>' +
-                        '<div class="planner-code-toolbar"><span>CODE / EXAMPLE</span>' +
-                            '<button type="button" class="planner-copy-code" data-copy-workflow-recipe="' +
-                                escapeRecipeHtml(key) + '">Copy snippet</button></div>' +
-                        '<pre><code>' + escapeRecipeHtml(recipe.code) + '</code></pre>' +
+                        body +
                         (links ? '<p class="planner-recipe-links">' + links + '</p>' : "") +
                     '</div>' +
                 '</details>';
@@ -393,7 +398,7 @@
         const stepId = parts[0];
         const recipeIndex = Number(parts[1]);
         const recipe = recipes[stepId] && recipes[stepId][recipeIndex];
-        if (!recipe) return;
+        if (!recipe || typeof recipe.code !== "string" || !recipe.code) return;
 
         const originalText = button.textContent;
         try {
