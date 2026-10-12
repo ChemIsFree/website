@@ -130,7 +130,7 @@
     {
       "title": "Test enrichment with known actives and property-matched decoys",
       "note": "A decoy is a benchmark control, not an experimentally confirmed inactive. Prefer experimentally measured inactives from the same target/assay when credible and available; otherwise label generated decoys as decoys and document the generation method. DUD-E and DEKOIS 2.0 are established benchmark sets, while DeepCoy is a decoy-generation approach. Audit property distributions and analogue/similarity bias. Use the exact same preparation and scoring protocol for actives and controls.",
-      "code": "# rank_metrics.py\n# Input docking_scores.csv columns:\n# compound_id,label,engine,score\n# label: 1=known active; 0=decoy or credible inactive control\n# score: one scalar per compound/engine (e.g. top-pose score)\n#\n# Set score direction correctly for EACH output column:\n# GNINA CNNscore is generally higher-is-better; affinity/energy is lower-is-better.\nimport math\nimport pandas as pd\nfrom sklearn.metrics import roc_auc_score\n\ndf = pd.read_csv(\"docking_scores.csv\")\nrequired = {\"compound_id\", \"label\", \"engine\", \"score\"}\nmissing = required - set(df.columns)\nif missing:\n    raise ValueError(f\"Missing columns: {sorted(missing)}\")\n\n# Edit names to match the engine and score field in your CSV.\ndirection = {\n    \"gnina_cnnaffinity\": \"higher\",\n    \"gnina_affinity\": \"lower\",\n    \"smina_affinity\": \"lower\",\n    \"vina_affinity\": \"lower\",\n}\nrows = []\nfor engine, group in df.groupby(\"engine\"):\n    if engine not in direction:\n        raise ValueError(f\"Set score direction for engine={engine!r}\")\n    group = group.dropna(subset=[\"label\", \"score\"]).copy()\n    group[\"label\"] = group[\"label\"].astype(int)\n    if group[\"label\"].nunique() != 2:\n        print(f\"SKIP {engine}: need actives and controls\")\n        continue\n    # Higher ranking_score must always mean more likely active.\n    group[\"ranking_score\"] = group[\"score\"] if direction[engine] == \"higher\" else -group[\"score\"]\n    auc = roc_auc_score(group[\"label\"], group[\"ranking_score\"])\n    ranked = group.sort_values(\"ranking_score\", ascending=False)\n    n_top = max(1, math.ceil(0.01 * len(ranked)))\n    top = ranked.head(n_top)\n    overall_active_fraction = group[\"label\"].mean()\n    ef1 = (top[\"label\"].mean() / overall_active_fraction) if overall_active_fraction else float(\"nan\")\n    rows.append({\n        \"engine\": engine, \"n_compounds\": len(group),\n        \"n_actives\": int(group[\"label\"].sum()), \"ROC_AUC\": auc,\n        \"top_1_percent_n\": n_top, \"EF1_percent\": ef1,\n    })\n\nsummary = pd.DataFrame(rows).sort_values(\"ROC_AUC\", ascending=False)\nsummary.to_csv(\"enrichment_summary.csv\", index=False)\nprint(summary.to_string(index=False))\n\n# Report per-engine metrics separately. Add bootstrap confidence intervals\n# and repeat the analysis on a second target/benchmark if possible.",
+      "code": "# rank_metrics.py\n# Input docking_scores.csv columns:\n# compound_id,label,engine,score\n# label: 1=known active; 0=decoy or credible inactive control\n# score: one scalar per compound/engine (e.g. top-pose score)\n#\n# Set score direction correctly for EACH output column:\n# GNINA CNNscore is generally higher-is-better; affinity/energy is lower-is-better.\nimport math\nimport pandas as pd\nfrom sklearn.metrics import roc_auc_score\n\ndf = pd.read_csv(\"docking_scores.csv\")\nrequired = {\"compound_id\", \"label\", \"engine\", \"score\"}\nmissing = required - set(df.columns)\nif missing:\n    raise ValueError(f\"Missing columns: {sorted(missing)}\")\n\n# Edit names to match the engine and score field in your CSV.\ndirection = {\n    \"gnina_cnnscore\": \"higher\",\n    \"gnina_cnnaffinity\": \"higher\",\n    \"gnina_minimizedaffinity\": \"lower\",\n    \"smina_affinity\": \"lower\",\n    \"vina_affinity\": \"lower\",\n}\nrows = []\nfor engine, group in df.groupby(\"engine\"):\n    if engine not in direction:\n        raise ValueError(f\"Set score direction for engine={engine!r}\")\n    group = group.dropna(subset=[\"label\", \"score\"]).copy()\n    group[\"label\"] = group[\"label\"].astype(int)\n    if group[\"label\"].nunique() != 2:\n        print(f\"SKIP {engine}: need actives and controls\")\n        continue\n    # Higher ranking_score must always mean more likely active.\n    group[\"ranking_score\"] = group[\"score\"] if direction[engine] == \"higher\" else -group[\"score\"]\n    auc = roc_auc_score(group[\"label\"], group[\"ranking_score\"])\n    ranked = group.sort_values(\"ranking_score\", ascending=False)\n    n_top = max(1, math.ceil(0.01 * len(ranked)))\n    top = ranked.head(n_top)\n    overall_active_fraction = group[\"label\"].mean()\n    ef1 = (top[\"label\"].mean() / overall_active_fraction) if overall_active_fraction else float(\"nan\")\n    rows.append({\n        \"engine\": engine, \"n_compounds\": len(group),\n        \"n_actives\": int(group[\"label\"].sum()), \"ROC_AUC\": auc,\n        \"top_1_percent_n\": n_top, \"EF1_percent\": ef1,\n    })\n\nsummary = pd.DataFrame(rows).sort_values(\"ROC_AUC\", ascending=False)\nsummary.to_csv(\"enrichment_summary.csv\", index=False)\nprint(summary.to_string(index=False))\n\n# Report per-engine metrics separately. Add bootstrap confidence intervals\n# and repeat the analysis on a second target/benchmark if possible.",
       "links": [
         {
           "title": "DUD-E benchmark",
@@ -152,8 +152,8 @@
     },
     {
       "title": "Build a rank heatmap without comparing incompatible raw scores",
-      "note": "A rank/percentile heatmap helps compare engines on the same compound set without falsely implying that their energy or CNN score scales are equivalent. Lower percentile here means a better rank within that engine. Check that higher/lower direction is correct for every engine before interpreting the plot.",
-      "code": "import pandas as pd\nimport matplotlib.pyplot as plt\n\ndf = pd.read_csv(\"docking_scores.csv\")  # compound_id, engine, score\ndirection = {\n    \"gnina_cnnaffinity\": \"higher\",\n    \"gnina_affinity\": \"lower\",\n    \"smina_affinity\": \"lower\",\n    \"vina_affinity\": \"lower\",\n}\ndf[\"rank_percentile\"] = float(\"nan\")\nfor engine, group in df.groupby(\"engine\"):\n    if engine not in direction:\n        raise ValueError(f\"Set score direction for engine={engine!r}\")\n    ascending = direction[engine] == \"lower\"\n    df.loc[group.index, \"rank_percentile\"] = group[\"score\"].rank(\n        method=\"average\", ascending=ascending, pct=True\n    )\n\n# Restrict the figure to the 50 compounds with best mean rank.\nmean_rank = df.groupby(\"compound_id\")[\"rank_percentile\"].mean()\nselected = mean_rank.nsmallest(50).index\nmatrix = df[df[\"compound_id\"].isin(selected)].pivot(\n    index=\"compound_id\", columns=\"engine\", values=\"rank_percentile\"\n).reindex(selected)\n\nfig, ax = plt.subplots(figsize=(max(7, 1.5 * matrix.shape[1]), 10))\nim = ax.imshow(matrix.to_numpy(), aspect=\"auto\", interpolation=\"nearest\", vmin=0, vmax=1)\nax.set_xticks(range(len(matrix.columns)), matrix.columns, rotation=35, ha=\"right\")\nax.set_yticks(range(len(matrix.index)), matrix.index)\nax.set_title(\"Within-engine rank percentiles (lower is better)\")\nfig.colorbar(im, ax=ax, label=\"Rank percentile\")\nfig.tight_layout()\nfig.savefig(\"engine_rank_heatmap.png\", dpi=220)\nplt.close(fig)",
+      "note": "A rank/percentile heatmap helps compare engines on the same compound set without falsely implying that their energy or CNN score scales are equivalent. Lower percentile here means a better rank within that engine. Use explicit column names: CNNscore and predicted CNNaffinity are higher-is-better, whereas minimizedAffinity/Vina-like energy is lower-is-better. Check every exported score column before interpreting the plot.",
+      "code": "import pandas as pd\nimport matplotlib.pyplot as plt\n\ndf = pd.read_csv(\"docking_scores.csv\")  # compound_id, engine, score\ndirection = {\n    \"gnina_cnnscore\": \"higher\",\n    \"gnina_cnnaffinity\": \"higher\",\n    \"gnina_minimizedaffinity\": \"lower\",\n    \"smina_affinity\": \"lower\",\n    \"vina_affinity\": \"lower\",\n}\ndf[\"rank_percentile\"] = float(\"nan\")\nfor engine, group in df.groupby(\"engine\"):\n    if engine not in direction:\n        raise ValueError(f\"Set score direction for engine={engine!r}\")\n    ascending = direction[engine] == \"lower\"\n    df.loc[group.index, \"rank_percentile\"] = group[\"score\"].rank(\n        method=\"average\", ascending=ascending, pct=True\n    )\n\n# Restrict the figure to the 50 compounds with best mean rank.\nmean_rank = df.groupby(\"compound_id\")[\"rank_percentile\"].mean()\nselected = mean_rank.nsmallest(50).index\nmatrix = df[df[\"compound_id\"].isin(selected)].pivot(\n    index=\"compound_id\", columns=\"engine\", values=\"rank_percentile\"\n).reindex(selected)\n\nfig, ax = plt.subplots(figsize=(max(7, 1.5 * matrix.shape[1]), 10))\nim = ax.imshow(matrix.to_numpy(), aspect=\"auto\", interpolation=\"nearest\", vmin=0, vmax=1)\nax.set_xticks(range(len(matrix.columns)), matrix.columns, rotation=35, ha=\"right\")\nax.set_yticks(range(len(matrix.index)), matrix.index)\nax.set_title(\"Within-engine rank percentiles (lower is better)\")\nfig.colorbar(im, ax=ax, label=\"Rank percentile\")\nfig.tight_layout()\nfig.savefig(\"engine_rank_heatmap.png\", dpi=220)\nplt.close(fig)",
       "links": [
         {
           "title": "pandas pivot tables",
@@ -162,6 +162,36 @@
         {
           "title": "Matplotlib imshow",
           "url": "https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.imshow.html"
+        }
+      ]
+    },
+    {
+      "type": "guide",
+      "title": "Choose an appropriate inactive/control set",
+      "note": "Best evidence comes from compounds tested inactive in a comparable assay against the same target construct, with the endpoint and relation retained. Generated decoys are useful benchmark controls but are not experimentally confirmed inactive molecules.",
+      "steps": [
+        "First search the same target/assay context for reported measurements that support an inactive/control label. Keep IC50, Ki, EC50 and assay types separate, preserve censored values, and check source quality. Do not label an untested compound inactive.",
+        "When experimental inactives are sparse, use a published benchmark such as DUD-E or DEKOIS 2.0, or generate a decoy set with a method such as DeepCoy. Record the source/version, method and all generation settings.",
+        "Check whether actives and controls are balanced in MW/heavy atom count, lipophilicity, HBD/HBA, charge, rotatable bonds and other relevant descriptors. Also inspect close structural similarity to actives, not only descriptor matching.",
+        "Run docking/preparation identically for actives and controls. Use more than one sensible decoy set when possible; one decoy set can favour or penalize a method by construction.",
+        "Measure ROC-AUC and early enrichment (e.g. EF1% and the number of actives in the top 1%); report set sizes, score direction, confidence intervals or bootstrap uncertainty, and representative false positives/negatives."
+      ],
+      "links": [
+        {
+          "title": "DUD-E benchmark",
+          "url": "http://dude.docking.org/"
+        },
+        {
+          "title": "DEKOIS 2.0",
+          "url": "https://www.dekois.com/"
+        },
+        {
+          "title": "DeepCoy decoy generation",
+          "url": "https://github.com/jaechanglim/DeepCoy"
+        },
+        {
+          "title": "ODDT screening evaluation",
+          "url": "https://oddt.readthedocs.io/"
         }
       ]
     }
@@ -315,6 +345,38 @@
         {
           "title": "OpenPharmacophore (Python library)",
           "url": "https://github.com/uibcdf/OpenPharmacophore"
+        }
+      ]
+    }
+  ],
+  "interactions.native": [
+    {
+      "type": "guide",
+      "title": "Analyze the crystallographic ligand with PLIP / ProLIF",
+      "note": "Use the ligand that is actually resolved in the experimental structure, not a docking pose. First verify the ligand component ID, residue number and chain; many crystals contain additives, buffer components, ions or cofactors. Preserve the prepared complex and record any choices about hydrogens, waters and metals.",
+      "steps": [
+        "Open the matching PDB entry in RCSB and note the exact protein chain, ligand component/residue ID and construct. Download the original coordinate file and retain an unchanged copy.",
+        "For the simplest graphical route, upload the complex to the PLIP web server, select the correct ligand if prompted, and inspect the residue-level interaction report and visualisation. Save the report and record the input structure/chain/ligand.",
+        "For a locally reproducible route, prepare a protein with reliable atom/bond information and explicit hydrogens, and extract the crystallographic ligand as an SDF with stereochemistry and atom identities checked. Run ProLIF on this experimental pose and export the interaction fingerprint.",
+        "Manually inspect key contacts in PyMOL or ChimeraX. Record hydrogen bonds, hydrophobic contacts, aromatic/charged interactions, metals and relevant waters; label them as observed geometry, not a measured energetic contribution.",
+        "Keep this native-complex fingerprint as the reference. Later, run PLIP/ProLIF across one consistently selected pose per known active and control/decoy, then compare interaction prevalence by class and residue."
+      ],
+      "links": [
+        {
+          "title": "PLIP web server",
+          "url": "https://plip-tool.biotec.tu-dresden.de/plip-web/plip/index"
+        },
+        {
+          "title": "PLIP source and CLI",
+          "url": "https://github.com/pharmai/plip"
+        },
+        {
+          "title": "ProLIF docking tutorial",
+          "url": "https://prolif.readthedocs.io/en/stable/notebooks/docking.html"
+        },
+        {
+          "title": "RCSB PDB",
+          "url": "https://www.rcsb.org/"
         }
       ]
     }
