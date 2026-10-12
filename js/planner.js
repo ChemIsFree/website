@@ -1278,9 +1278,10 @@ function csvSafeCell(value) {
 function downloadChemblCsv(rows, targetId, endpoint) {
     if (!Array.isArray(rows) || !rows.length) return;
     const columns = [
-        "target_chembl_id", "molecule_chembl_id", "canonical_smiles", "standard_type",
+        "activity_id", "target_chembl_id", "target_organism", "molecule_chembl_id", "canonical_smiles", "standard_type",
         "standard_relation", "standard_value", "standard_units", "pchembl_value",
-        "assay_chembl_id", "assay_type", "document_chembl_id", "bao_label", "src_id"
+        "assay_chembl_id", "assay_type", "assay_description", "data_validity_comment", "potential_duplicate",
+        "document_chembl_id", "bao_label", "src_id"
     ];
     const lines = [columns.map(csvSafeCell).join(",")];
     rows.forEach(function(row) {
@@ -1350,7 +1351,7 @@ async function fetchChemblActivities() {
                 standard_type: endpoint,
                 limit: String(pageSize),
                 offset: String(offset),
-                only: "activity_id,molecule_chembl_id,standard_type,standard_relation,standard_value,standard_units,pchembl_value,assay_chembl_id,assay_type,document_chembl_id,bao_label,src_id,target_chembl_id,target_organism"
+                only: "activity_id,molecule_chembl_id,standard_type,standard_relation,standard_value,standard_units,pchembl_value,assay_chembl_id,assay_type,assay_description,data_validity_comment,potential_duplicate,document_chembl_id,bao_label,src_id,target_chembl_id,target_organism"
             });
             const payload = await fetchJsonResource("https://www.ebi.ac.uk/chembl/api/data/activity.json?" + params.toString());
             const page = Array.isArray(payload.activities) ? payload.activities : [];
@@ -1398,7 +1399,9 @@ async function fetchChemblActivities() {
 
         lastChemblActivityRows = collected.map(function(row) {
             return {
+                activity_id: row.activity_id || "",
                 target_chembl_id: row.target_chembl_id || targetId,
+                target_organism: row.target_organism || "",
                 molecule_chembl_id: row.molecule_chembl_id || "",
                 canonical_smiles: structuresById[row.molecule_chembl_id] || "",
                 standard_type: row.standard_type || endpoint,
@@ -1408,11 +1411,19 @@ async function fetchChemblActivities() {
                 pchembl_value: row.pchembl_value === null || row.pchembl_value === undefined ? "" : row.pchembl_value,
                 assay_chembl_id: row.assay_chembl_id || "",
                 assay_type: row.assay_type || "",
+                assay_description: row.assay_description || "",
+                data_validity_comment: row.data_validity_comment || "",
+                potential_duplicate: row.potential_duplicate === null || row.potential_duplicate === undefined ? "" : row.potential_duplicate,
                 document_chembl_id: row.document_chembl_id || "",
                 bao_label: row.bao_label || "",
                 src_id: row.src_id || ""
             };
         });
+        const activityAsset = document.querySelector('input[name="asset"][value="activity-data"]');
+        const compoundAsset = document.querySelector('input[name="asset"][value="compound-set"]');
+        if (activityAsset) activityAsset.checked = true;
+        if (compoundAsset && Object.keys(structuresById).length) compoundAsset.checked = true;
+        updateQuestionnaireCounts();
         const truncated = Number(totalAvailable) > collected.length || collected.length >= maxRows;
         renderChemblActivityPreview(lastChemblActivityRows, totalAvailable || collected.length, targetId, endpoint,
             Object.keys(structuresById).length, truncated);
