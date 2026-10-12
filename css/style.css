@@ -5594,3 +5594,133 @@ button {
         flex-direction: column;
     }
 }
+
+
+/* Phase-level grouping keeps broad multi-objective protocols scannable. */
+.planner-results-list {
+    display: grid;
+    gap: 12px;
+}
+.planner-protocol-phase {
+    display: block;
+    margin: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: rgba(255,255,255,.22);
+    overflow: clip;
+}
+.planner-protocol-phase > .planner-protocol-phase-summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto 22px;
+    align-items: center;
+    gap: 18px;
+    padding: 20px 22px;
+    cursor: pointer;
+    list-style: none;
+}
+.planner-protocol-phase > .planner-protocol-phase-summary::-webkit-details-marker {
+    display: none;
+}
+.planner-protocol-phase > .planner-protocol-phase-summary::marker {
+    content: "";
+}
+.planner-protocol-phase > .planner-protocol-phase-summary:focus-visible {
+    outline: 2px solid var(--violet);
+    outline-offset: -3px;
+}
+.planner-protocol-phase-copy {
+    display: block;
+    min-width: 0;
+}
+.planner-protocol-phase-copy strong {
+    display: block;
+    font-family: var(--font-display);
+    font-size: clamp(14px, 1.75vw, 18px);
+    line-height: 1.4;
+    font-weight: 600;
+}
+.planner-protocol-phase-copy small {
+    display: block;
+    max-width: 850px;
+    margin-top: 6px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.6;
+}
+.planner-protocol-phase-count {
+    white-space: nowrap;
+    color: var(--text-muted);
+    font-size: 11px;
+}
+.planner-protocol-phase[open] > .planner-protocol-phase-summary {
+    border-bottom: 1px solid var(--line);
+    background: rgba(255,255,255,.58);
+}
+.planner-protocol-phase[open] > .planner-protocol-phase-summary .planner-step-chevron {
+    transform: rotate(45deg);
+}
+.planner-protocol-phase-body {
+    display: grid;
+    gap: 8px;
+    padding: 14px;
+}
+.planner-protocol-phase-body .planner-workflow-step {
+    background: #fff;
+}
+.planner-protocol-phase-body .planner-step-summary {
+    padding: 14px 16px;
+}
+.planner-protocol-phase-body .planner-step-details {
+    padding: 0 16px 20px 65px;
+}
+.planner-protocol-phase-body .planner-step-details .planner-step-content {
+    padding-top: 15px;
+}
+.planner-method-note {
+    max-width: 1000px;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.65;
+}
+@media (max-width: 760px) {
+    .planner-protocol-phase > .planner-protocol-phase-summary {
+        grid-template-columns: minmax(0, 1fr) 18px;
+        gap: 8px 12px;
+        padding: 16px;
+    }
+    .planner-protocol-phase-count {
+        grid-column: 1;
+        grid-row: 2;
+        font-size: 10px;
+    }
+    .planner-protocol-phase-summary .planner-step-chevron {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+    }
+    .planner-protocol-phase-body {
+        padding: 8px;
+    }
+    .planner-protocol-phase-body .planner-step-summary {
+        padding: 12px 10px;
+    }
+    .planner-protocol-phase-body .planner-step-details {
+        padding: 0 10px 16px;
+    }
+}
+@media print {
+    .planner-protocol-phase {
+        break-inside: avoid;
+        overflow: visible;
+    }
+    .planner-protocol-phase > .planner-protocol-phase-summary {
+        background: transparent !important;
+    }
+    .planner-protocol-phase-body {
+        overflow: visible;
+    }
+    .planner-copy-code,
+    .protocol-actions,
+    .planner-form {
+        display: none !important;
+    }
+}
