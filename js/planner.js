@@ -636,6 +636,7 @@ function adaptStepForAvailableInputs(step, availableInputs) {
     }
 
     if (step.id === "screen.validate" && has("known-actives") && has("decoys")) {
+        adapted.title = "Audit active/control sets — " + step.title;
         adapted.intro = "Use the active/control sets you already assembled, auditing their labels and property matching before measuring enrichment.";
         adapted.actions = [
             "Verify which compounds are experimentally confirmed actives, experimentally measured inactives, generated decoys or untested; do not label untested molecules inactive.",
