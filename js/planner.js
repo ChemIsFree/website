@@ -1600,7 +1600,7 @@ function downloadChemblCsv(rows, targetId, endpoint) {
     window.setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
 }
 
-function renderChemblActivityPreview(rows, totalAvailable, targetId, endpoint, smilesCount, truncated) {
+function renderChemblActivityPreview(rows, totalAvailable, targetId, endpoint, smilesCount, truncated, structureLookupLimited) {
     const results = document.getElementById("chembl-activity-results");
     if (!results) return;
     const shown = rows.slice(0, 8);
@@ -1614,7 +1614,8 @@ function renderChemblActivityPreview(rows, totalAvailable, targetId, endpoint, s
     results.innerHTML = "<p><strong>" + rows.length.toLocaleString() + " " + escapeWorkflowHtml(endpoint) +
         " measurement(s) prepared for export</strong> for " + escapeWorkflowHtml(targetId) + ". " +
         "Canonical SMILES retrieved for " + smilesCount.toLocaleString() + " unique compound(s)." +
-        (truncated ? " The browser retrieval limit was reached; use the official ChEMBL record for the remaining observations." : "") +
+        (truncated ? " The browser activity-retrieval limit was reached; check the official ChEMBL record for any remaining observations." : "") +
+        (structureLookupLimited ? " SMILES lookup was limited to the first 1,000 unique compounds; some CSV rows may therefore have blank structures." : "") +
         " Activities retain their reported values, units, relations, assay IDs and document/source fields.</p>" +
         "<div class='planner-activity-preview-wrap'><table class='planner-activity-preview'><thead><tr><th>Molecule ChEMBL ID</th><th>Reported value</th><th>pChEMBL</th><th>Assay ID</th></tr></thead><tbody>" +
         body + "</tbody></table></div>" +
@@ -1673,7 +1674,9 @@ async function fetchChemblActivities() {
         }
 
         const moleculeIds = Array.from(new Set(collected.map(function(row) { return row.molecule_chembl_id; }).filter(Boolean)));
-        const structureLookupIds = moleculeIds.slice(0, 1000);
+        const structureLookupLimit = 1000;
+        const structureLookupLimited = moleculeIds.length > structureLookupLimit;
+        const structureLookupIds = moleculeIds.slice(0, structureLookupLimit);
         const structuresById = {};
         const chunks = [];
         for (let i = 0; i < structureLookupIds.length; i += 50) chunks.push(structureLookupIds.slice(i, i + 50));
@@ -1728,7 +1731,7 @@ async function fetchChemblActivities() {
         updateQuestionnaireCounts();
         const truncated = Number(totalAvailable) > collected.length || collected.length >= maxRows;
         renderChemblActivityPreview(lastChemblActivityRows, totalAvailable || collected.length, targetId, endpoint,
-            Object.keys(structuresById).length, truncated);
+            Object.keys(structuresById).length, truncated, structureLookupLimited);
     } catch (error) {
         if (results) {
             results.textContent = "The ChEMBL activity query did not complete (" + String(error && error.message || error) +
