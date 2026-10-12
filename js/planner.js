@@ -343,26 +343,42 @@ function interfaceSuitability(tool, preference) {
 }
 
 function rankWorkflowTools(config, preference, guiOnly) {
-    const preferred = config.tools || [];
-    const taskIds = config.tasks || [];
-    const domainIds = config.domains || [];
+    const preferred = Array.isArray(config.tools) ? config.tools : [];
+    const taskIds = Array.isArray(config.tasks) ? config.tasks : [];
+    const domainIds = Array.isArray(config.domains) ? config.domains : [];
 
     const ranked = workflowCatalogue.map(function(tool) {
+        let relevance = 0;
         let score = 0;
         const preferredIndex = preferred.indexOf(tool.id);
-        if (preferredIndex >= 0) score += Math.max(4, 18 - preferredIndex * 2);
+        if (preferredIndex >= 0) {
+            relevance += 3;
+            score += Math.max(4, 18 - preferredIndex * 2);
+        }
+
         const toolTasks = Array.isArray(tool.tasks) ? tool.tasks : [];
         taskIds.forEach(function(taskId) {
-            if (toolTasks.includes(taskId)) score += 9;
+            if (toolTasks.includes(taskId)) {
+                relevance += 1;
+                score += 9;
+            }
         });
+
         const toolDomains = Array.isArray(tool.domain) ? tool.domain : [];
         domainIds.forEach(function(domainId) {
-            if (toolDomains.includes(domainId)) score += 1;
+            if (toolDomains.includes(domainId)) {
+                relevance += 1;
+                score += 1;
+            }
         });
+
+        // Interface preferences refine the ranking; they must never make an
+        // unrelated catalogue record appear to be a task recommendation.
+        if (!relevance) return null;
         score += interfaceSuitability(tool, preference);
-        return { tool: tool, score: score };
+        return { tool: tool, score: score, relevance: relevance };
     }).filter(function(item) {
-        if (item.score <= 0) return false;
+        if (!item || item.score <= 0) return false;
         if (guiOnly !== "yes") return true;
         const interfaceItems = getInterfaceItems(item.tool);
         return interfaceItems.includes("web") || interfaceItems.includes("gui");
@@ -370,6 +386,7 @@ function rankWorkflowTools(config, preference, guiOnly) {
 
     ranked.sort(function(a, b) {
         if (b.score !== a.score) return b.score - a.score;
+        if (b.relevance !== a.relevance) return b.relevance - a.relevance;
         const aVisual = getInterfaceItems(a.tool).some(function(value) { return value === "gui" || value === "web"; });
         const bVisual = getInterfaceItems(b.tool).some(function(value) { return value === "gui" || value === "web"; });
         if (aVisual !== bVisual && preference === "visual-first") return aVisual ? -1 : 1;
