@@ -864,24 +864,81 @@ function choosePrimaryProtocol(objectives) {
 
 function composeProtocolSteps(objectives, primaryId, approach) {
     const orderedObjectives = [primaryId].concat(objectives.filter(function(id) { return id !== primaryId; }));
-    const seen = {};
+    const byId = Object.create(null);
     const steps = [];
     orderedObjectives.forEach(function(id) {
         const definition = protocolLibrary[id];
         if (!definition) return;
         definition.steps.forEach(function(step) {
-            const key = String(step.id || "") + "|" + String(step.title || "");
-            if (!seen[key]) {
-                seen[key] = true;
-                steps.push(step);
+            const key = String(step.id || step.title || "");
+            if (!key) return;
+            if (!byId[key]) {
+                // Clone nested arrays so composition never mutates the source catalogue.
+                const copy = Object.assign({}, step);
+                ["actions", "tasks", "tools", "requires", "sources"].forEach(function(field) {
+                    if (Array.isArray(step[field])) copy[field] = step[field].slice();
+                });
+                copy._mergedDeliverables = step.deliverable ? [step.deliverable] : [];
+                copy._mergedGates = step.gate ? [step.gate] : [];
+                copy._mergedFailures = step.commonFailure ? [step.commonFailure] : [];
+                copy._mergedPrerequisites = step.before ? [step.before] : [];
+                byId[key] = copy;
+                steps.push(copy);
+            } else {
+                mergeProtocolStep(byId[key], step);
             }
         });
+    });
+    steps.forEach(function(step) {
+        step.deliverable = Array.from(new Set(step._mergedDeliverables || [])).join(" Also record: ");
+        step.gate = Array.from(new Set(step._mergedGates || [])).join(" Also confirm: ");
+        step.commonFailure = Array.from(new Set(step._mergedFailures || [])).join(" Also avoid: ");
+        step.before = Array.from(new Set(step._mergedPrerequisites || [])).join(" Also first: ");
     });
     steps.sort(function(a, b) {
         if (a.order !== b.order) return a.order - b.order;
         return String(a.title || "").localeCompare(String(b.title || ""));
     });
     return orderWorkflowStepsForApproach(steps, approach);
+}
+
+function mergeProtocolStep(base, incoming) {
+    const appendUnique = function(field, values, signature) {
+        if (!Array.isArray(base[field])) base[field] = [];
+        (Array.isArray(values) ? values : []).forEach(function(value) {
+            const key = signature ? signature(value) : String(value);
+            const exists = base[field].some(function(item) {
+                return (signature ? signature(item) : String(item)) === key;
+            });
+            if (!exists) base[field].push(value);
+        });
+    };
+    appendUnique("actions", incoming.actions);
+    appendUnique("tasks", incoming.tasks);
+    appendUnique("tools", incoming.tools);
+    appendUnique("requires", incoming.requires);
+    appendUnique("sources", incoming.sources, function(source) {
+        return String(source && source.url || "") + "|" + String(source && source.title || "");
+    });
+    if (incoming.deliverable && !(base._mergedDeliverables || []).includes(incoming.deliverable)) {
+        base._mergedDeliverables = base._mergedDeliverables || [];
+        base._mergedDeliverables.push(incoming.deliverable);
+    }
+    if (incoming.gate && !(base._mergedGates || []).includes(incoming.gate)) {
+        base._mergedGates = base._mergedGates || [];
+        base._mergedGates.push(incoming.gate);
+    }
+    if (incoming.commonFailure && !(base._mergedFailures || []).includes(incoming.commonFailure)) {
+        base._mergedFailures = base._mergedFailures || [];
+        base._mergedFailures.push(incoming.commonFailure);
+    }
+    if (incoming.before && !(base._mergedPrerequisites || []).includes(incoming.before)) {
+        base._mergedPrerequisites = base._mergedPrerequisites || [];
+        base._mergedPrerequisites.push(incoming.before);
+    }
+    if (typeof incoming.order === "number" && typeof base.order === "number") {
+        base.order = Math.min(base.order, incoming.order);
+    }
 }
 
 function orderWorkflowStepsForApproach(steps, approach) {
