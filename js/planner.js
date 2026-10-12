@@ -785,19 +785,22 @@ function initialiseProgressiveIntake() {
     if (targetInput) {
         targetInput.addEventListener("input", function() {
             const query = targetInput.value.trim();
+            const requestId = ++chemblTargetSearchRequestId;
             if (selectedChemblTarget && query !== String(selectedChemblTarget.pref_name || selectedChemblTarget.target_chembl_id)) {
                 clearChemblSelection();
+                // clearChemblSelection also invalidates pending requests; keep this input's
+                // request token as the one associated with the next query.
             }
             if (searchResults) searchResults.innerHTML = "";
+            if (chemblTargetSearchTimer) window.clearTimeout(chemblTargetSearchTimer);
             if (query.length < 2) {
                 if (searchStatus) searchStatus.textContent = "Type at least two characters to search ChEMBL.";
                 return;
             }
             if (searchStatus) searchStatus.textContent = "Searching ChEMBL…";
-            if (chemblTargetSearchTimer) window.clearTimeout(chemblTargetSearchTimer);
-            const requestId = ++chemblTargetSearchRequestId;
+            const liveRequestId = chemblTargetSearchRequestId;
             chemblTargetSearchTimer = window.setTimeout(function() {
-                searchChemblTargets(query, requestId);
+                searchChemblTargets(query, liveRequestId);
             }, 280);
         });
         targetInput.addEventListener("keydown", function(event) {
@@ -820,7 +823,11 @@ function initialiseProgressiveIntake() {
         });
     }
     if (endpoint) endpoint.addEventListener("change", function() {
-        if (selectedChemblTarget) loadChemblActivities(true);
+        if (!selectedChemblTarget) return;
+        // Invalidate an in-flight endpoint request so late results cannot mix IC50/Ki/EC50.
+        chemblActivityRequestId += 1;
+        chemblActivityBusy = false;
+        loadChemblActivities(true);
     });
 
     const more = document.getElementById("chembl-load-more");
@@ -947,6 +954,8 @@ async function addChemblMoleculeDetails(rows) {
         const detail = details[row.molecule_chembl_id] || {};
         row.compound_name = detail.name || row.molecule_pref_name || "";
         row.canonical_smiles = detail.smiles || "";
+        row.target_pref_name = selectedChemblTarget ? (selectedChemblTarget.pref_name || "") : "";
+        row.target_organism = selectedChemblTarget ? (selectedChemblTarget.organism || "") : "";
         return row;
     });
 }
