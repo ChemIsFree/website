@@ -175,8 +175,65 @@ assert.ok(ligandGuide.includes("ChEMBL") && ligandGuide.includes("DataWarrior"),
 assert.ok(!ligandGuide.includes("CAVIAR") && !ligandGuide.includes("SIGHTS"),
     "CAVIAR/SIGHTS should not be proposed in the ligand-based starting route.");
 
-console.log("Workflow planner integration checks passed.");
-console.log("Protocols: " + Object.keys(protocols).length +
-    "; steps: " + Object.values(protocols).reduce((n, p) => n + p.steps.length, 0) +
-    "; catalogue entries: " + catalogue.length +
-    "; protocol tool IDs: " + protocolToolIds.size + ".");
+(async function testAmbiguousUniProtSelection() {
+    const mockEntries = [
+        {
+            primaryAccession: "P12345",
+            uniProtkbId: "TARGET_A_HUMAN",
+            entryType: "UniProtKB reviewed (Swiss-Prot)",
+            proteinDescription: { recommendedName: { fullName: { value: "Example target A" } } },
+            genes: [{ geneName: { value: "TSTA" } }],
+            organism: { scientificName: "Homo sapiens" },
+            sequence: { length: 420 },
+            uniProtKBCrossReferences: []
+        },
+        {
+            primaryAccession: "Q54321",
+            uniProtkbId: "TARGET_B_HUMAN",
+            entryType: "UniProtKB reviewed (Swiss-Prot)",
+            proteinDescription: { recommendedName: { fullName: { value: "Example target B" } } },
+            genes: [{ geneName: { value: "TSTB" } }],
+            organism: { scientificName: "Homo sapiens" },
+            sequence: { length: 510 },
+            uniProtKBCrossReferences: []
+        }
+    ];
+    const requestedUrls = [];
+    context.fetchJsonResource = async function(url) {
+        requestedUrls.push(String(url));
+        if (String(url).startsWith("https://rest.uniprot.org/uniprotkb/search?")) {
+            return { results: mockEntries };
+        }
+        if (String(url).startsWith("https://search.rcsb.org/rcsbsearch/v2/query")) {
+            return { result_set: [], total_count: 0 };
+        }
+        throw new Error("Unexpected URL in mocked target test: " + url);
+    };
+
+    requestedUrls.length = 0;
+    const ambiguous = await context.retrieveLiveTargetEvidence("TEST", "Homo sapiens");
+    assert.equal(ambiguous.requiresAccessionChoice, true,
+        "Ambiguous UniProt matches must pause PDB lookup.");
+    assert.equal(ambiguous.structures.length, 0);
+    assert.equal(requestedUrls.filter((url) => url.includes("rcsbsearch")).length, 0,
+        "Do not query PDB against the first UniProt hit without user confirmation.");
+    const unresolvedHtml = context.targetEvidenceHtml(ambiguous);
+    assert.ok(unresolvedHtml.includes("uniprot-accession-choice"));
+    assert.ok(unresolvedHtml.includes("Choose the correct UniProt record first"));
+
+    requestedUrls.length = 0;
+    const selected = await context.retrieveLiveTargetEvidence("TEST", "Homo sapiens", "P12345");
+    assert.equal(selected.selectedAccession, "P12345",
+        "Explicit accession selection must scope the structure query.");
+    assert.ok(requestedUrls.some((url) => url.includes("rcsbsearch")),
+        "PDB lookup should resume after the user selects an accession.");
+    console.log("Ambiguous UniProt selection test passed.");
+    console.log("Workflow planner integration checks passed.");
+    console.log("Protocols: " + Object.keys(protocols).length +
+        "; steps: " + Object.values(protocols).reduce((n, p) => n + p.steps.length, 0) +
+        "; catalogue entries: " + catalogue.length +
+        "; protocol tool IDs: " + protocolToolIds.size + ".");
+})().catch((error) => {
+    console.error("Workflow planner integration test failed:", error);
+    process.exitCode = 1;
+});
