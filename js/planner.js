@@ -1451,6 +1451,186 @@ function renderLiveEvidenceUnavailable(target, organism, message) {
         '<p><a href="https://www.uniprot.org/" target="_blank" rel="noopener noreferrer">Search UniProt ↗</a> · <a href="https://www.rcsb.org/" target="_blank" rel="noopener noreferrer">Search RCSB PDB ↗</a></p></div></section>';
 }
 
+function workflowPhaseForStep(step, approach) {
+    const id = String(step && step.id || "");
+    const phaseSets = {
+        "ligand-based": {
+            "target-evidence": {
+                title: "Target, activity data and initial quality control",
+                summary: "Anchor the target, preserve source-traceable measurements, and audit the input data.",
+                ids: ["target.resolve", "ligand.query", "data.inventory", "data.curate", "data.audit"]
+            },
+            "ligand-analysis": {
+                title: "Known ligands, SAR and focused design hypotheses",
+                summary: "Map chemical series, challenge SAR claims, validate predictive models, and formulate testable compound changes.",
+                ids: ["ligand.search", "ligand.series", "model.baseline", "model.validate", "model.domain", "design.hypothesis", "design.enumerate", "analogue.triage"]
+            },
+            "screening": {
+                title: "Validate the method, then screen and triage",
+                summary: "Check that the ranking beats a relevant baseline before using it on a larger library.",
+                ids: ["screen.validate", "screen.library", "screen.triage"]
+            },
+            "developability": {
+                title: "Property and ADMET risk assessment",
+                summary: "Treat predicted properties as risk flags to test, not as proof of efficacy or safety.",
+                ids: ["develop.descriptors", "develop.profile", "admet.risk-plan"]
+            },
+            "synthesis": {
+                title: "Synthetic feasibility",
+                summary: "Review routes, starting materials and route uncertainty before committing to a design.",
+                ids: ["synthesis.route", "synthesis.risk"]
+            },
+            "structural-crosscheck": {
+                title: "Structural cross-check and pose validation",
+                summary: "Use structural evidence as an independent follow-up; inspect the binding site and validate docking before interpreting scores.",
+                ids: ["structure.choose", "pocket.audit", "interactions.native", "structure.prepare", "structure.redock", "structure.crossdock", "interactions.report"]
+            },
+            "rescore": {
+                title: "Shortlist rescoring and independent triage",
+                summary: "Apply more expensive or independent methods only to defensible survivors.",
+                ids: ["screen.rescore", "generation.triage"]
+            },
+            "reproducibility": {
+                title: "Audit trail and reproducibility",
+                summary: "Record the workflow contract, implementation, regression tests, assumptions and next decision.",
+                ids: ["workflow.design", "workflow.build", "workflow.validate", "workflow.audit"]
+            }
+        },
+        "structure-based": {
+            "target-evidence": {
+                title: "Target, structure and experimental ligand evidence",
+                summary: "Confirm the target identity and assess the experimental structure, binding site and reference ligand.",
+                ids: ["target.resolve", "structure.choose", "pocket.audit", "ligand.query", "data.inventory", "data.curate", "interactions.native"]
+            },
+            "preparation-validation": {
+                title: "Prepare the system and validate the method",
+                summary: "Prepare receptor and ligands consistently, recover the reference pose, and validate ranking before screening.",
+                ids: ["structure.prepare", "structure.redock", "structure.crossdock", "screen.validate", "interactions.report"]
+            },
+            "ligand-sar": {
+                title: "Known ligands, SAR and binding hypotheses",
+                summary: "Use measured compounds to develop and challenge hypotheses that complement structural evidence.",
+                ids: ["ligand.search", "ligand.series", "design.hypothesis"]
+            },
+            "screening": {
+                title: "Virtual screening and candidate triage",
+                summary: "Run a bounded screen only after the setup has passed the selected validation gates.",
+                ids: ["screen.library", "screen.triage", "screen.rescore"]
+            },
+            "developability-models": {
+                title: "Predictive models and developability",
+                summary: "Assess model validity, applicability limits, physicochemical liabilities and ADMET risks.",
+                ids: ["develop.descriptors", "develop.profile", "admet.risk-plan", "model.baseline", "model.validate", "model.domain"]
+            },
+            "design-synthesis": {
+                title: "Focused design and synthetic feasibility",
+                summary: "Generate constrained analogues, triage candidates independently, and review practical routes.",
+                ids: ["design.enumerate", "analogue.triage", "generation.triage", "synthesis.route", "synthesis.risk"]
+            },
+            "reproducibility": {
+                title: "Quality audit and reproducibility",
+                summary: "Audit the dataset and preserve workflow settings, outputs, assumptions and failure states.",
+                ids: ["data.audit", "workflow.design", "workflow.build", "workflow.validate", "workflow.audit"]
+            }
+        },
+        "mixed": {
+            "target-evidence": {
+                title: "Target, structure and experimental ligand evidence",
+                summary: "Resolve target identity and establish a defensible structural and ligand-data starting point.",
+                ids: ["target.resolve", "structure.choose", "pocket.audit", "ligand.query", "data.inventory", "data.curate", "interactions.native"]
+            },
+            "preparation-validation": {
+                title: "Prepare the system and validate the method",
+                summary: "Prepare structures consistently, validate pose recovery, and test ranking performance before screening.",
+                ids: ["structure.prepare", "structure.redock", "structure.crossdock", "screen.validate", "interactions.report"]
+            },
+            "ligand-sar": {
+                title: "Known ligands, SAR and testable hypotheses",
+                summary: "Use measured ligand evidence to complement the binding-site model and develop interpretable hypotheses.",
+                ids: ["ligand.search", "ligand.series", "design.hypothesis"]
+            },
+            "screening": {
+                title: "Virtual screening and candidate triage",
+                summary: "Run a pilot or focused screen, then prioritize candidates using orthogonal evidence.",
+                ids: ["screen.library", "screen.triage", "screen.rescore"]
+            },
+            "developability-models": {
+                title: "Predictive models and developability",
+                summary: "Evaluate model reliability and compound liabilities without treating predictions as experimental confirmation.",
+                ids: ["develop.descriptors", "develop.profile", "admet.risk-plan", "model.baseline", "model.validate", "model.domain"]
+            },
+            "design-synthesis": {
+                title: "Focused design and synthetic feasibility",
+                summary: "Turn supported hypotheses into constrained analogues, independently triage candidates, and review routes.",
+                ids: ["design.enumerate", "analogue.triage", "generation.triage", "synthesis.route", "synthesis.risk"]
+            },
+            "reproducibility": {
+                title: "Quality audit and reproducibility",
+                summary: "Audit chemical/statistical quality and retain a traceable record of methods, settings and decisions.",
+                ids: ["data.audit", "workflow.design", "workflow.build", "workflow.validate", "workflow.audit"]
+            }
+        }
+    };
+    const groups = phaseSets[approach] || phaseSets.mixed;
+    for (const phase of Object.values(groups)) {
+        if (phase.ids.includes(id)) return { id: Object.keys(groups).find(function(key) { return groups[key] === phase; }), title: phase.title, summary: phase.summary };
+    }
+    return {
+        id: "additional",
+        title: "Additional analysis",
+        summary: "Follow the step-specific prerequisites and validation criteria."
+    };
+}
+
+function groupWorkflowStepsByPhase(steps, approach) {
+    // Group only adjacent steps. Flattening the groups therefore exactly preserves
+    // the protocol engine's scientific order for every approach and objective set.
+    const groups = [];
+    (steps || []).forEach(function(step) {
+        const phase = workflowPhaseForStep(step, approach);
+        let current = groups[groups.length - 1];
+        if (!current || current.id !== phase.id) {
+            current = {
+                id: phase.id,
+                title: phase.title,
+                summary: phase.summary,
+                steps: []
+            };
+            groups.push(current);
+        }
+        current.steps.push(step);
+    });
+    return groups;
+}
+
+function renderWorkflowPhases(steps, selectedOS, preference, availableInputs, guiOnly, approach) {
+    const groups = groupWorkflowStepsByPhase(steps, approach);
+    const stepCount = Array.isArray(steps) ? steps.length : 0;
+    const phaseMarkup = groups.map(function(phase, phaseIndex) {
+        return '<details class="planner-workflow-phase" data-workflow-phase="' + escapeWorkflowHtml(phase.id) + '"' + (phaseIndex === 0 ? ' open' : '') + '>' +
+            '<summary>' +
+                '<span class="planner-phase-number">PHASE ' + String(phaseIndex + 1).padStart(2, "0") + '</span>' +
+                '<span class="planner-phase-copy"><strong>' + escapeWorkflowHtml(phase.title) + '</strong><small>' + escapeWorkflowHtml(phase.summary) + '</small></span>' +
+                '<span class="planner-phase-count">' + phase.steps.length + (phase.steps.length === 1 ? ' step' : ' steps') + '</span>' +
+            '</summary>' +
+            '<div class="planner-workflow-phase-content">' +
+                phase.steps.map(function(step) { return makeStep(step, steps.indexOf(step), selectedOS, preference, availableInputs, guiOnly); }).join("") +
+            '</div>' +
+        '</details>';
+    }).join("");
+
+    return '<div class="planner-phase-toolbar">' +
+        '<p><strong>Workflow map</strong><span>' + stepCount + ' ordered steps across ' + groups.length + (groups.length === 1 ? ' phase' : ' phases') + '. Open a phase to inspect its tasks; expand a task for tools, instructions and gates.</span></p>' +
+        '<div class="planner-phase-toolbar-actions" role="group" aria-label="Workflow display controls">' +
+            '<button type="button" class="button button-secondary" id="expand-workflow-phases">Expand all phases</button>' +
+            '<button type="button" class="button button-secondary" id="collapse-workflow-phases">Collapse all phases</button>' +
+            '<button type="button" class="button button-secondary" id="expand-workflow-instructions">Expand all step instructions</button>' +
+            '<button type="button" class="button button-secondary" id="collapse-workflow-instructions">Collapse all step instructions</button>' +
+        '</div>' +
+    '</div>' +
+    '<div class="planner-phase-list">' + phaseMarkup + '</div>';
+}
+
 function renderWorkflow(event) {
     if (event) event.preventDefault();
     const results = document.getElementById("workflow-results");
@@ -1571,9 +1751,28 @@ function renderWorkflow(event) {
             '</div>' + longWorkflowNote +
             '<div class="protocol-actions"><button type="button" class="button button-secondary" id="print-workflow">Print / save protocol as PDF</button><button type="button" class="button button-secondary" id="edit-inputs">Edit inputs</button></div>' +
             '<div class="planner-results-list">' +
-                steps.map(function(step, index) { return makeStep(step, index, selectedOS, preference, inputState.available, guiOnly); }).join("") +
+                renderWorkflowPhases(steps, selectedOS, preference, inputState.available, guiOnly, approach) +
             '</div>' +
             '<p class="planner-method-note">Catalogue matches are ranked from ChemIsFree records using task tags and interface preference. Interface classifications may be provisional or unconfirmed. External references are starting points, not endorsements. Thresholds labelled as working defaults are project heuristics rather than universal rules. Predicted poses, activity scores and ADMET outputs are not experimental confirmation.</p>';
+
+    const phaseDetails = Array.from(results.querySelectorAll("details.planner-workflow-phase"));
+    const expandPhasesButton = document.getElementById("expand-workflow-phases");
+    const collapsePhasesButton = document.getElementById("collapse-workflow-phases");
+    const expandInstructionsButton = document.getElementById("expand-workflow-instructions");
+    const collapseInstructionsButton = document.getElementById("collapse-workflow-instructions");
+    if (expandPhasesButton) expandPhasesButton.addEventListener("click", function() {
+        phaseDetails.forEach(function(detail) { detail.open = true; });
+    });
+    if (collapsePhasesButton) collapsePhasesButton.addEventListener("click", function() {
+        phaseDetails.forEach(function(detail) { detail.open = false; });
+    });
+    if (expandInstructionsButton) expandInstructionsButton.addEventListener("click", function() {
+        results.querySelectorAll("details.planner-workflow-step-details").forEach(function(detail) { detail.open = true; });
+        phaseDetails.forEach(function(detail) { detail.open = true; });
+    });
+    if (collapseInstructionsButton) collapseInstructionsButton.addEventListener("click", function() {
+        results.querySelectorAll("details.planner-workflow-step-details").forEach(function(detail) { detail.open = false; });
+    });
 
     const thisEvidenceRequest = ++liveEvidenceRequestId;
     const evidencePanel = document.getElementById("live-target-evidence");
