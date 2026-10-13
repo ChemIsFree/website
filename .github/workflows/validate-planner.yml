@@ -67,6 +67,15 @@ jobs:
         working-directory: website
         run: node scripts/browser_smoke_test.js
 
+      - name: Upload planner screenshots for visual review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workflow-planner-preview-${{ github.event.pull_request.number || 'manual' }}
+          path: website/artifacts/planner-preview-*.png
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Probe live ChEMBL, UniProt and RCSB browser requests (non-blocking)
         working-directory: website
         run: node scripts/browser_smoke_test.js --live
