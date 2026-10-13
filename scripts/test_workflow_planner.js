@@ -12,6 +12,7 @@ const root = process.cwd();
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8");
 
 const html = read("planner.html");
+const styleSource = read("css/style.css");
 const plannerSource = read("js/planner.js");
 const protocolsSource = read("js/protocols.js");
 const recipeSource = read("js/workflow-recipes.js");
@@ -165,6 +166,17 @@ assert.ok(mixedPhases.some((phase) => phase.title.includes("Target, structure"))
     "Mixed workflow should expose a target/structure evidence phase.");
 assert.ok(ligandPhases.some((phase) => phase.title.includes("Structural cross-check")),
     "Ligand-first workflow should keep structural analysis as a later cross-check.");
+const renderedMixedPhases = context.renderWorkflowPhases(
+    mixedSteps, "any", "visual-first", {}, "yes", "mixed"
+);
+assert.ok(renderedMixedPhases.includes('class="planner-workflow-phase" data-workflow-phase="target-evidence" open'),
+    "The first generated phase should be open by default and phase markup should render.");
+assert.ok(renderedMixedPhases.includes("Expand all step instructions") &&
+    renderedMixedPhases.includes("Collapse all phases"),
+    "Rendered workflow should expose working phase and instruction controls.");
+assert.ok(renderedMixedPhases.includes(mixedSteps.length + " ordered steps across"),
+    "The phase overview should disclose the complete ordered step count.");
+
 
 assert.equal(new Set(stepIds).size, stepIds.length, "Combined workflow should not duplicate the same scientific phase.");
 assert.ok(stepIds.indexOf("target.resolve") < stepIds.indexOf("structure.choose"));
@@ -184,6 +196,9 @@ assert.ok(plannerSource.includes("function groupWorkflowStepsByPhase"),
     "Long workflows should be grouped into navigable phases.");
 assert.ok(plannerSource.includes("function renderWorkflowPhases"),
     "Grouped phase rendering function is missing.");
+assert.ok(styleSource.includes(".planner-workflow-phase") &&
+    styleSource.includes(".planner-phase-toolbar-actions"),
+    "Workflow phase navigation styling is missing.");
 for (const id of [
     "expand-workflow-phases", "collapse-workflow-phases",
     "expand-workflow-instructions", "collapse-workflow-instructions"
