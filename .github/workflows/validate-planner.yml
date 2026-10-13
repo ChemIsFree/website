@@ -1,0 +1,83 @@
+name: Validate Workflows & Tutorials planner
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out website
+        uses: actions/checkout@v6
+        with:
+          path: website
+
+      - name: Check out the live tool catalogue
+        uses: actions/checkout@v6
+        with:
+          repository: ChemIsFree/tools
+          path: catalogue
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install catalogue build dependency
+        run: pip install pyyaml
+
+      - name: Build the exact catalogue the website will publish
+        working-directory: website
+        run: python scripts/build_catalogue.py
+
+      - name: Check JavaScript syntax
+        working-directory: website
+        run: |
+          node --check js/protocols.js
+          node --check js/workflow-recipes.js
+          node --check js/planner.js
+
+      - name: Test workflow ordering, UI choices, tool IDs and recipe rendering
+        working-directory: website
+        run: node scripts/test_workflow_planner.js
+
+      - name: Install Playwright for real-browser smoke tests
+        working-directory: website
+        run: npm install --no-save playwright
+
+      - name: Install Chromium and its system dependencies
+        working-directory: website
+        run: npx playwright install --with-deps chromium
+
+      - name: Test rendered planner and controls in Chromium
+        working-directory: website
+        run: node scripts/browser_smoke_test.js
+
+      - name: Upload planner screenshots for visual review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workflow-planner-preview-${{ github.event.pull_request.number || 'manual' }}
+          path: website/artifacts/planner-preview-*.png
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Probe live ChEMBL, UniProt and RCSB browser requests (non-blocking)
+        working-directory: website
+        run: node scripts/browser_smoke_test.js --live
+        timeout-minutes: 3
+        continue-on-error: true

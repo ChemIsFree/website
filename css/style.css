@@ -5079,3 +5079,809 @@ button {
         font-size: 8px;
     }
 }
+
+
+/* =========================================================
+   GUIDED WORKFLOW QUESTIONNAIRE
+   ========================================================= */
+.guided-questionnaire {
+    max-width: 1120px;
+    margin: 0 auto;
+    border-top: 1px solid var(--line-dark);
+}
+.guided-questionnaire-intro {
+    max-width: 740px;
+    padding: 28px 0 20px;
+}
+.guided-questionnaire-intro h3 {
+    margin: 8px 0 10px;
+    font-family: var(--font-display);
+    font-size: clamp(27px, 3.2vw, 39px);
+    font-weight: 500;
+    letter-spacing: -.045em;
+    line-height: 1.08;
+}
+.guided-questionnaire-intro > p:last-child {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.7;
+}
+.planner-question {
+    border-bottom: 1px solid var(--line);
+}
+.planner-question > summary {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    gap: 15px;
+    align-items: center;
+    min-height: 83px;
+    padding: 17px 4px;
+    cursor: pointer;
+    list-style: none;
+}
+.planner-question > summary::-webkit-details-marker {
+    display: none;
+}
+.planner-question > summary::after {
+    content: "+";
+    grid-column: 3;
+    grid-row: 1;
+    margin-left: 8px;
+    color: var(--violet);
+    font-size: 23px;
+    line-height: 1;
+}
+.planner-question[open] > summary::after {
+    content: "−";
+}
+.planner-question-number {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--line);
+    color: var(--violet);
+    font-family: var(--font-mono);
+    font-size: 11px;
+}
+.planner-question-title {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+}
+.planner-question-title strong {
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-size: 21px;
+    font-weight: 500;
+    letter-spacing: -.025em;
+    line-height: 1.15;
+}
+.planner-question-title small {
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+.planner-question-state {
+    grid-column: 2;
+    grid-row: 2;
+    width: fit-content;
+    max-width: 100%;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: .045em;
+    text-transform: uppercase;
+}
+.planner-question > summary {
+    grid-template-rows: auto auto;
+}
+.planner-question > summary::after {
+    grid-row: 1 / span 2;
+    align-self: center;
+}
+.planner-question-body {
+    padding: 5px 0 30px 57px;
+}
+.planner-radio-options {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin: 6px 0 4px;
+}
+.planner-radio-options-compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.planner-radio-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    min-width: 0;
+    padding: 15px 14px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.38);
+    cursor: pointer;
+    transition: border-color 160ms ease, background 160ms ease;
+}
+.planner-radio-option:has(input:checked) {
+    border-color: var(--violet);
+    background: rgba(115,87,255,.055);
+    box-shadow: inset 3px 0 0 var(--violet);
+}
+.planner-radio-option input {
+    flex: 0 0 auto;
+    margin: 3px 0 0;
+    accent-color: var(--violet);
+}
+.planner-radio-option > span {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.planner-radio-option strong {
+    font-size: 13px;
+    line-height: 1.35;
+}
+.planner-radio-option small {
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.55;
+}
+.planner-target-search-panel {
+    margin-top: 24px;
+    padding: 22px;
+    border: 1px solid var(--line);
+    background: var(--paper-light);
+}
+.planner-target-search-panel[hidden],
+.planner-target-selection[hidden] {
+    display: none !important;
+}
+.planner-target-search-panel > .planner-field-help:first-child {
+    margin: 0 0 17px;
+}
+.target-label {
+    display: block;
+    margin: 0 0 8px;
+    font-family: var(--font-display);
+    font-size: 18px;
+    line-height: 1.25;
+    letter-spacing: -.02em;
+}
+.planner-target-suggestions {
+    display: grid;
+    gap: 0;
+    margin-top: 6px;
+}
+.planner-target-suggestion {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 12px 13px;
+    border: 1px solid var(--line);
+    border-top: 0;
+    background: white;
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+}
+.planner-target-suggestion:first-child {
+    border-top: 1px solid var(--line);
+}
+.planner-target-suggestion:hover,
+.planner-target-suggestion:focus-visible {
+    outline: 0;
+    border-color: var(--violet);
+    background: rgba(115,87,255,.055);
+}
+.planner-target-suggestion span {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.planner-target-suggestion strong {
+    font-size: 13px;
+    line-height: 1.35;
+}
+.planner-target-suggestion small {
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.4;
+}
+.planner-target-suggestion code {
+    flex: 0 0 auto;
+    color: var(--violet);
+    font-size: 10px;
+}
+.planner-target-selection {
+    margin: 13px 0 18px;
+    padding: 13px 15px;
+    border-left: 3px solid var(--lime);
+    background: rgba(113,131,28,.06);
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.6;
+}
+.planner-target-selection strong {
+    color: var(--ink);
+}
+.target-organism-field {
+    margin: 18px 0 22px;
+}
+.planner-activity-box {
+    margin-top: 23px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+}
+.planner-activity-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+}
+.planner-activity-controls .planner-select {
+    max-width: 285px;
+}
+.planner-activity-controls .button[disabled] {
+    cursor: not-allowed;
+    opacity: .45;
+}
+.planner-activity-results {
+    margin-top: 15px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.65;
+}
+.planner-activity-results:empty {
+    display: none;
+}
+.planner-activity-results strong {
+    color: var(--ink);
+}
+.planner-activity-preview-wrap {
+    max-width: 100%;
+    margin-top: 12px;
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    background: white;
+}
+.planner-activity-preview {
+    width: 100%;
+    min-width: 650px;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+.planner-activity-preview th,
+.planner-activity-preview td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    white-space: nowrap;
+}
+.planner-activity-preview th {
+    color: var(--ink);
+    background: var(--paper-light);
+    font-weight: 600;
+}
+.planner-activity-preview td {
+    color: var(--text-muted);
+}
+.planner-objectives-fieldset,
+.planner-assets-fieldset {
+    padding: 0;
+    margin: 0;
+    border: 0;
+}
+.planner-objectives-fieldset > .planner-field-help,
+.planner-assets-fieldset > .planner-field-help {
+    margin: 0 0 16px;
+}
+.planner-context-fields-advanced {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.planner-stage-grid-advanced {
+    margin-top: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.planner-stage-grid-advanced .planner-stage-option {
+    padding: 12px;
+}
+.planner-question-advanced .planner-question-number {
+    color: var(--text-muted);
+}
+.visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+@media (max-width: 820px) {
+    .planner-objectives-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .planner-radio-options {
+        grid-template-columns: 1fr;
+    }
+}
+@media (max-width: 600px) {
+    .planner-question > summary {
+        grid-template-columns: 34px minmax(0, 1fr) 20px;
+        gap: 10px;
+        padding: 15px 0;
+    }
+    .planner-question-title strong {
+        font-size: 18px;
+    }
+    .planner-question-state {
+        font-size: 8px;
+    }
+    .planner-question-body {
+        padding-left: 0;
+    }
+    .planner-target-search-panel {
+        padding: 15px;
+    }
+    .planner-objectives-grid,
+    .planner-assets-grid,
+    .planner-context-fields-advanced,
+    .planner-stage-grid-advanced {
+        grid-template-columns: 1fr;
+    }
+    .planner-activity-controls {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    .planner-activity-controls .planner-select {
+        max-width: none;
+    }
+}
+
+
+.planner-approach-guide {
+    margin: 22px 0 0;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.42);
+}
+.planner-approach-guide > summary {
+    padding: 15px 18px;
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.5;
+    list-style-position: inside;
+}
+.planner-approach-guide[open] > summary {
+    border-bottom: 1px solid var(--line);
+    background: var(--paper-light);
+}
+.planner-approach-guide > div {
+    padding: 18px 22px 20px;
+}
+.planner-approach-guide ol {
+    margin: 0;
+    padding-left: 20px;
+}
+.planner-approach-guide li {
+    padding-left: 5px;
+    margin: 0 0 13px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.7;
+}
+.planner-approach-guide li:last-child {
+    margin-bottom: 0;
+}
+.planner-approach-guide li strong {
+    color: var(--ink);
+}
+.planner-approach-guide a {
+    color: var(--violet);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+
+/* Expandable code recipes inside generated workflow steps */
+.planner-code-recipes {
+    margin: 20px 0 22px;
+    border-top: 1px solid var(--line);
+}
+.planner-recipe-label {
+    margin: 13px 0 8px;
+    color: var(--violet);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: .12em;
+}
+.planner-code-detail {
+    margin: 8px 0;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.44);
+}
+.planner-code-detail > summary {
+    padding: 13px 15px;
+    cursor: pointer;
+    color: var(--ink);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.55;
+    list-style-position: inside;
+}
+.planner-code-detail[open] > summary {
+    border-bottom: 1px solid var(--line);
+    background: var(--paper-light);
+}
+.planner-code-detail-body {
+    padding: 16px;
+}
+.planner-code-detail-body > p:first-child {
+    margin: 0 0 14px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.7;
+}
+.planner-code-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 12px;
+    border: 1px solid var(--line-dark);
+    border-bottom: 0;
+    background: var(--paper-light);
+}
+.planner-code-toolbar > span {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: .12em;
+}
+.planner-copy-code {
+    padding: 6px 9px;
+    border: 1px solid var(--line);
+    background: var(--white);
+    color: var(--ink);
+    font: inherit;
+    font-size: 10px;
+    cursor: pointer;
+}
+.planner-copy-code:hover,
+.planner-copy-code:focus-visible {
+    outline: 1px solid var(--violet);
+    outline-offset: 1px;
+}
+.planner-code-detail pre {
+    max-width: 100%;
+    margin: 0;
+    padding: 15px;
+    overflow: auto;
+    border: 1px solid var(--line-dark);
+    background: #171a22;
+    color: #eef0f4;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.65;
+    tab-size: 4;
+    white-space: pre;
+}
+.planner-code-detail pre code {
+    color: inherit;
+    font: inherit;
+}
+.planner-recipe-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px 14px;
+    margin: 13px 0 0;
+    font-size: 11px;
+    line-height: 1.6;
+}
+.planner-recipe-links a {
+    color: var(--violet);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+@media (max-width: 600px) {
+    .planner-code-detail-body {
+        padding: 10px;
+    }
+    .planner-code-detail pre {
+        padding: 11px;
+        font-size: 10px;
+    }
+}
+
+
+.planner-recipe-steps {
+    margin: 0;
+    padding-left: 21px;
+}
+.planner-recipe-steps li {
+    padding-left: 4px;
+    margin: 0 0 12px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.75;
+}
+.planner-recipe-steps li:last-child {
+    margin-bottom: 0;
+}
+
+
+/* Generated protocol: keep only the phase heading and one-sentence intent visible */
+.planner-workflow-step-details {
+    margin-top: 16px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.38);
+}
+.planner-workflow-step-details > summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 15px;
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 11px;
+    line-height: 1.55;
+    list-style: none;
+}
+.planner-workflow-step-details > summary::-webkit-details-marker {
+    display: none;
+}
+.planner-workflow-step-details > summary::after {
+    content: "+";
+    flex: 0 0 auto;
+    color: var(--violet);
+    font-size: 19px;
+    line-height: 1;
+}
+.planner-workflow-step-details[open] > summary {
+    background: var(--paper-light);
+    border-bottom: 1px solid var(--line);
+}
+.planner-workflow-step-details[open] > summary::after {
+    content: "−";
+}
+.planner-workflow-step-body {
+    padding: 18px;
+}
+.planner-workflow-step-body > .planner-step-actions {
+    margin-top: 0;
+}
+.planner-workflow-step-body > .planner-deliverable {
+    margin-top: 18px;
+}
+@media (max-width: 600px) {
+    .planner-workflow-step-details > summary {
+        align-items: flex-start;
+        padding: 12px;
+    }
+    .planner-workflow-step-body {
+        padding: 12px;
+    }
+}
+
+
+/* Prevent an ambiguous UniProt mapping from silently selecting a PDB target */
+.uniprot-accession-selector {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 12px;
+    margin: 20px 0 22px;
+    padding: 16px;
+    border: 1px solid var(--line);
+    background: var(--paper-light);
+}
+.uniprot-accession-selector > label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    grid-column: 1 / -1;
+    color: var(--ink);
+    font-size: 12px;
+    line-height: 1.5;
+}
+.uniprot-accession-selector > label small {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+.uniprot-accession-selector .planner-select {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+}
+.uniprot-accession-selector .button {
+    white-space: normal;
+}
+.uniprot-accession-selector .live-evidence-note {
+    grid-column: 1 / -1;
+    margin: 0;
+}
+@media (max-width: 620px) {
+    .uniprot-accession-selector { grid-template-columns: minmax(0, 1fr); }
+    .uniprot-accession-selector .button { width: 100%; }
+}
+
+
+/* Collapsible workflow phases keep comprehensive multi-objective plans navigable. */
+.planner-phase-toolbar {
+    display: grid;
+    gap: 14px;
+    margin: 12px 0 22px;
+    padding: 18px 20px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.42);
+}
+.planner-phase-toolbar > p {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    align-items: baseline;
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.6;
+}
+.planner-phase-toolbar > p strong {
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: -0.025em;
+}
+.planner-phase-toolbar > p span { color: var(--text-muted); }
+.planner-phase-toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.planner-phase-toolbar-actions .button {
+    min-height: 36px;
+    padding: 8px 11px;
+    font-size: 11px;
+}
+.planner-phase-list {
+    display: grid;
+    gap: 10px;
+}
+.planner-workflow-phase {
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.3);
+}
+.planner-workflow-phase > summary {
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: center;
+    padding: 20px 22px;
+    cursor: pointer;
+    list-style: none;
+}
+.planner-workflow-phase > summary::-webkit-details-marker { display: none; }
+.planner-workflow-phase > summary::after {
+    content: "+";
+    grid-column: 3;
+    grid-row: 1;
+    padding-left: 8px;
+    color: var(--violet);
+    font-family: var(--font-mono);
+    font-size: 18px;
+}
+.planner-workflow-phase[open] > summary::after { content: "−"; }
+.planner-phase-number {
+    align-self: start;
+    padding-top: 3px;
+    color: var(--violet);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.07em;
+}
+.planner-phase-copy {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+.planner-phase-copy strong {
+    font-family: var(--font-display);
+    font-size: clamp(19px, 2.2vw, 25px);
+    line-height: 1.12;
+    font-weight: 500;
+    letter-spacing: -0.035em;
+}
+.planner-phase-copy small {
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.55;
+}
+.planner-phase-count {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: start;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+.planner-workflow-phase-content {
+    padding: 0 22px 8px;
+    border-top: 1px solid var(--line);
+}
+.planner-workflow-phase-content .planner-workflow-step {
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 16px;
+    padding: 26px 0;
+}
+.planner-workflow-phase-content .planner-step-content h3 {
+    font-size: clamp(22px, 2.4vw, 29px);
+}
+.planner-workflow-phase-content .planner-workflow-step:last-child { border-bottom: 0; }
+
+@media (max-width: 700px) {
+    .planner-phase-toolbar { padding: 14px; }
+    .planner-phase-toolbar-actions { display: grid; grid-template-columns: 1fr 1fr; }
+    .planner-phase-toolbar-actions .button { width: 100%; }
+    .planner-workflow-phase > summary {
+        grid-template-columns: 52px minmax(0, 1fr) 16px;
+        gap: 10px;
+        padding: 16px 13px;
+    }
+    .planner-phase-copy strong { font-size: 19px; }
+    .planner-phase-copy small { font-size: 11px; }
+    .planner-phase-count { grid-column: 2; }
+    .planner-workflow-phase-content { padding: 0 13px 4px; }
+    .planner-workflow-phase-content .planner-workflow-step {
+        grid-template-columns: 28px minmax(0, 1fr);
+        gap: 10px;
+        padding: 21px 0;
+    }
+}
+
+
+/* Guided intake: explicit choices before generating a tailored protocol. */
+.planner-intake-message {
+    margin: 18px 0 2px;
+    padding: 13px 16px;
+    border-left: 3px solid var(--violet);
+    background: rgba(255, 255, 255, .58);
+    color: var(--ink);
+    font-size: 12px;
+    line-height: 1.65;
+}
+.planner-intake-message[hidden] {
+    display: none !important;
+}
+.planner-objective-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 16px;
+}
+.planner-objective-action {
+    padding: 7px 11px;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: .04em;
+    cursor: pointer;
+}
+.planner-objective-action:hover,
+.planner-objective-action:focus-visible {
+    border-color: var(--violet);
+    color: var(--ink);
+    outline: none;
+}

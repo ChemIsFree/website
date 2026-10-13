@@ -342,29 +342,51 @@ function interfaceSuitability(tool, preference) {
     return score;
 }
 
-function rankWorkflowTools(config, preference) {
-    const preferred = config.tools || [];
-    const taskIds = config.tasks || [];
-    const domainIds = config.domains || [];
+function rankWorkflowTools(config, preference, guiOnly) {
+    const preferred = Array.isArray(config.tools) ? config.tools : [];
+    const taskIds = Array.isArray(config.tasks) ? config.tasks : [];
+    const domainIds = Array.isArray(config.domains) ? config.domains : [];
 
     const ranked = workflowCatalogue.map(function(tool) {
+        let relevance = 0;
         let score = 0;
         const preferredIndex = preferred.indexOf(tool.id);
-        if (preferredIndex >= 0) score += Math.max(4, 18 - preferredIndex * 2);
+        if (preferredIndex >= 0) {
+            relevance += 3;
+            score += Math.max(4, 18 - preferredIndex * 2);
+        }
+
         const toolTasks = Array.isArray(tool.tasks) ? tool.tasks : [];
         taskIds.forEach(function(taskId) {
-            if (toolTasks.includes(taskId)) score += 9;
+            if (toolTasks.includes(taskId)) {
+                relevance += 1;
+                score += 9;
+            }
         });
+
         const toolDomains = Array.isArray(tool.domain) ? tool.domain : [];
         domainIds.forEach(function(domainId) {
-            if (toolDomains.includes(domainId)) score += 1;
+            if (toolDomains.includes(domainId)) {
+                relevance += 1;
+                score += 1;
+            }
         });
+
+        // Interface preferences refine the ranking; they must never make an
+        // unrelated catalogue record appear to be a task recommendation.
+        if (!relevance) return null;
         score += interfaceSuitability(tool, preference);
-        return { tool: tool, score: score };
-    }).filter(function(item) { return item.score > 0; });
+        return { tool: tool, score: score, relevance: relevance };
+    }).filter(function(item) {
+        if (!item || item.score <= 0) return false;
+        if (guiOnly !== "yes") return true;
+        const interfaceItems = getInterfaceItems(item.tool);
+        return interfaceItems.includes("web") || interfaceItems.includes("gui");
+    });
 
     ranked.sort(function(a, b) {
         if (b.score !== a.score) return b.score - a.score;
+        if (b.relevance !== a.relevance) return b.relevance - a.relevance;
         const aVisual = getInterfaceItems(a.tool).some(function(value) { return value === "gui" || value === "web"; });
         const bVisual = getInterfaceItems(b.tool).some(function(value) { return value === "gui" || value === "web"; });
         if (aVisual !== bVisual && preference === "visual-first") return aVisual ? -1 : 1;
@@ -505,7 +527,7 @@ function makeToolCard(tool, selectedOS, preference, index, step) {
 
 
 const plannerInputLabels = {
-    target: "Target and organism are specified",
+    target: "A target is specified; organism and target mapping still need validation",
     structure: "A relevant protein structure has been selected",
     "native-ligand": "A native/co-crystal ligand or independent pose reference is available",
     "known-actives": "A traceable known-active set is available",
@@ -514,7 +536,15 @@ const plannerInputLabels = {
     "activity-data": "A traceable activity dataset is available",
     "compound-set": "Compound structures/SMILES and stable IDs are available",
     "synthesis-constraints": "Synthesis/procurement constraints are defined",
-    "validated-docking": "Docking has passed pose and enrichment controls"
+    "validated-docking": "Docking has passed pose-recovery and enrichment controls",
+    "protein-sequence": "A protein sequence or accession is available",
+    "prepared-ligands": "Prepared ligand structures or conformers are available",
+    "docking-box": "The docking box or binding-site coordinates are defined",
+    "interaction-fingerprints": "Protein-ligand interaction fingerprints are available",
+    pharmacophore: "A pharmacophore hypothesis or feature map is available",
+    "qsar-model": "A QSAR/ML model and its validation results are available",
+    "generated-compounds": "A designed or generated compound set is available",
+    "admet-results": "Property/ADMET prediction or experimental results are available"
 };
 
 function currentPlannerInputs() {
@@ -528,7 +558,7 @@ function currentPlannerInputs() {
     const organismControl = document.getElementById("planner-organism");
     const target = targetControl ? targetControl.value.trim() : "";
     const organism = organismControl ? organismControl.value.trim() : "";
-    available.target = Boolean(target && organism);
+    available.target = Boolean(target);
     return { available: available, target: target, organism: organism };
 }
 
@@ -538,11 +568,245 @@ function unmetInputNames(keys, available) {
     });
 }
 
-function makeStep(step, index, selectedOS, preference, availableInputs) {
+function adaptStepForAvailableInputs(step, availableInputs) {
+    const adapted = Object.assign({}, step);
+    const available = availableInputs || {};
+    const has = function(key) { return Boolean(available[key]); };
+
+    // Treat the questionnaire as an actual starting-state declaration:
+    // verify user-provided assets rather than blindly repeating acquisition steps.
+    if (step.id === "target.resolve" && has("protein-sequence")) {
+        adapted.title = "Verify existing sequence/accession — " + step.title;
+        adapted.intro = "Start from the sequence or accession already in hand; resolve it unambiguously before linking chemistry and structure data.";
+        adapted.actions = [
+            "Record the sequence/accession source, organism, isoform/construct and any mutations or truncations.",
+            "Map the sequence to a species-specific UniProt record and verify that PDB constructs/chain sequences match the intended region.",
+            "Keep the original sequence and an alignment/mapping record so ligand activity and structural evidence are not transferred across unrelated paralogues or constructs."
+        ];
+        adapted.deliverable = "Verified sequence-to-accession/construct mapping, with remaining identity ambiguities documented.";
+    }
+
+    if (step.id === "structure.choose" && has("structure")) {
+        adapted.title = "Audit existing structure — " + step.title;
+        adapted.intro = "Start from your file and verify that it represents the intended target, construct and binding-site state.";
+        adapted.actions = [
+            "Record source/PDB ID, chain, biological assembly, organism, isoform/construct, resolution and refinement statistics if experimental.",
+            "Check missing atoms/residues in the pocket, mutations versus the reference sequence, alternate locations, cofactors/metals, waters and bound ligand identity.",
+            "Compare the provided structure with an experimental holo structure of the correct target before relying on it; use a predicted model as a hypothesis rather than equivalent evidence."
+        ];
+        adapted.deliverable = "Structure audit with a go/no-go decision and any additional PDB structures needed.";
+    }
+
+    if (step.id === "ligand.query" && has("activity-data")) {
+        adapted.title = "Audit/extend existing activity data — " + step.title;
+        adapted.intro = "Do not redownload the same dataset by default. Validate provenance and retrieve only the records or metadata that are missing.";
+        adapted.actions = [
+            "Check that compound IDs, structures, target, assay IDs, endpoint, units, standard relation, source document and organism are preserved.",
+            "Keep IC50, Ki, EC50 and other assay types separate unless a defensible endpoint-specific analysis justifies combination.",
+            "Compare the export with ChEMBL or the original assay source to fill important gaps and document access/query dates."
+        ];
+        adapted.deliverable = "Audited original dataset plus a gap list and a curated analysis copy.";
+    }
+
+    if (step.id === "data.curate" && has("compound-set")) {
+        adapted.title = "Quality-check existing compound file — " + step.title;
+        adapted.intro = "Retain the original file and create a traceable cleaned copy rather than overwriting structures or identifiers.";
+        adapted.actions = [
+            "Validate SMILES/SDF parsing, stable IDs, stereochemistry, salts, charge, duplicates and missing structures.",
+            "Separate duplicate structures from repeated measurements and preserve the original-to-clean mapping.",
+            "Record standardization rules, excluded rows and any structures requiring manual review."
+        ];
+        adapted.deliverable = "Validated, traceable structure set and a curation log.";
+    }
+
+    if (step.id === "structure.prepare" && has("structure") && has("prepared-ligands")) {
+        adapted.title = "Audit your existing prepared receptor and ligand files";
+        adapted.intro = "Reuse prepared files only if their provenance and settings are known and compatible with the chosen docking engine.";
+        adapted.actions = [
+            "Record which preparation tool/version created the files and verify atom typing, protonation, charges, stereochemistry and ligand identity.",
+            "Confirm that the receptor contains the intended chain, pocket residues and relevant cofactors/metals, and that the ligand box is centred on the intended site.",
+            "Check that the receptor and ligand preparation policy is consistent across every compound and receptor state; regenerate only incompatible or undocumented files."
+        ];
+        adapted.deliverable = "Preparation audit and a decision to reuse or regenerate each asset.";
+    } else if (step.id === "structure.prepare" && has("structure")) {
+        adapted.actions = (step.actions || []).map(function(action) {
+            return action.replace(/^Repair the structure and inspect/, "Starting from your provided structure, inspect")
+                .replace(/^Choose the binding site/, "Confirm the binding site in your provided structure");
+        });
+    }
+
+    if (step.id === "structure.prepare" && has("prepared-ligands") && !has("structure")) {
+        adapted.title = "Audit existing ligand preparation — " + step.title;
+        adapted.intro = "Reuse prepared ligand files if their chemistry, protonation and engine-specific atom typing are documented; prepare only what is missing.";
+        adapted.actions = [
+            "Verify compound IDs, stereochemistry, protonation/tautomer policy, atom typing, charges, conformer coverage and preparation software/version.",
+            "If ten conformers per compound were generated, confirm the conformer manifest links each file back to the same parent compound and no conformer is counted as an independent compound.",
+            "Prepare or audit the receptor and define the docking box separately; prepared ligand files alone do not define a validated docking setup."
+        ];
+        adapted.deliverable = "Audited ligand files plus a gap list for receptor, box and validation prerequisites.";
+    }
+
+    if (step.id === "interactions.native" && has("interaction-fingerprints")) {
+        adapted.title = "Audit existing crystal-complex interaction fingerprints";
+        adapted.intro = "Reuse the saved PLIF report only if the experimental ligand, chain, protein preparation and interaction settings can be verified.";
+        adapted.actions = [
+            "Check that the fingerprint was generated from the experimental co-crystal ligand and the intended protein chain, not a docking pose or unrelated non-polymer component.",
+            "Record ligand component/residue ID, receptor state, treatment of hydrogens/waters/metals, software/version and interaction definitions.",
+            "Inspect representative contacts manually and save a linked reference report; flag missing provenance and regenerate only where needed."
+        ];
+        adapted.deliverable = "Audited crystal-contact fingerprint with provenance and a decision to reuse or regenerate.";
+    }
+
+    if (step.id === "structure.prepare" && has("docking-box") && !(has("structure") && has("prepared-ligands"))) {
+        adapted.actions = (step.actions || []).concat([
+            "Because a docking box is already available, inspect its centre and dimensions in the receptor coordinate frame and verify that it covers the intended co-crystal ligand/pocket with sensible padding.",
+            "Do not silently replace a documented, previously validated box; preserve the original settings and record any revised box as a new setup."
+        ]);
+    }
+
+    if (step.id === "structure.redock" && has("native-ligand")) {
+        adapted.intro = "Use the available co-crystal ligand as the reference pose, but start docking from an independently prepared ligand conformer.";
+        adapted.actions = [
+            "Verify the native ligand component ID, chain, residue ID, stereochemistry and connectivity; extract its experimental coordinates as the reference.",
+            "Remove the ligand from the receptor and dock an independently generated 3D conformer into a box defined by the crystal ligand.",
+            "Calculate heavy-atom pose RMSD in the receptor coordinate frame, inspect atom mapping/symmetry and visually compare the key contacts."
+        ];
+        adapted.deliverable = "Redocking pose, RMSD and visual review against the native crystallographic reference.";
+    }
+
+    if (step.id === "screen.validate" && has("known-actives") && has("decoys")) {
+        adapted.title = "Audit active/control sets — " + step.title;
+        adapted.intro = "Use the active/control sets you already assembled, auditing their labels and property matching before measuring enrichment.";
+        adapted.actions = [
+            "Verify which compounds are experimentally confirmed actives, experimentally measured inactives, generated decoys or untested; do not label untested molecules inactive.",
+            "Compare MW, lipophilicity, charge, HBD/HBA and chemical similarity distributions; document source and decoy-generation settings.",
+            "Run the same preparation and scoring pipeline for all classes and report per-engine ROC-AUC and early-enrichment metrics with class sizes and uncertainty."
+        ];
+        adapted.deliverable = "Per-engine enrichment report plus an audited active/control manifest.";
+    }
+
+    if (step.id === "design.enumerate" && has("generated-compounds")) {
+        adapted.title = "Audit designed compounds — " + step.title;
+        adapted.intro = "Reuse the existing generated set as the starting point. Do not generate a duplicate library until you have checked which constraints and validation stages were already applied.";
+        adapted.actions = [
+            "Preserve generator/version, prompt or scaffold, fixed seed where available, building-block constraints and original output strings.",
+            "Sanitize, standardize and deduplicate the molecules; verify that stereochemistry, scaffold/pharmacophore constraints and chemical validity are as intended.",
+            "Apply independent binding hypotheses, property/ADMET filters and synthetic feasibility checks, recording all rejection reasons."
+        ];
+        adapted.deliverable = "Ranked, standardized design set with generation provenance, QC status and explicit evidence gaps.";
+    }
+
+    if (step.id === "screen.validate" && (has("known-actives") !== has("decoys")) && !has("validated-docking")) {
+        adapted.title = "Complete the active/control benchmark — " + step.title;
+        adapted.intro = "One side of the benchmark set is already available. Assemble and qualify the missing side before claiming enrichment.";
+        adapted.actions = [
+            "Check the existing set's source, target/assay context, endpoint, labels, structure identity and stable IDs.",
+            "If actives are available but decoys/inactives are missing, first search for credible measured inactives; otherwise create a clearly labelled property-matched decoy set and report its generation method.",
+            "If decoys are available but actives are missing, assemble traceable known actives for the same target and a compatible endpoint; do not substitute arbitrary ligand-like compounds.",
+            "Apply identical preparation and scoring to both classes, compare descriptor distributions and report class sizes, ROC-AUC and early enrichment."
+        ];
+        adapted.deliverable = "Audited active/control manifest with a documented source for the previously missing class.";
+    }
+
+    if (step.id === "screen.validate" && has("validated-docking") && !(has("known-actives") && has("decoys"))) {
+        adapted.title = "Audit existing docking validation — " + step.title;
+        adapted.intro = "Treat an existing validation as applicable only to the receptor states, ligand chemistry, preparation and scoring settings it actually tested.";
+        adapted.actions = [
+            "Retrieve the original native-pose recovery and active/control enrichment reports, raw score tables, compound IDs, software versions and setup parameters.",
+            "Check whether the current receptor, box, protonation policy, engine versions and chemical series fall within that validation's scope.",
+            "Repeat a minimal control whenever a relevant component changes; expand the benchmark only when the original control set does not cover the intended task."
+        ];
+        adapted.deliverable = "Validation audit defining what is supported, what remains untested and which controls must be repeated.";
+    }
+
+    if (step.id === "screen.library" && has("library")) {
+        adapted.title = "Reuse existing screening library — " + step.title;
+        adapted.intro = "Start from the current library and prove that compound identity, source and preparation are reproducible.";
+        adapted.actions = [
+            "Record the source/version, stable compound ID, availability, license/use conditions and original structure for each entry.",
+            "Standardize and deduplicate under an explicit policy; retain stereochemistry and map every processed structure back to the source.",
+            "Check that the library's chemistry and scale are compatible with the validated method and the compounds you can actually test."
+        ];
+        adapted.deliverable = "Versioned, standardized library plus source/availability manifest.";
+    }
+
+    if (step.id === "screen.library" && has("pharmacophore") && !has("library")) {
+        adapted.title = "Use your existing pharmacophore to screen a defined library — " + step.title;
+        adapted.intro = "A pharmacophore hypothesis is not a screen by itself: define the molecular library and validate feature settings before screening.";
+        adapted.actions = [
+            "Record the pharmacophore's source, reference ligands, feature definitions, tolerances, conformer generation settings and software/version.",
+            "Choose and document a fit-for-purpose library; standardize its molecules and preserve stable source IDs before generating conformers or scoring matches.",
+            "Test the hypothesis on a held-out known-active/control set, then report active recovery, enrichment, library size and representative false positives before scaling."
+        ];
+        adapted.deliverable = "Validated pharmacophore-screening specification and a traceable ranked output once a library is supplied.";
+    }
+
+    if (step.id === "screen.library" && has("pharmacophore") && has("library")) {
+        adapted.actions = (adapted.actions || []).concat([
+            "Also reuse the existing pharmacophore only after verifying its reference ligand(s), feature definitions/tolerances, conformer settings and software version.",
+            "Evaluate the pharmacophore on a held-out active/control set, then compare its enrichment and false positives against the validated docking baseline instead of treating either ranking as ground truth."
+        ]);
+        adapted.deliverable = "Versioned screening output with both docking and pharmacophore evidence, validation metrics and traceable compound IDs.";
+    }
+
+    if (step.id === "interactions.report" && has("interaction-fingerprints")) {
+        adapted.title = "Audit and extend the interaction fingerprints you already have";
+        adapted.intro = "First verify the protein/ligand preparation, pose identity and fingerprint definitions. Then compare matched active and control sets.";
+        adapted.actions = [
+            "Record the receptor state, protonation/atom typing, selected pose, interaction classes and software version for existing fingerprints.",
+            "Check whether every compound contributes one comparable pose and has a stable ID plus active/control label.",
+            "Compare interaction prevalence by residue and chemical series; use a held-out or independent set where possible and manually inspect key examples."
+        ];
+        adapted.deliverable = "Reproducible PLIF matrix and an active-versus-control interaction report.";
+    }
+
+    if (step.id === "model.baseline" && has("qsar-model")) {
+        adapted.title = "Audit the QSAR model you already have";
+        adapted.intro = "Do not train a replacement model automatically; establish whether the existing model answers the current endpoint and chemistry question.";
+        adapted.actions = [
+            "Record training data, endpoint, label rules, structure standardization, split strategy, software/model version and all model-selection decisions.",
+            "Check for compound/scaffold leakage, class balance, calibration, applicability domain and an untouched external or prospective evaluation.",
+            "Compare the model with simple baselines and test whether the intended new chemistry is represented in the training domain."
+        ];
+        adapted.deliverable = "QSAR qualification note stating permitted use, failure modes and the remaining validation gaps.";
+    }
+
+    if (step.id === "synthesis.route" && has("synthesis-constraints")) {
+        adapted.title = "Triage routes against your existing synthesis constraints — " + step.title;
+        adapted.intro = "Use the available route, budget, substrate/equipment and scale constraints before spending time on unconstrained retrosynthesis predictions.";
+        adapted.actions = [
+            "Record accessible starting materials, acceptable vendors, deadline, scale, available equipment/chemistry and restrictions on hazardous or specialized transformations.",
+            "Compare predicted route options with literature precedent, substrate scope, regio-/stereoselectivity, protection/deprotection needs, purification burden and route convergence.",
+            "Identify the first uncertain or infeasible transformation, a backup disconnection and whether a route can deliver a matched analogue series and controls."
+        ];
+        adapted.deliverable = "Route short-list mapped to the actual synthesis/procurement constraints, with uncertainty and fallback routes recorded.";
+    }
+
+    if (step.id === "develop.profile" && has("admet-results")) {
+        adapted.title = "Reconcile existing ADMET data — " + step.title;
+        adapted.intro = "Keep experimental and predicted results distinct, and add predictions only for missing endpoints or unresolved risks.";
+        adapted.actions = [
+            "Track source/model, prediction date, endpoint definitions, units, structure standardization and uncertainty/applicability warnings.",
+            "Compare available predictions with each other and with measured data; investigate disagreement rather than averaging unlike endpoints.",
+            "Prioritize missing experimental tests according to the project profile, including CNS exposure only when that is a real requirement."
+        ];
+        adapted.deliverable = "Evidence table separating experimental results, model predictions, conflicts and the next informative assay.";
+    }
+
+    if (step.id === "structure.crossdock" && has("validated-docking")) {
+        adapted.intro = "Reuse the established protocol only for receptor states, ligand types and software settings covered by the original validation. Recheck controls when those change.";
+    }
+
+    return adapted;
+}
+
+function makeStep(step, index, selectedOS, preference, availableInputs, guiOnly) {
+    step = adaptStepForAvailableInputs(step, availableInputs);
+    const recipeHtml = guiOnly === "yes" ? "" : (typeof window.renderWorkflowRecipe === "function" ? window.renderWorkflowRecipe(step.id, availableInputs) : "");
     const actions = (step.actions || []).map(function(action) {
         return "<li>" + escapeWorkflowHtml(action) + "</li>";
     }).join("");
-    const recommendations = rankWorkflowTools(step, preference);
+    const recommendations = rankWorkflowTools(step, preference, guiOnly);
     const toolsHtml = recommendations.length
         ? '<div class="planner-tool-recommendations">' +
             recommendations.map(function(tool, toolIndex) { return makeToolCard(tool, selectedOS, preference, toolIndex, step); }).join("") +
@@ -572,16 +836,25 @@ function makeStep(step, index, selectedOS, preference, availableInputs) {
           }).join(" · ") + '</div>'
         : "";
 
+    const expandLabel = missing.length
+        ? "Expand instructions, tools and validation gate · " + missing.length + " input gap(s)"
+        : "Expand instructions, tools and validation gate";
+
     return '<article class="planner-workflow-step">' +
         '<div class="planner-step-number">' + String(index + 1).padStart(2, "0") + '</div>' +
         '<div class="planner-step-content">' +
             '<p class="planner-step-kicker">' + escapeWorkflowHtml(step.kicker || "PROTOCOL STEP") + '</p>' +
             '<h3>' + escapeWorkflowHtml(step.title) + '</h3>' +
             '<p class="planner-step-intro">' + escapeWorkflowHtml(step.intro) + '</p>' +
-            '<ol class="planner-step-actions">' + actions + '</ol>' +
-            '<p class="planner-deliverable"><strong>Record / deliverable.</strong> ' + escapeWorkflowHtml(step.deliverable || "Save the result, source identifiers and relevant settings.") + '</p>' +
-            prereqHtml + gateHtml + failureHtml + sourcesHtml +
-            toolsHtml + coverage +
+            '<details class="planner-workflow-step-details">' +
+                '<summary><span>' + escapeWorkflowHtml(expandLabel) + '</span></summary>' +
+                '<div class="planner-workflow-step-body">' +
+                    '<ol class="planner-step-actions">' + actions + '</ol>' +
+                    '<p class="planner-deliverable"><strong>Record / deliverable.</strong> ' + escapeWorkflowHtml(step.deliverable || "Save the result, source identifiers and relevant settings.") + '</p>' +
+                    recipeHtml + prereqHtml + gateHtml + failureHtml + sourcesHtml +
+                    toolsHtml + coverage +
+                '</div>' +
+            '</details>' +
         '</div>' +
     '</article>';
 }
@@ -606,26 +879,133 @@ function choosePrimaryProtocol(objectives) {
     return objectives.find(function(id) { return Boolean(protocolLibrary[id]); }) || "target-context";
 }
 
-function composeProtocolSteps(objectives, primaryId) {
+function composeProtocolSteps(objectives, primaryId, approach) {
     const orderedObjectives = [primaryId].concat(objectives.filter(function(id) { return id !== primaryId; }));
-    const seen = {};
+    const byId = Object.create(null);
     const steps = [];
     orderedObjectives.forEach(function(id) {
         const definition = protocolLibrary[id];
         if (!definition) return;
         definition.steps.forEach(function(step) {
-            const key = String(step.id || "") + "|" + String(step.title || "");
-            if (!seen[key]) {
-                seen[key] = true;
-                steps.push(step);
+            const key = String(step.id || step.title || "");
+            if (!key) return;
+            if (!byId[key]) {
+                // Clone nested arrays so composition never mutates the source catalogue.
+                const copy = Object.assign({}, step);
+                ["actions", "tasks", "tools", "requires", "sources"].forEach(function(field) {
+                    if (Array.isArray(step[field])) copy[field] = step[field].slice();
+                });
+                copy._mergedDeliverables = step.deliverable ? [step.deliverable] : [];
+                copy._mergedGates = step.gate ? [step.gate] : [];
+                copy._mergedFailures = step.commonFailure ? [step.commonFailure] : [];
+                copy._mergedPrerequisites = step.before ? [step.before] : [];
+                byId[key] = copy;
+                steps.push(copy);
+            } else {
+                mergeProtocolStep(byId[key], step);
             }
         });
+    });
+    steps.forEach(function(step) {
+        step.deliverable = Array.from(new Set(step._mergedDeliverables || [])).join(" Also record: ");
+        step.gate = Array.from(new Set(step._mergedGates || [])).join(" Also confirm: ");
+        step.commonFailure = Array.from(new Set(step._mergedFailures || [])).join(" Also avoid: ");
+        step.before = Array.from(new Set(step._mergedPrerequisites || [])).join(" Also first: ");
     });
     steps.sort(function(a, b) {
         if (a.order !== b.order) return a.order - b.order;
         return String(a.title || "").localeCompare(String(b.title || ""));
     });
-    return steps;
+    return orderWorkflowStepsForApproach(steps, approach);
+}
+
+function mergeProtocolStep(base, incoming) {
+    const appendUnique = function(field, values, signature) {
+        if (!Array.isArray(base[field])) base[field] = [];
+        (Array.isArray(values) ? values : []).forEach(function(value) {
+            const key = signature ? signature(value) : String(value);
+            const exists = base[field].some(function(item) {
+                return (signature ? signature(item) : String(item)) === key;
+            });
+            if (!exists) base[field].push(value);
+        });
+    };
+    appendUnique("actions", incoming.actions);
+    appendUnique("tasks", incoming.tasks);
+    appendUnique("tools", incoming.tools);
+    appendUnique("requires", incoming.requires);
+    appendUnique("sources", incoming.sources, function(source) {
+        return String(source && source.url || "") + "|" + String(source && source.title || "");
+    });
+    if (incoming.deliverable && !(base._mergedDeliverables || []).includes(incoming.deliverable)) {
+        base._mergedDeliverables = base._mergedDeliverables || [];
+        base._mergedDeliverables.push(incoming.deliverable);
+    }
+    if (incoming.gate && !(base._mergedGates || []).includes(incoming.gate)) {
+        base._mergedGates = base._mergedGates || [];
+        base._mergedGates.push(incoming.gate);
+    }
+    if (incoming.commonFailure && !(base._mergedFailures || []).includes(incoming.commonFailure)) {
+        base._mergedFailures = base._mergedFailures || [];
+        base._mergedFailures.push(incoming.commonFailure);
+    }
+    if (incoming.before && !(base._mergedPrerequisites || []).includes(incoming.before)) {
+        base._mergedPrerequisites = base._mergedPrerequisites || [];
+        base._mergedPrerequisites.push(incoming.before);
+    }
+    if (typeof incoming.order === "number" && typeof base.order === "number") {
+        base.order = Math.min(base.order, incoming.order);
+    }
+}
+
+function orderWorkflowStepsForApproach(steps, approach) {
+    // The target definition comes first in every route. SBDD/mixed then starts
+    // with structure selection before activity retrieval; ligand-based starts
+    // with traceable activity/ligand evidence. Validation gates precede screening.
+    const priorities = {
+        "ligand-based": [
+            "target.resolve", "ligand.query", "data.inventory", "data.curate", "data.audit",
+            "ligand.search", "ligand.series", "model.baseline", "model.validate", "model.domain",
+            "design.hypothesis", "design.enumerate", "analogue.triage", "screen.validate",
+            "screen.library", "screen.triage", "develop.descriptors", "develop.profile",
+            "admet.risk-plan", "synthesis.route", "synthesis.risk",
+            "structure.choose", "pocket.audit", "interactions.native", "structure.prepare",
+            "structure.redock", "structure.crossdock", "interactions.report", "screen.rescore",
+            "generation.triage", "workflow.design", "workflow.build", "workflow.validate", "workflow.audit"
+        ],
+        "structure-based": [
+            "target.resolve", "structure.choose", "pocket.audit", "ligand.query", "data.inventory",
+            "data.curate", "interactions.native", "structure.prepare", "structure.redock",
+            "structure.crossdock", "screen.validate", "interactions.report", "ligand.search",
+            "ligand.series", "design.hypothesis", "screen.library", "screen.triage", "screen.rescore",
+            "develop.descriptors", "develop.profile", "admet.risk-plan", "model.baseline",
+            "model.validate", "model.domain", "design.enumerate", "analogue.triage",
+            "generation.triage", "synthesis.route", "synthesis.risk", "data.audit",
+            "workflow.design", "workflow.build", "workflow.validate", "workflow.audit"
+        ],
+        "mixed": [
+            "target.resolve", "structure.choose", "pocket.audit", "ligand.query", "data.inventory",
+            "data.curate", "interactions.native", "structure.prepare", "structure.redock",
+            "structure.crossdock", "screen.validate", "interactions.report", "ligand.search",
+            "ligand.series", "design.hypothesis", "screen.library", "screen.triage", "screen.rescore",
+            "develop.descriptors", "develop.profile", "admet.risk-plan", "model.baseline",
+            "model.validate", "model.domain", "design.enumerate", "analogue.triage",
+            "generation.triage", "synthesis.route", "synthesis.risk", "data.audit",
+            "workflow.design", "workflow.build", "workflow.validate", "workflow.audit"
+        ]
+    };
+    const order = priorities[approach] || priorities.mixed;
+    const rank = Object.create(null);
+    order.forEach(function(id, index) {
+        if (rank[id] === undefined) rank[id] = index;
+    });
+    return steps.map(function(step, index) {
+        return { step: step, index: index, rank: rank[step.id] === undefined ? 1000 : rank[step.id] };
+    }).sort(function(a, b) {
+        if (a.rank !== b.rank) return a.rank - b.rank;
+        if (a.step.order !== b.step.order) return a.step.order - b.step.order;
+        return a.index - b.index;
+    }).map(function(item) { return item.step; });
 }
 
 function getProtocolRequirements(objectives) {
@@ -787,6 +1167,16 @@ function numberOrNull(value) {
     return Number.isFinite(parsed) ? parsed : null;
 }
 
+function isCandidateLigandComponent(component) {
+    const weight = numberOrNull(component && component.molecularWeight);
+    const description = String(component && component.description || "").toLowerCase();
+    if (weight === null || weight <= 150 || weight > 1200) return false;
+    // A conservative filter for common crystallization/solvent components.
+    // It is only a prioritization clue; every component still needs inspection.
+    const commonAdditive = /\b(water|glycerol|ethylene glycol|polyethylene glycol|peg|ethanol|methanol|acetate|formate|chloride|bromide|iodide|sulfate|phosphate|sodium|potassium|calcium|magnesium|zinc|ammonium|imidazole|tris|hepes|mes|bicine|citrate)\b/i;
+    return !commonAdditive.test(description);
+}
+
 function scoreStructureRecord(record) {
     let score = 0;
     const resolution = record.resolution;
@@ -805,7 +1195,11 @@ function scoreStructureRecord(record) {
         else if (rfree <= 0.30) score += 1.5;
         else score += 0.5;
     }
-    if (record.nonpolymerIds.length) score += 2;
+    const candidateComponents = Array.isArray(record.components)
+        ? record.components.filter(isCandidateLigandComponent)
+        : [];
+    if (candidateComponents.length) score += 2;
+    else if (record.nonpolymerIds.length) score += 0.5;
     if (String(record.method).toUpperCase().includes("X-RAY")) score += 1;
     return Math.min(10, score);
 }
@@ -884,54 +1278,103 @@ function targetEvidenceHtml(evidence) {
     }).join("");
 
     let structures = "";
-    if (evidence.structures && evidence.structures.length) {
+    if (evidence.requiresAccessionChoice) {
+        structures = '<div class="live-evidence-empty"><strong>Choose the correct UniProt record first.</strong> Several possible target records were returned, so no structure shortlist has been generated yet.</div>';
+    } else if (evidence.structures && evidence.structures.length) {
         structures = '<h4>Experimental structure shortlist</h4>' +
             '<p class="live-evidence-note">Sorted by a transparent triage heuristic, not by docking or ligand potency. Inspect the full record before selecting a receptor.</p>' +
-            '<div class="live-evidence-table-wrap"><table class="live-evidence-table"><thead><tr><th>PDB</th><th>Resolution (Å)</th><th>R-free</th><th>Method</th><th>Bound non-polymer components</th><th>Triage / 10</th></tr></thead><tbody>' +
+            '<div class="live-evidence-table-wrap"><table class="live-evidence-table"><thead><tr><th>PDB</th><th>Resolution (Å)</th><th>R-free</th><th>Method</th><th>Bound non-polymer components</th><th>Chain / mutation check</th><th>Metadata score / 10</th></tr></thead><tbody>' +
             evidence.structures.map(function(record) {
                 const pdbUrl = "https://www.rcsb.org/structure/" + encodeURIComponent(record.id);
                 return '<tr><td><a href="' + escapeWorkflowHtml(pdbUrl) + '" target="_blank" rel="noopener noreferrer"><strong>' + escapeWorkflowHtml(record.id) + '</strong> ↗</a></td>' +
                     '<td>' + (record.resolution === null ? "n/a" : record.resolution.toFixed(2)) + '</td>' +
                     '<td>' + (record.rfree === null ? "n/a" : record.rfree.toFixed(3)) + '</td>' +
                     '<td>' + escapeWorkflowHtml(record.method) + '</td>' +
-                    '<td>' + escapeWorkflowHtml(record.components && record.components.length
+                    '<td>' + escapeWorkflowHtml("") + (record.components && record.components.length
                         ? record.components.map(function(component) {
                             const detail = component.description ? component.id + " — " + component.description : component.id;
-                            return component.molecularWeight !== null ? detail + " (" + component.molecularWeight.toFixed(1) + " Da)" : detail;
-                          }).join("; ")
-                        : (record.nonpolymerIds.length ? record.nonpolymerIds.join(", ") : "None listed")) + '</td>' +
+                            const withWeight = component.molecularWeight !== null ? detail + " (" + component.molecularWeight.toFixed(1) + " Da)" : detail;
+                            const validationUrl = component.molecularWeight !== null && component.molecularWeight > 150
+                                ? "https://www.rcsb.org/ligand-validation/" + encodeURIComponent(record.id) + "/" + encodeURIComponent(component.id)
+                                : "";
+                            return validationUrl
+                                ? '<a href="' + escapeWorkflowHtml(validationUrl) + '" target="_blank" rel="noopener noreferrer">' + escapeWorkflowHtml(withWeight) + ' · ligand validation ↗</a>'
+                                : escapeWorkflowHtml(withWeight);
+                          }).join("<br>")
+                        : (record.nonpolymerIds.length ? escapeWorkflowHtml(record.nonpolymerIds.join(", ")) : "None listed")) + '</td>' +
+                    '<td><a href="https://www.rcsb.org/structure/' + escapeWorkflowHtml(encodeURIComponent(record.id)) + '" target="_blank" rel="noopener noreferrer">Inspect chain / mutations ↗</a></td>' +
                     '<td>' + record.score.toFixed(1) + '</td></tr>';
             }).join("") +
             '</tbody></table></div>' +
-            '<p class="live-evidence-note">Triage score components: resolution (0–4), R-free (0–3 when reported), non-polymer component presence (+2), and X-ray diffraction (+1). This simple heuristic may favour well-refined X-ray structures over cryo-EM structures and does not score site completeness, ligand medicinal relevance, mutation state, clashes or binding-mode suitability. Non-polymer IDs can include cofactors/ions, so they do not prove that a drug-like ligand is bound.</p>';
+            '<p class="live-evidence-note">Metadata score components: resolution (0–4), R-free (0–3 when reported), a candidate ligand-sized organic component (+2, based on reported molecular weight and a conservative common-additive name filter; otherwise any non-polymer component contributes only +0.5), and X-ray diffraction (+1). It remains a triage heuristic. It does not validate binding-site completeness, prove that a component is the biologically relevant ligand, or automatically certify a wild-type/no-mutation construct. Inspect the chain/sequence link for mutations and the linked RCSB ligand-validation page for density-fit and geometry metrics where available.</p>';
     } else {
         structures = '<div class="live-evidence-empty"><strong>No experimental structures were returned by the accession-specific query.</strong> The target may lack a matching structure, the cross-reference may be missing, or the API query may be incomplete. Check the manual RCSB search before concluding there are no structures.</div>';
     }
 
-    const targetMatchesNote = evidence.matches.length > 1
-        ? '<p class="live-evidence-note"><strong>Target match needs human review.</strong> UniProt returned several records. The structure search uses the first result above; confirm the intended accession before using any structure.</p>'
+    const accessionOptions = evidence.matches.map(function(match) {
+        const accession = String(match.accession || "");
+        const label = accession + " — " + String(match.name || "Unnamed protein") +
+            (match.gene ? " (" + String(match.gene) + ")" : "") +
+            " · " + String(match.organism || "Organism unknown") +
+            (match.reviewed ? " · reviewed" : "");
+        return '<option value="' + escapeWorkflowHtml(accession) + '">' + escapeWorkflowHtml(label) + '</option>';
+    }).join("");
+    const accessionChooser = evidence.requiresAccessionChoice
+        ? '<div class="uniprot-accession-selector">' +
+            '<label for="uniprot-accession-choice"><strong>Select the exact UniProt record</strong><small>Confirm the accession, protein name, organism and gene before retrieving structures.</small></label>' +
+            '<select id="uniprot-accession-choice" class="planner-select"><option value="">Choose a UniProt accession…</option>' + accessionOptions + '</select>' +
+            '<button type="button" id="search-selected-uniprot-structures" class="button button-secondary">Search PDB for this accession</button>' +
+            '<p id="uniprot-accession-status" class="live-evidence-note" aria-live="polite"></p>' +
+          '</div>'
         : "";
-    const searchMode = evidence.exactAccession
-        ? "Structures matched through the selected UniProt accession."
-        : "Fallback text search used because the accession-specific search returned no entries or could not be completed; inspect target/organism mapping carefully.";
+    const targetMatchesNote = evidence.matches.length > 1 && evidence.selectedAccession
+        ? '<p class="live-evidence-note"><strong>Accession selected:</strong> Structure retrieval is scoped to ' +
+            escapeWorkflowHtml(evidence.selectedAccession) + '. Verify the protein/construct alignment before choosing a receptor.</p>'
+        : "";
+    const searchMode = evidence.requiresAccessionChoice
+        ? "PDB search is paused until you select the intended UniProt accession."
+        : evidence.exactAccession
+            ? "Structures matched through the selected UniProt accession."
+            : "Fallback text search used because the accession-specific search returned no entries or could not be completed; inspect target/organism mapping carefully.";
+    const structureCountNote = evidence.requiresAccessionChoice
+        ? ""
+        : " Total reported RCSB results: " + String(evidence.structureTotal) + ".";
     return '<section class="live-target-evidence" id="live-target-evidence">' +
         '<div class="live-evidence-heading"><p class="eyebrow">LIVE DATABASE LOOKUP</p><h3>Target and structure evidence</h3><p>Retrieved from UniProt and RCSB PDB in the browser. This is discovery metadata, not a structural validation.</p></div>' +
         '<h4>UniProt target matches</h4>' +
         '<div class="live-evidence-table-wrap"><table class="live-evidence-table"><thead><tr><th>Accession</th><th>Protein / gene</th><th>Organism</th><th>Length (aa)</th><th>Record type</th></tr></thead><tbody>' + uniprotRows + '</tbody></table></div>' +
-        targetMatchesNote +
-        '<p class="live-evidence-note">' + escapeWorkflowHtml(searchMode) + ' Total reported RCSB results: ' + String(evidence.structureTotal) + '.</p>' +
+        accessionChooser + targetMatchesNote +
+        '<p class="live-evidence-note">' + escapeWorkflowHtml(searchMode) + structureCountNote + '</p>' +
         structures +
         '<p class="live-evidence-note"><a href="https://www.uniprot.org/" target="_blank" rel="noopener noreferrer">Open UniProt ↗</a> · <a href="https://www.rcsb.org/" target="_blank" rel="noopener noreferrer">Open RCSB PDB ↗</a></p>' +
     '</section>';
 }
 
-async function retrieveLiveTargetEvidence(target, organism) {
+async function retrieveLiveTargetEvidence(target, organism, accessionOverride) {
     const rawMatches = await lookupUniProtTarget(target, organism);
-    const matches = rawMatches.map(extractUniProtMatch);
-    if (!matches.length || !matches[0].accession) {
+    const matches = rawMatches.map(extractUniProtMatch).filter(function(match) { return Boolean(match.accession); });
+    if (!matches.length) {
         throw new Error("No UniProt match was returned for this target and organism.");
     }
-    const selected = matches[0];
+
+    // Never silently choose the first accession when the target mapping is ambiguous.
+    if (!accessionOverride && matches.length > 1) {
+        return {
+            matches: matches,
+            structures: [],
+            structureTotal: 0,
+            exactAccession: false,
+            requiresAccessionChoice: true,
+            selectedAccession: ""
+        };
+    }
+
+    const selected = accessionOverride
+        ? matches.find(function(match) { return match.accession === accessionOverride; })
+        : matches[0];
+    if (!selected) {
+        throw new Error("The selected UniProt accession was not among the current target matches. Search again and select a listed record.");
+    }
     const structureSearch = await searchRcsbEntries(selected.accession, target, organism);
     const ids = structureSearch.results.map(function(item) { return item.identifier; }).filter(Boolean);
     const metadataResults = await Promise.allSettled(ids.slice(0, 12).map(loadRcsbStructureRecord));
@@ -944,14 +1387,58 @@ async function retrieveLiveTargetEvidence(target, organism) {
         if (a.resolution !== null && b.resolution !== null && a.resolution !== b.resolution) return a.resolution - b.resolution;
         return a.id.localeCompare(b.id);
     });
+    // Enrich the initial shortlist, then re-rank it using the retrieved non-polymer descriptions/MWs.
+    // This avoids treating a sodium ion or solvent as equivalent to a ligand-sized organic component.
     const structures = await enrichStructureComponents(sortedStructures.slice(0, 8));
+    structures.forEach(function(record) { record.score = scoreStructureRecord(record); });
+    structures.sort(function(a, b) {
+        if (b.score !== a.score) return b.score - a.score;
+        if (a.resolution !== null && b.resolution !== null && a.resolution !== b.resolution) return a.resolution - b.resolution;
+        return a.id.localeCompare(b.id);
+    });
     return {
         matches: matches,
         structures: structures,
         structureTotal: structureSearch.total,
         exactAccession: structureSearch.exactAccession,
-        accessionSearchError: structureSearch.accessionSearchError || ""
+        accessionSearchError: structureSearch.accessionSearchError || "",
+        requiresAccessionChoice: false,
+        selectedAccession: selected.accession
     };
+}
+
+function bindUniProtAccessionChoice(target, organism, requestId) {
+    const selector = document.getElementById("uniprot-accession-choice");
+    const button = document.getElementById("search-selected-uniprot-structures");
+    const status = document.getElementById("uniprot-accession-status");
+    if (!selector || !button) return;
+
+    button.addEventListener("click", function() {
+        const accession = selector.value;
+        if (!accession) {
+            if (status) status.textContent = "Select a UniProt accession before searching PDB.";
+            return;
+        }
+        button.disabled = true;
+        if (status) status.textContent = "Retrieving PDB structures for " + accession + "…";
+        const panel = document.getElementById("live-target-evidence");
+        if (panel) {
+            panel.innerHTML = '<div class="live-evidence-heading"><p class="eyebrow">LIVE DATABASE LOOKUP</p><h3>Target and structure evidence</h3><p>Searching structures for the selected UniProt accession ' + escapeWorkflowHtml(accession) + '…</p></div>';
+        }
+
+        retrieveLiveTargetEvidence(target, organism, accession).then(function(evidence) {
+            if (requestId !== liveEvidenceRequestId) return;
+            const currentPanel = document.getElementById("live-target-evidence");
+            if (currentPanel) currentPanel.outerHTML = targetEvidenceHtml(evidence);
+            bindUniProtAccessionChoice(target, organism, requestId);
+        }).catch(function(error) {
+            if (requestId !== liveEvidenceRequestId) return;
+            const currentPanel = document.getElementById("live-target-evidence");
+            if (currentPanel) currentPanel.outerHTML = renderLiveEvidenceUnavailable(
+                target, organism, error && error.message ? error.message : ""
+            );
+        });
+    });
 }
 
 function renderLiveEvidenceUnavailable(target, organism, message) {
@@ -964,10 +1451,191 @@ function renderLiveEvidenceUnavailable(target, organism, message) {
         '<p><a href="https://www.uniprot.org/" target="_blank" rel="noopener noreferrer">Search UniProt ↗</a> · <a href="https://www.rcsb.org/" target="_blank" rel="noopener noreferrer">Search RCSB PDB ↗</a></p></div></section>';
 }
 
+function workflowPhaseForStep(step, approach) {
+    const id = String(step && step.id || "");
+    const phaseSets = {
+        "ligand-based": {
+            "target-evidence": {
+                title: "Target, activity data and initial quality control",
+                summary: "Anchor the target, preserve source-traceable measurements, and audit the input data.",
+                ids: ["target.resolve", "ligand.query", "data.inventory", "data.curate", "data.audit"]
+            },
+            "ligand-analysis": {
+                title: "Known ligands, SAR and focused design hypotheses",
+                summary: "Map chemical series, challenge SAR claims, validate predictive models, and formulate testable compound changes.",
+                ids: ["ligand.search", "ligand.series", "model.baseline", "model.validate", "model.domain", "design.hypothesis", "design.enumerate", "analogue.triage"]
+            },
+            "screening": {
+                title: "Validate the method, then screen and triage",
+                summary: "Check that the ranking beats a relevant baseline before using it on a larger library.",
+                ids: ["screen.validate", "screen.library", "screen.triage"]
+            },
+            "developability": {
+                title: "Property and ADMET risk assessment",
+                summary: "Treat predicted properties as risk flags to test, not as proof of efficacy or safety.",
+                ids: ["develop.descriptors", "develop.profile", "admet.risk-plan"]
+            },
+            "synthesis": {
+                title: "Synthetic feasibility",
+                summary: "Review routes, starting materials and route uncertainty before committing to a design.",
+                ids: ["synthesis.route", "synthesis.risk"]
+            },
+            "structural-crosscheck": {
+                title: "Structural cross-check and pose validation",
+                summary: "Use structural evidence as an independent follow-up; inspect the binding site and validate docking before interpreting scores.",
+                ids: ["structure.choose", "pocket.audit", "interactions.native", "structure.prepare", "structure.redock", "structure.crossdock", "interactions.report"]
+            },
+            "rescore": {
+                title: "Shortlist rescoring and independent triage",
+                summary: "Apply more expensive or independent methods only to defensible survivors.",
+                ids: ["screen.rescore", "generation.triage"]
+            },
+            "reproducibility": {
+                title: "Audit trail and reproducibility",
+                summary: "Record the workflow contract, implementation, regression tests, assumptions and next decision.",
+                ids: ["workflow.design", "workflow.build", "workflow.validate", "workflow.audit"]
+            }
+        },
+        "structure-based": {
+            "target-evidence": {
+                title: "Target, structure and experimental ligand evidence",
+                summary: "Confirm the target identity and assess the experimental structure, binding site and reference ligand.",
+                ids: ["target.resolve", "structure.choose", "pocket.audit", "ligand.query", "data.inventory", "data.curate", "interactions.native"]
+            },
+            "preparation-validation": {
+                title: "Prepare the system and validate the method",
+                summary: "Prepare receptor and ligands consistently, recover the reference pose, and validate ranking before screening.",
+                ids: ["structure.prepare", "structure.redock", "structure.crossdock", "screen.validate", "interactions.report"]
+            },
+            "ligand-sar": {
+                title: "Known ligands, SAR and binding hypotheses",
+                summary: "Use measured compounds to develop and challenge hypotheses that complement structural evidence.",
+                ids: ["ligand.search", "ligand.series", "design.hypothesis"]
+            },
+            "screening": {
+                title: "Virtual screening and candidate triage",
+                summary: "Run a bounded screen only after the setup has passed the selected validation gates.",
+                ids: ["screen.library", "screen.triage", "screen.rescore"]
+            },
+            "developability-models": {
+                title: "Predictive models and developability",
+                summary: "Assess model validity, applicability limits, physicochemical liabilities and ADMET risks.",
+                ids: ["develop.descriptors", "develop.profile", "admet.risk-plan", "model.baseline", "model.validate", "model.domain"]
+            },
+            "design-synthesis": {
+                title: "Focused design and synthetic feasibility",
+                summary: "Generate constrained analogues, triage candidates independently, and review practical routes.",
+                ids: ["design.enumerate", "analogue.triage", "generation.triage", "synthesis.route", "synthesis.risk"]
+            },
+            "reproducibility": {
+                title: "Quality audit and reproducibility",
+                summary: "Audit the dataset and preserve workflow settings, outputs, assumptions and failure states.",
+                ids: ["data.audit", "workflow.design", "workflow.build", "workflow.validate", "workflow.audit"]
+            }
+        },
+        "mixed": {
+            "target-evidence": {
+                title: "Target, structure and experimental ligand evidence",
+                summary: "Resolve target identity and establish a defensible structural and ligand-data starting point.",
+                ids: ["target.resolve", "structure.choose", "pocket.audit", "ligand.query", "data.inventory", "data.curate", "interactions.native"]
+            },
+            "preparation-validation": {
+                title: "Prepare the system and validate the method",
+                summary: "Prepare structures consistently, validate pose recovery, and test ranking performance before screening.",
+                ids: ["structure.prepare", "structure.redock", "structure.crossdock", "screen.validate", "interactions.report"]
+            },
+            "ligand-sar": {
+                title: "Known ligands, SAR and testable hypotheses",
+                summary: "Use measured ligand evidence to complement the binding-site model and develop interpretable hypotheses.",
+                ids: ["ligand.search", "ligand.series", "design.hypothesis"]
+            },
+            "screening": {
+                title: "Virtual screening and candidate triage",
+                summary: "Run a pilot or focused screen, then prioritize candidates using orthogonal evidence.",
+                ids: ["screen.library", "screen.triage", "screen.rescore"]
+            },
+            "developability-models": {
+                title: "Predictive models and developability",
+                summary: "Evaluate model reliability and compound liabilities without treating predictions as experimental confirmation.",
+                ids: ["develop.descriptors", "develop.profile", "admet.risk-plan", "model.baseline", "model.validate", "model.domain"]
+            },
+            "design-synthesis": {
+                title: "Focused design and synthetic feasibility",
+                summary: "Turn supported hypotheses into constrained analogues, independently triage candidates, and review routes.",
+                ids: ["design.enumerate", "analogue.triage", "generation.triage", "synthesis.route", "synthesis.risk"]
+            },
+            "reproducibility": {
+                title: "Quality audit and reproducibility",
+                summary: "Audit chemical/statistical quality and retain a traceable record of methods, settings and decisions.",
+                ids: ["data.audit", "workflow.design", "workflow.build", "workflow.validate", "workflow.audit"]
+            }
+        }
+    };
+    const groups = phaseSets[approach] || phaseSets.mixed;
+    for (const phase of Object.values(groups)) {
+        if (phase.ids.includes(id)) return { id: Object.keys(groups).find(function(key) { return groups[key] === phase; }), title: phase.title, summary: phase.summary };
+    }
+    return {
+        id: "additional",
+        title: "Additional analysis",
+        summary: "Follow the step-specific prerequisites and validation criteria."
+    };
+}
+
+function groupWorkflowStepsByPhase(steps, approach) {
+    // Group only adjacent steps. Flattening the groups therefore exactly preserves
+    // the protocol engine's scientific order for every approach and objective set.
+    const groups = [];
+    (steps || []).forEach(function(step) {
+        const phase = workflowPhaseForStep(step, approach);
+        let current = groups[groups.length - 1];
+        if (!current || current.id !== phase.id) {
+            current = {
+                id: phase.id,
+                title: phase.title,
+                summary: phase.summary,
+                steps: []
+            };
+            groups.push(current);
+        }
+        current.steps.push(step);
+    });
+    return groups;
+}
+
+function renderWorkflowPhases(steps, selectedOS, preference, availableInputs, guiOnly, approach) {
+    const groups = groupWorkflowStepsByPhase(steps, approach);
+    const stepCount = Array.isArray(steps) ? steps.length : 0;
+    const phaseMarkup = groups.map(function(phase, phaseIndex) {
+        return '<details class="planner-workflow-phase" data-workflow-phase="' + escapeWorkflowHtml(phase.id) + '"' + (phaseIndex === 0 ? ' open' : '') + '>' +
+            '<summary>' +
+                '<span class="planner-phase-number">PHASE ' + String(phaseIndex + 1).padStart(2, "0") + '</span>' +
+                '<span class="planner-phase-copy"><strong>' + escapeWorkflowHtml(phase.title) + '</strong><small>' + escapeWorkflowHtml(phase.summary) + '</small></span>' +
+                '<span class="planner-phase-count">' + phase.steps.length + (phase.steps.length === 1 ? ' step' : ' steps') + '</span>' +
+            '</summary>' +
+            '<div class="planner-workflow-phase-content">' +
+                phase.steps.map(function(step) { return makeStep(step, steps.indexOf(step), selectedOS, preference, availableInputs, guiOnly); }).join("") +
+            '</div>' +
+        '</details>';
+    }).join("");
+
+    return '<div class="planner-phase-toolbar">' +
+        '<p><strong>Workflow map</strong><span>' + stepCount + ' ordered steps across ' + groups.length + (groups.length === 1 ? ' phase' : ' phases') + '. Open a phase to inspect its tasks; expand a task for tools, instructions and gates.</span></p>' +
+        '<div class="planner-phase-toolbar-actions" role="group" aria-label="Workflow display controls">' +
+            '<button type="button" class="button button-secondary" id="expand-workflow-phases">Expand all phases</button>' +
+            '<button type="button" class="button button-secondary" id="collapse-workflow-phases">Collapse all phases</button>' +
+            '<button type="button" class="button button-secondary" id="expand-workflow-instructions">Expand all step instructions</button>' +
+            '<button type="button" class="button button-secondary" id="collapse-workflow-instructions">Collapse all step instructions</button>' +
+        '</div>' +
+    '</div>' +
+    '<div class="planner-phase-list">' + phaseMarkup + '</div>';
+}
+
 function renderWorkflow(event) {
     if (event) event.preventDefault();
     const results = document.getElementById("workflow-results");
     if (!results) return;
+    if (!validateGuidedIntake()) return;
 
     const objectives = selectedObjectives().filter(function(id) { return Boolean(protocolLibrary[id]); });
     const stageInput = document.querySelector('input[name="stage"]:checked');
@@ -979,6 +1647,18 @@ function renderWorkflow(event) {
     const experience = experienceControl ? experienceControl.value : "new";
     const preferenceControl = document.getElementById("planner-tool-style");
     const preference = preferenceControl ? preferenceControl.value : "visual-first";
+    const approachControl = document.querySelector('input[name="approach"]:checked');
+    const approach = approachControl ? approachControl.value : "mixed";
+    const guiOnlyControl = document.querySelector('input[name="gui-only"]:checked');
+    const guiOnly = guiOnlyControl ? guiOnlyControl.value : "yes";
+    const approachLabels = {
+        "ligand-based": "Ligand-based",
+        "structure-based": "Structure-based",
+        mixed: "Mixed ligand- and structure-based"
+    };
+    const approachLabel = approachLabels[approach] || "Mixed ligand- and structure-based";
+    const targetChoiceControl = document.querySelector('input[name="target-choice"]:checked');
+    const targetChoice = targetChoiceControl ? targetChoiceControl.value : "";
     const focusControl = document.getElementById("planner-project-focus");
     const focus = focusControl ? focusControl.value.trim() : "";
     const inputState = currentPlannerInputs();
@@ -989,26 +1669,36 @@ function renderWorkflow(event) {
         return;
     }
 
-    const primaryId = choosePrimaryProtocol(objectives);
+    let primaryId = choosePrimaryProtocol(objectives);
+    if (approach === "ligand-based" && objectives.includes("ligand-landscape")) {
+        primaryId = "ligand-landscape";
+    } else if (approach === "structure-based" && objectives.includes("structure-based")) {
+        primaryId = "structure-based";
+    } else if (approach === "mixed" && objectives.includes("structure-based")) {
+        primaryId = "structure-based";
+    }
     const primary = protocolLibrary[primaryId];
-    const steps = composeProtocolSteps(objectives, primaryId);
+    const steps = composeProtocolSteps(objectives, primaryId, approach);
+    const workflowTitle = approach === "mixed" && objectives.includes("ligand-landscape") && objectives.includes("structure-based")
+        ? "Integrated ligand- and structure-based discovery workflow"
+        : primary.title;
     const requirementKeys = getProtocolRequirements(objectives);
     const missingRequirements = unmetInputNames(requirementKeys, inputState.available);
     const question = focus || primary.question.replace("the specified target", inputState.target || "the target of interest").replace("the stated organism", inputState.organism || "the relevant organism");
     const targetLine = inputState.target && inputState.organism
         ? escapeWorkflowHtml(inputState.target) + " · " + escapeWorkflowHtml(inputState.organism)
-        : (inputState.target ? escapeWorkflowHtml(inputState.target) + " · organism not specified" : "Not specified yet");
+        : (inputState.target ? escapeWorkflowHtml(inputState.target) + " · organism not specified"
+            : (targetChoice === "private" ? "Intentionally undisclosed" : targetChoice === "not-yet" ? "No specific target selected" : "Not specified yet"));
     const goalNames = objectives.map(objectiveDisplayName);
     const experienceSummary = experience === "new"
         ? "Beginner explanation"
         : experience === "some"
             ? "Some computational experience"
             : "Command line / coding comfortable";
-    const styleSummary = preference === "visual-first"
-        ? "Browser / desktop first"
-        : preference === "mixed"
-            ? "Visual and technical tools"
-            : "Programming / command line acceptable";
+    const styleSummary = guiOnly === "yes"
+        ? "Graphical interface only / strongly preferred"
+        : (preference === "mixed" ? "Graphical and command-line tools acceptable"
+            : preference === "programmatic" ? "Programming / command line acceptable" : "Graphical tools preferred; CLI allowed");
     const assetsSummary = missingRequirements.length
         ? "Provisional plan · " + missingRequirements.length + " required input(s) not yet marked available"
         : "Inputs declared · scientific validation gates still apply";
@@ -1029,22 +1719,26 @@ function renderWorkflow(event) {
     const longWorkflowNote = steps.length > 12
         ? '<p class="planner-length-note"><strong>Combined protocol.</strong> This plan is broad because several objectives were selected. Run it phase by phase; do not skip a gate simply to shorten the workflow.</p>'
         : "";
-    const guidance = experience === "new" && preference === "visual-first"
-        ? "Start with browser or graphical tools where the catalogue offers a direct match. Some preparation, docking, QSAR and simulation steps still require command-line use or a configured environment; a web interface does not remove the need for method validation."
-        : "Record inputs, versions, settings, control results and failures. A tool suggestion is not evidence that the method is valid for your target or chemotype.";
+    const guidance = guiOnly === "yes"
+        ? "Recommendations are restricted to catalogue tools with a recorded graphical/web interface. If a method has no GUI match, the planner will say so rather than silently recommending a command-line tool. Code recipes are hidden for this choice."
+        : experience === "new" && preference === "visual-first"
+            ? "Start with browser or graphical tools where the catalogue offers a direct match. Expand the optional code recipes when a technical step needs a reproducible command or script."
+            : "Record inputs, versions, settings, control results and failures. A tool suggestion is not evidence that the method is valid for your target or chemotype.";
     const selectedOSLabel = selectedOS === "any" ? "No preference" : titleLabel(selectedOS);
 
     results.innerHTML =
         '<div class="protocol-results-header">' +
             '<div class="protocol-kicker">02 / GENERATED SCIENTIFIC PROTOCOL</div>' +
             '<div class="protocol-state ' + (missingRequirements.length ? "is-provisional" : "is-input-complete") + '">' + escapeWorkflowHtml(assetsSummary) + '</div>' +
-            '<h2>' + escapeWorkflowHtml(primary.title) + '</h2>' +
+            '<h2>' + escapeWorkflowHtml(workflowTitle) + '</h2>' +
             '<p class="protocol-summary">' + escapeWorkflowHtml(primary.question.replace("the specified target", inputState.target || "the target of interest").replace("the stated organism", inputState.organism || "the relevant organism")) + '</p>' +
             '<div class="protocol-decision-grid">' +
                 '<div><span>QUESTION</span><p>' + escapeWorkflowHtml(question) + '</p></div>' +
                 '<div><span>TARGET / ORGANISM</span><p>' + targetLine + '</p></div>' +
                 '<div><span>THIS DECIDES</span><p>' + escapeWorkflowHtml(primary.decision) + '</p></div>' +
+                '<div><span>APPROACH</span><p>' + escapeWorkflowHtml(approachLabel) + '</p></div>' +
             '</div>' +
+            workflowApproachGuideHtml(approach) +
             (inputState.target && inputState.organism
                 ? '<section class="live-target-evidence" id="live-target-evidence"><div class="live-evidence-heading"><p class="eyebrow">LIVE DATABASE LOOKUP</p><h3>Target and structure evidence</h3><p>Retrieving UniProt and RCSB records…</p></div></section>'
                 : '<section class="live-target-evidence" id="live-target-evidence"><div class="live-evidence-heading"><p class="eyebrow">TARGET EVIDENCE</p><h3>Target and structure evidence</h3><p>Enter both a target and organism above to retrieve UniProt matches and an experimental PDB shortlist when the public APIs are reachable.</p></div></section>') +
@@ -1058,9 +1752,28 @@ function renderWorkflow(event) {
             '</div>' + longWorkflowNote +
             '<div class="protocol-actions"><button type="button" class="button button-secondary" id="print-workflow">Print / save protocol as PDF</button><button type="button" class="button button-secondary" id="edit-inputs">Edit inputs</button></div>' +
             '<div class="planner-results-list">' +
-                steps.map(function(step, index) { return makeStep(step, index, selectedOS, preference, inputState.available); }).join("") +
+                renderWorkflowPhases(steps, selectedOS, preference, inputState.available, guiOnly, approach) +
             '</div>' +
             '<p class="planner-method-note">Catalogue matches are ranked from ChemIsFree records using task tags and interface preference. Interface classifications may be provisional or unconfirmed. External references are starting points, not endorsements. Thresholds labelled as working defaults are project heuristics rather than universal rules. Predicted poses, activity scores and ADMET outputs are not experimental confirmation.</p>';
+
+    const phaseDetails = Array.from(results.querySelectorAll("details.planner-workflow-phase"));
+    const expandPhasesButton = document.getElementById("expand-workflow-phases");
+    const collapsePhasesButton = document.getElementById("collapse-workflow-phases");
+    const expandInstructionsButton = document.getElementById("expand-workflow-instructions");
+    const collapseInstructionsButton = document.getElementById("collapse-workflow-instructions");
+    if (expandPhasesButton) expandPhasesButton.addEventListener("click", function() {
+        phaseDetails.forEach(function(detail) { detail.open = true; });
+    });
+    if (collapsePhasesButton) collapsePhasesButton.addEventListener("click", function() {
+        phaseDetails.forEach(function(detail) { detail.open = false; });
+    });
+    if (expandInstructionsButton) expandInstructionsButton.addEventListener("click", function() {
+        results.querySelectorAll("details.planner-workflow-step-details").forEach(function(detail) { detail.open = true; });
+        phaseDetails.forEach(function(detail) { detail.open = true; });
+    });
+    if (collapseInstructionsButton) collapseInstructionsButton.addEventListener("click", function() {
+        results.querySelectorAll("details.planner-workflow-step-details").forEach(function(detail) { detail.open = false; });
+    });
 
     const thisEvidenceRequest = ++liveEvidenceRequestId;
     const evidencePanel = document.getElementById("live-target-evidence");
@@ -1070,6 +1783,7 @@ function renderWorkflow(event) {
             if (thisEvidenceRequest !== liveEvidenceRequestId) return;
             const panel = document.getElementById("live-target-evidence");
             if (panel) panel.outerHTML = targetEvidenceHtml(evidence);
+            bindUniProtAccessionChoice(inputState.target, inputState.organism, thisEvidenceRequest);
         }).catch(function(error) {
             if (thisEvidenceRequest !== liveEvidenceRequestId) return;
             const panel = document.getElementById("live-target-evidence");
@@ -1092,11 +1806,584 @@ function resetWorkflow() {
     if (results) results.innerHTML = "";
 }
 
+
+/* ---------------------------------------------------------
+   Live ChEMBL target search and endpoint-specific activity export
+   --------------------------------------------------------- */
+let chemblTargetSearchTimer = null;
+let chemblTargetSearchRequest = 0;
+let selectedChemblTargetRecord = null;
+let lastChemblActivityRows = [];
+
+function guidedIntakeIssue(answers) {
+    const state = answers || {};
+    if (!state.targetChoice) {
+        return {
+            sectionId: "question-target",
+            selector: 'input[name="target-choice"]',
+            message: "Please answer Question 1: choose a target, continue without naming one, or keep it private."
+        };
+    }
+    if (state.targetChoice === "yes" && !String(state.target || "").trim()) {
+        return {
+            sectionId: "question-target",
+            selector: "#planner-target",
+            message: "You selected a specific target. Enter a target name or gene symbol, or choose “Not yet” to continue without naming one."
+        };
+    }
+    if (!state.approach) {
+        return {
+            sectionId: "question-approach",
+            selector: 'input[name="approach"]',
+            message: "Please answer Question 2 by choosing a ligand-based, structure-based, or mixed approach."
+        };
+    }
+    if (!state.guiOnly) {
+        return {
+            sectionId: "question-interface",
+            selector: 'input[name="gui-only"]',
+            message: "Please answer Question 3 so the workflow can respect your preferred tool interface."
+        };
+    }
+    if (!Array.isArray(state.objectives) || !state.objectives.length) {
+        return {
+            sectionId: "question-objectives",
+            selector: 'input[name="objective"]',
+            message: "Please choose at least one objective in Question 4. Select only what is relevant, or use “Select all” for a broad survey."
+        };
+    }
+    return null;
+}
+
+function clearGuidedIntakeFeedback() {
+    const feedback = document.getElementById("workflow-intake-feedback");
+    if (feedback) {
+        feedback.hidden = true;
+        feedback.textContent = "";
+    }
+}
+
+function validateGuidedIntake() {
+    const targetChoice = document.querySelector('input[name="target-choice"]:checked');
+    const targetInput = document.getElementById("planner-target");
+    const approach = document.querySelector('input[name="approach"]:checked');
+    const guiOnly = document.querySelector('input[name="gui-only"]:checked');
+    const objectives = Array.from(document.querySelectorAll('input[name="objective"]:checked')).map(function(input) {
+        return input.value;
+    });
+    const issue = guidedIntakeIssue({
+        targetChoice: targetChoice ? targetChoice.value : "",
+        target: targetInput ? targetInput.value : "",
+        approach: approach ? approach.value : "",
+        guiOnly: guiOnly ? guiOnly.value : "",
+        objectives: objectives
+    });
+    if (!issue) {
+        clearGuidedIntakeFeedback();
+        return true;
+    }
+    const section = document.getElementById(issue.sectionId);
+    if (section) section.open = true;
+    const feedback = document.getElementById("workflow-intake-feedback");
+    if (feedback) {
+        feedback.textContent = issue.message;
+        feedback.hidden = false;
+    }
+    const field = document.querySelector(issue.selector);
+    if (field && typeof field.focus === "function") field.focus();
+    if (section && typeof section.scrollIntoView === "function") {
+        section.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    return false;
+}
+
+function updateQuestionnaireCounts() {
+    const objectiveInputs = Array.from(document.querySelectorAll('input[name="objective"]'));
+    const selectedObjectivesCount = objectiveInputs.filter(function(input) { return input.checked; }).length;
+    const objectiveState = document.getElementById("objective-question-state");
+    if (objectiveState) {
+        objectiveState.textContent = selectedObjectivesCount === 0
+            ? "Choose activities"
+            : selectedObjectivesCount === objectiveInputs.length
+                ? "All " + objectiveInputs.length + " selected"
+                : selectedObjectivesCount + " of " + objectiveInputs.length + " selected";
+    }
+    const assetInputs = Array.from(document.querySelectorAll('input[name="asset"]'));
+    const selectedAssetsCount = assetInputs.filter(function(input) { return input.checked; }).length;
+    const assetState = document.getElementById("asset-question-state");
+    if (assetState) assetState.textContent = selectedAssetsCount ? selectedAssetsCount + " input(s) marked available" : "None marked yet";
+
+    const approachState = document.querySelector("#question-approach .planner-question-state");
+    const approach = document.querySelector('input[name="approach"]:checked');
+    if (approachState) approachState.textContent = approach
+        ? ({ "ligand-based": "Ligand-based", "structure-based": "Structure-based", mixed: "Mixed approach" }[approach.value] || "Choose one")
+        : "Choose one";
+    const interfaceState = document.querySelector("#question-interface .planner-question-state");
+    const guiOnly = document.querySelector('input[name="gui-only"]:checked');
+    if (interfaceState) interfaceState.textContent = !guiOnly
+        ? "Choose one"
+        : guiOnly.value === "yes"
+            ? "Graphical interface only"
+            : "Command line / code also acceptable";
+}
+
+function setTargetQuestionState(text) {
+    const state = document.getElementById("target-question-state");
+    if (state) state.textContent = text;
+}
+
+function clearChEMBLSelection(options) {
+    const opts = options || {};
+    const target = document.getElementById("planner-target");
+    const chemblId = document.getElementById("planner-target-chembl-id");
+    const organism = document.getElementById("planner-organism");
+    const suggestions = document.getElementById("target-suggestions");
+    const summary = document.getElementById("target-selection-summary");
+    const activityButton = document.getElementById("fetch-chembl-activities");
+    const activityResults = document.getElementById("chembl-activity-results");
+    selectedChemblTargetRecord = null;
+    lastChemblActivityRows = [];
+    if (chemblId) chemblId.value = "";
+    if (target && opts.clearText !== false) target.value = "";
+    if (organism && opts.clearOrganism !== false) organism.value = "";
+    if (suggestions) suggestions.replaceChildren();
+    if (summary) {
+        summary.hidden = true;
+        summary.textContent = "";
+    }
+    if (activityButton) activityButton.disabled = true;
+    if (activityResults) activityResults.textContent = "";
+}
+
+function buildTargetSuggestion(record) {
+    const id = String(record.target_chembl_id || record.chembl_id || "");
+    const name = String(record.pref_name || record.target_name || record.name || "Unnamed target");
+    const organism = String(record.organism || record.target_organism || "");
+    const targetType = String(record.target_type || record.target_type_description || "");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "planner-target-suggestion";
+    button.setAttribute("role", "option");
+    const textWrap = document.createElement("span");
+    const strong = document.createElement("strong");
+    strong.textContent = name;
+    textWrap.appendChild(strong);
+    const metadata = document.createElement("small");
+    metadata.textContent = [organism, targetType].filter(Boolean).join(" · ") || "Organism / type not reported in this result";
+    textWrap.appendChild(metadata);
+    const code = document.createElement("code");
+    code.textContent = id;
+    button.appendChild(textWrap);
+    button.appendChild(code);
+    button.addEventListener("click", function() {
+        selectChemblTarget({ target_chembl_id: id, pref_name: name, organism: organism, target_type: targetType });
+    });
+    return button;
+}
+
+function selectChemblTarget(record) {
+    const id = String(record.target_chembl_id || record.chembl_id || "");
+    if (!id) return;
+    selectedChemblTargetRecord = record;
+    const name = String(record.pref_name || record.target_name || record.name || id);
+    const organismName = String(record.organism || record.target_organism || "");
+    const target = document.getElementById("planner-target");
+    const chemblId = document.getElementById("planner-target-chembl-id");
+    const organism = document.getElementById("planner-organism");
+    const suggestions = document.getElementById("target-suggestions");
+    const status = document.getElementById("target-search-status");
+    const summary = document.getElementById("target-selection-summary");
+    const activityButton = document.getElementById("fetch-chembl-activities");
+    const activityResults = document.getElementById("chembl-activity-results");
+    if (target) target.value = name;
+    if (chemblId) chemblId.value = id;
+    if (organism) organism.value = organismName;
+    if (suggestions) suggestions.replaceChildren();
+    if (status) status.textContent = "Target selected. Confirm the organism and choose an activity endpoint below.";
+    if (summary) {
+        summary.hidden = false;
+        summary.innerHTML = "<strong>Selected ChEMBL target:</strong> " + escapeWorkflowHtml(name) +
+            " (" + escapeWorkflowHtml(id) + "). " +
+            escapeWorkflowHtml(organismName || "Organism not reported — confirm the mapping manually.");
+    }
+    if (activityButton) activityButton.disabled = false;
+    if (activityResults) activityResults.textContent = "";
+    setTargetQuestionState(id);
+}
+
+async function searchChemblTargets(term, requestId) {
+    const status = document.getElementById("target-search-status");
+    const suggestions = document.getElementById("target-suggestions");
+    if (!status || !suggestions) return;
+    status.textContent = "Searching ChEMBL…";
+    try {
+        const params = new URLSearchParams({ q: term, limit: "8" });
+        const payload = await fetchJsonResource("https://www.ebi.ac.uk/chembl/api/data/target/search.json?" + params.toString());
+        if (requestId !== chemblTargetSearchRequest) return;
+        let records = Array.isArray(payload.targets) ? payload.targets
+            : Array.isArray(payload.target_search_results) ? payload.target_search_results : [];
+        records = records.filter(function(item) {
+            return Boolean(item && (item.target_chembl_id || item.chembl_id) && (item.pref_name || item.target_name || item.name));
+        }).slice(0, 8);
+        suggestions.replaceChildren();
+        if (!records.length) {
+            status.textContent = "No matching ChEMBL target was returned. You can keep the name and organism for the later UniProt / RCSB PDB lookup; no match here does not mean the target has no structure.";
+            return;
+        }
+        records.forEach(function(record) {
+            suggestions.appendChild(buildTargetSuggestion(record));
+        });
+        status.textContent = records.length + " ChEMBL target suggestion(s). Select the record that matches your target and organism.";
+    } catch (error) {
+        if (requestId !== chemblTargetSearchRequest) return;
+        suggestions.replaceChildren();
+        status.textContent = "Live ChEMBL search is unavailable in this browser session. You can still enter a target name and organism for the later UniProt / RCSB PDB lookup, or open ChEMBL directly.";
+        const link = document.createElement("a");
+        link.href = "https://www.ebi.ac.uk/chembl/";
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = "Open ChEMBL ↗";
+        suggestions.appendChild(link);
+    }
+}
+
+function csvSafeCell(value) {
+    let text = value === null || value === undefined ? "" : String(value);
+    if (/^[=+\-@]/.test(text)) text = "'" + text;
+    return '"' + text.replace(/"/g, '""') + '"';
+}
+
+function downloadChemblCsv(rows, targetId, endpoint) {
+    if (!Array.isArray(rows) || !rows.length) return;
+    const columns = [
+        "activity_id", "target_chembl_id", "target_organism", "molecule_chembl_id", "canonical_smiles", "standard_type",
+        "standard_relation", "standard_value", "standard_units", "pchembl_value",
+        "assay_chembl_id", "assay_type", "assay_description", "data_validity_comment", "potential_duplicate",
+        "document_chembl_id", "bao_label", "src_id"
+    ];
+    const lines = [columns.map(csvSafeCell).join(",")];
+    rows.forEach(function(row) {
+        lines.push(columns.map(function(column) { return csvSafeCell(row[column]); }).join(","));
+    });
+    const blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = (targetId || "chembl-target") + "_" + endpoint.toLowerCase() + "_activities.csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+}
+
+function renderChemblActivityPreview(rows, totalAvailable, targetId, endpoint, smilesCount, truncated, structureLookupLimited) {
+    const results = document.getElementById("chembl-activity-results");
+    if (!results) return;
+    const shown = rows.slice(0, 8);
+    const body = shown.map(function(row) {
+        return "<tr><td>" + escapeWorkflowHtml(row.molecule_chembl_id || "—") + "</td>" +
+            "<td>" + escapeWorkflowHtml(row.standard_relation || "") + " " + escapeWorkflowHtml(row.standard_value || "n/a") +
+            " " + escapeWorkflowHtml(row.standard_units || "") + "</td>" +
+            "<td>" + escapeWorkflowHtml(row.pchembl_value || "—") + "</td>" +
+            "<td>" + escapeWorkflowHtml(row.assay_chembl_id || "—") + "</td></tr>";
+    }).join("");
+    results.innerHTML = "<p><strong>" + rows.length.toLocaleString() + " " + escapeWorkflowHtml(endpoint) +
+        " measurement(s) prepared for export</strong> for " + escapeWorkflowHtml(targetId) + ". " +
+        "Canonical SMILES retrieved for " + smilesCount.toLocaleString() + " unique compound(s)." +
+        (truncated ? " The browser activity-retrieval limit was reached; check the official ChEMBL record for any remaining observations." : "") +
+        (structureLookupLimited ? " SMILES lookup was limited to the first 1,000 unique compounds; some CSV rows may therefore have blank structures." : "") +
+        " Activities retain their reported values, units, relations, assay IDs and document/source fields.</p>" +
+        "<div class='planner-activity-preview-wrap'><table class='planner-activity-preview'><thead><tr><th>Molecule ChEMBL ID</th><th>Reported value</th><th>pChEMBL</th><th>Assay ID</th></tr></thead><tbody>" +
+        body + "</tbody></table></div>" +
+        (rows.length > shown.length ? "<p>Preview shows the first " + shown.length + " rows; the CSV contains the full retrieved set.</p>" : "") +
+        "<button type='button' class='button button-secondary' id='download-chembl-csv'>Download CSV (bioactivity + SMILES)</button>" +
+        "<p class='planner-field-help'>The CSV contains " + rows.length.toLocaleString() + " observations from the " + escapeWorkflowHtml(endpoint) +
+        " endpoint; total observations reported by ChEMBL: " + Number(totalAvailable || rows.length).toLocaleString() +
+        ". Repeated measurements are preserved. Do not merge IC₅₀, Kᵢ and EC₅₀ without a justified analysis plan.</p>";
+    const download = document.getElementById("download-chembl-csv");
+    if (download) download.addEventListener("click", function() { downloadChemblCsv(rows, targetId, endpoint); });
+}
+
+async function fetchChemblActivities() {
+    const targetIdControl = document.getElementById("planner-target-chembl-id");
+    const endpointControl = document.getElementById("planner-activity-type");
+    const button = document.getElementById("fetch-chembl-activities");
+    const results = document.getElementById("chembl-activity-results");
+    const targetId = targetIdControl ? targetIdControl.value.trim() : "";
+    const endpoint = endpointControl ? endpointControl.value : "IC50";
+    if (!targetId || !/^CHEMBL\d+$/i.test(targetId)) {
+        if (results) results.textContent = "Select a ChEMBL target record from the live suggestions before requesting activity data.";
+        return;
+    }
+    if (button) button.disabled = true;
+    if (results) results.textContent = "Retrieving " + endpoint + " activity records from ChEMBL…";
+    try {
+        const collected = [];
+        const pageSize = 1000;
+        const maxRows = 10000;
+        let totalAvailable = 0;
+        let offset = 0;
+        let firstPage = true;
+        while (offset < maxRows && (firstPage || offset < totalAvailable)) {
+            const params = new URLSearchParams({
+                target_chembl_id: targetId,
+                standard_type: endpoint,
+                limit: String(pageSize),
+                offset: String(offset),
+                only: "activity_id,molecule_chembl_id,standard_type,standard_relation,standard_value,standard_units,pchembl_value,assay_chembl_id,assay_type,assay_description,data_validity_comment,potential_duplicate,document_chembl_id,bao_label,src_id,target_chembl_id,target_organism"
+            });
+            const payload = await fetchJsonResource("https://www.ebi.ac.uk/chembl/api/data/activity.json?" + params.toString());
+            const page = Array.isArray(payload.activities) ? payload.activities : [];
+            const pageMeta = payload.page_meta || {};
+            totalAvailable = Number(pageMeta.total_count || pageMeta.total || page.length);
+            firstPage = false;
+            if (!page.length) break;
+            collected.push.apply(collected, page);
+            offset += page.length;
+            if (results) results.textContent = "Retrieving " + endpoint + " activities… " + collected.length.toLocaleString() +
+                (totalAvailable ? " of " + totalAvailable.toLocaleString() : "") + ".";
+            if (page.length < pageSize) break;
+        }
+        if (!collected.length) {
+            if (results) results.textContent = "ChEMBL returned no activity observations for " + endpoint + " for this target. Check the selected target and endpoint; an empty result is not proof of inactivity.";
+            return;
+        }
+
+        const moleculeIds = Array.from(new Set(collected.map(function(row) { return row.molecule_chembl_id; }).filter(Boolean)));
+        const structureLookupLimit = 1000;
+        const structureLookupLimited = moleculeIds.length > structureLookupLimit;
+        const structureLookupIds = moleculeIds.slice(0, structureLookupLimit);
+        const structuresById = {};
+        const chunks = [];
+        for (let i = 0; i < structureLookupIds.length; i += 50) chunks.push(structureLookupIds.slice(i, i + 50));
+        for (let i = 0; i < chunks.length; i += 4) {
+            const batch = chunks.slice(i, i + 4);
+            const responses = await Promise.allSettled(batch.map(async function(ids) {
+                const params = new URLSearchParams({
+                    molecule_chembl_id__in: ids.join(","),
+                    only: "molecule_chembl_id,molecule_structures",
+                    limit: String(ids.length)
+                });
+                return fetchJsonResource("https://www.ebi.ac.uk/chembl/api/data/molecule.json?" + params.toString());
+            }));
+            responses.forEach(function(response) {
+                if (response.status !== "fulfilled") return;
+                const molecules = Array.isArray(response.value.molecules) ? response.value.molecules : [];
+                molecules.forEach(function(molecule) {
+                    const structures = molecule.molecule_structures || {};
+                    structuresById[molecule.molecule_chembl_id] = structures.canonical_smiles || "";
+                });
+            });
+            if (results) results.textContent = "Adding canonical structures… " +
+                Math.min(i + batch.length, chunks.length) + " of " + chunks.length + " structure batches.";
+        }
+
+        lastChemblActivityRows = collected.map(function(row) {
+            return {
+                activity_id: row.activity_id || "",
+                target_chembl_id: row.target_chembl_id || targetId,
+                target_organism: row.target_organism || "",
+                molecule_chembl_id: row.molecule_chembl_id || "",
+                canonical_smiles: structuresById[row.molecule_chembl_id] || "",
+                standard_type: row.standard_type || endpoint,
+                standard_relation: row.standard_relation || "",
+                standard_value: row.standard_value === null || row.standard_value === undefined ? "" : row.standard_value,
+                standard_units: row.standard_units || "",
+                pchembl_value: row.pchembl_value === null || row.pchembl_value === undefined ? "" : row.pchembl_value,
+                assay_chembl_id: row.assay_chembl_id || "",
+                assay_type: row.assay_type || "",
+                assay_description: row.assay_description || "",
+                data_validity_comment: row.data_validity_comment || "",
+                potential_duplicate: row.potential_duplicate === null || row.potential_duplicate === undefined ? "" : row.potential_duplicate,
+                document_chembl_id: row.document_chembl_id || "",
+                bao_label: row.bao_label || "",
+                src_id: row.src_id || ""
+            };
+        });
+        const activityAsset = document.querySelector('input[name="asset"][value="activity-data"]');
+        const compoundAsset = document.querySelector('input[name="asset"][value="compound-set"]');
+        if (activityAsset) activityAsset.checked = true;
+        if (compoundAsset && Object.keys(structuresById).length) compoundAsset.checked = true;
+        updateQuestionnaireCounts();
+        const truncated = Number(totalAvailable) > collected.length || collected.length >= maxRows;
+        renderChemblActivityPreview(lastChemblActivityRows, totalAvailable || collected.length, targetId, endpoint,
+            Object.keys(structuresById).length, truncated, structureLookupLimited);
+    } catch (error) {
+        if (results) {
+            results.textContent = "The ChEMBL activity query did not complete (" + String(error && error.message || error) +
+                "). Confirm the target, try again, or use the official ChEMBL target page. No activity values have been fabricated.";
+            const link = document.createElement("a");
+            link.href = "https://www.ebi.ac.uk/chembl/";
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.textContent = "Open ChEMBL ↗";
+            results.appendChild(document.createTextNode(" "));
+            results.appendChild(link);
+        }
+    } finally {
+        if (button) button.disabled = !(targetIdControl && targetIdControl.value.trim());
+    }
+}
+
+function workflowApproachGuideHtml(approach) {
+    if (approach === "ligand-based") {
+        return "<details class='planner-approach-guide'><summary>Recommended starting sequence for a ligand-based workflow</summary><div><ol>" +
+            "<li><strong>Curate known activity first.</strong> Search the target in <a href='https://www.ebi.ac.uk/chembl/' target='_blank' rel='noopener noreferrer'>ChEMBL</a>; keep IC₅₀, Kᵢ, EC₅₀ and assay systems separate, preserve relations/units and retain source IDs.</li>" +
+            "<li><strong>Inspect chemical series.</strong> Use <a href='https://openmolecules.org/datawarrior/' target='_blank' rel='noopener noreferrer'>DataWarrior</a> to search ChEMBL directly via <em>Database → Search ChEMBL database</em>, inspect structures, filter records and export the fields needed for analysis.</li>" +
+            "<li><strong>Build complementary ligand evidence.</strong> Start with chemical standardization, analogue/scaffold analysis and a well-defined active set; add pharmacophore or QSAR methods only when the data support them.</li>" +
+            "</ol></div></details>";
+    }
+    return "<details class='planner-approach-guide'><summary>Recommended starting sequence for a " +
+        escapeWorkflowHtml(approach === "structure-based" ? "structure-based" : "mixed") +
+        " workflow</summary><div><ol>" +
+        "<li><strong>Find a suitable experimental structure first.</strong> Search <a href='https://www.rcsb.org/' target='_blank' rel='noopener noreferrer'>RCSB PDB</a> for the correct protein, organism/isoform and construct. Prefer a high-quality structure, ideally wild-type with no unexplained binding-pocket mutations, an interpretable co-crystallized ligand and a complete binding site. Check resolution, R-free/refinement statistics, missing residues, chain identity, alternate conformations and biological state. Where available, inspect the RCSB ligand-validation metrics (fit to experimental density and bond geometry), since a non-polymer entry is not automatically a biologically relevant ligand. Resolution alone should not choose the receptor.</li>" +
+        "<li><strong>Download a ligand reference and collect known ligands.</strong> Record the PDB ID, chain and ligand residue/component ID. Use <a href='https://www.ebi.ac.uk/chembl/' target='_blank' rel='noopener noreferrer'>ChEMBL</a> for traceable activity measurements. In <a href='https://openmolecules.org/datawarrior/' target='_blank' rel='noopener noreferrer'>DataWarrior</a>, the built-in route is <em>Database → Search ChEMBL database</em>; you do not need to first export a ChEMBL CSV to visualize or inspect the molecules. Keep assay, endpoint, unit, relation and source metadata.</li>" +
+        "<li><strong>Only search alternative pockets when the biological question justifies it.</strong> <a href='https://github.com/Discngine/fpocket' target='_blank' rel='noopener noreferrer'>fpocket</a> detects and characterizes cavities; <a href='https://github.com/jr-marchand/caviar' target='_blank' rel='noopener noreferrer'>CAVIAR</a> detects cavities and decomposes them into subpockets, but its upstream project is currently marked paused. Treat both as hypotheses to inspect against structures, literature, conservation and known ligand evidence. I could not verify a standalone pocket-finding tool named PocketMol; if you meant Pocket2Mol, it is a pocket-conditioned molecule generator, not a cavity detector. P2Rank/PrankWeb is another option for ranking putative ligand-binding pockets.</li>" +
+        "<li><strong>Then validate the docking setup before screening.</strong> Prepare the receptor and ligands, recover the crystallographic pose, compare scoring/sampling methods, and test enrichment using known actives with property-matched decoys. Do not treat a docking score as evidence of activity.</li>" +
+        "</ol></div></details>";
+}
+
+function setupGuidedQuestionnaire() {
+    const targetChoiceInputs = Array.from(document.querySelectorAll('input[name="target-choice"]'));
+    const searchPanel = document.getElementById("target-search-panel");
+    const targetInput = document.getElementById("planner-target");
+    const targetStatus = document.getElementById("target-search-status");
+    const suggestions = document.getElementById("target-suggestions");
+    const activityButton = document.getElementById("fetch-chembl-activities");
+    const styleControl = document.getElementById("planner-tool-style");
+
+    function handleTargetChoice() {
+        clearGuidedIntakeFeedback();
+        const choice = document.querySelector('input[name="target-choice"]:checked');
+        const value = choice ? choice.value : "";
+        if (searchPanel) searchPanel.hidden = value !== "yes";
+        if (value === "yes") {
+            setTargetQuestionState("Target lookup enabled");
+            if (targetInput) targetInput.focus();
+        } else if (value === "private") {
+            clearChEMBLSelection();
+            setTargetQuestionState("Target intentionally undisclosed");
+        } else if (value === "not-yet") {
+            clearChEMBLSelection();
+            setTargetQuestionState("No specific target yet");
+        } else {
+            setTargetQuestionState("Not answered");
+        }
+    }
+    targetChoiceInputs.forEach(function(input) { input.addEventListener("change", handleTargetChoice); });
+
+    if (targetInput) {
+        targetInput.addEventListener("input", function() {
+            clearGuidedIntakeFeedback();
+            const typed = targetInput.value.trim();
+            const chemblId = document.getElementById("planner-target-chembl-id");
+            const selection = document.getElementById("target-selection-summary");
+            const activityResults = document.getElementById("chembl-activity-results");
+            selectedChemblTargetRecord = null;
+            if (chemblId) chemblId.value = "";
+            if (selection) { selection.hidden = true; selection.textContent = ""; }
+            if (activityButton) activityButton.disabled = true;
+            if (activityResults) activityResults.textContent = "";
+            lastChemblActivityRows = [];
+            const requestId = ++chemblTargetSearchRequest;
+            if (chemblTargetSearchTimer) window.clearTimeout(chemblTargetSearchTimer);
+            if (suggestions) suggestions.replaceChildren();
+            if (typed.length < 2) {
+                if (targetStatus) targetStatus.textContent = "Enter at least two characters to search ChEMBL.";
+                setTargetQuestionState("Target lookup enabled");
+                return;
+            }
+            if (targetStatus) targetStatus.textContent = "Searching ChEMBL…";
+            chemblTargetSearchTimer = window.setTimeout(function() {
+                searchChemblTargets(typed, requestId);
+            }, 300);
+        });
+        targetInput.addEventListener("keydown", function(event) {
+            if (event.key === "Enter" && suggestions && suggestions.querySelector("button")) event.preventDefault();
+        });
+    }
+
+    const activityType = document.getElementById("planner-activity-type");
+    if (activityType) activityType.addEventListener("change", function() {
+        const results = document.getElementById("chembl-activity-results");
+        lastChemblActivityRows = [];
+        if (results) results.textContent = "";
+    });
+    if (activityButton) activityButton.addEventListener("click", fetchChemblActivities);
+
+    document.querySelectorAll('input[name="approach"], input[name="gui-only"], input[name="objective"], input[name="asset"]').forEach(function(input) {
+        input.addEventListener("change", function() {
+            clearGuidedIntakeFeedback();
+            updateQuestionnaireCounts();
+        });
+    });
+
+    const selectAllObjectives = document.getElementById("select-all-objectives");
+    const clearAllObjectives = document.getElementById("clear-all-objectives");
+    if (selectAllObjectives) selectAllObjectives.addEventListener("click", function() {
+        document.querySelectorAll('input[name="objective"]').forEach(function(input) { input.checked = true; });
+        clearGuidedIntakeFeedback();
+        updateQuestionnaireCounts();
+    });
+    if (clearAllObjectives) clearAllObjectives.addEventListener("click", function() {
+        document.querySelectorAll('input[name="objective"]').forEach(function(input) { input.checked = false; });
+        clearGuidedIntakeFeedback();
+        updateQuestionnaireCounts();
+    });
+    document.querySelectorAll('input[name="gui-only"]').forEach(function(input) {
+        input.addEventListener("change", function() {
+            if (!styleControl) return;
+            if (input.checked) styleControl.value = input.value === "yes" ? "visual-first" : "mixed";
+        });
+    });
+    if (styleControl) styleControl.addEventListener("change", function() {
+        const gui = document.querySelector('input[name="gui-only"]:checked');
+        if (gui && styleControl.value !== "visual-first" && gui.value === "yes") {
+            const allowCode = document.querySelector('input[name="gui-only"][value="not-necessarily"]');
+            if (allowCode) allowCode.checked = true;
+        }
+        updateQuestionnaireCounts();
+    });
+
+    const questionApproach = document.querySelector("#question-approach .planner-question-state");
+    if (questionApproach) {
+        document.querySelectorAll('input[name="approach"]').forEach(function(input) {
+            input.addEventListener("change", updateQuestionnaireCounts);
+        });
+    }
+    updateQuestionnaireCounts();
+
+    const form = document.getElementById("workflow-form");
+    if (form) form.addEventListener("reset", function() {
+        window.setTimeout(function() {
+            clearChEMBLSelection();
+            clearGuidedIntakeFeedback();
+            if (searchPanel) searchPanel.hidden = true;
+            if (targetStatus) targetStatus.textContent = "Enter at least two characters to search ChEMBL.";
+            setTargetQuestionState("Not answered");
+            const approachDetails = document.getElementById("question-approach");
+            const targetDetails = document.getElementById("question-target");
+            const objectiveDetails = document.getElementById("question-objectives");
+            const interfaceDetails = document.getElementById("question-interface");
+            const assetsDetails = document.getElementById("question-assets");
+            const optionalDetails = document.querySelector(".planner-question-advanced");
+            if (approachDetails) approachDetails.open = false;
+            if (targetDetails) targetDetails.open = false;
+            if (interfaceDetails) interfaceDetails.open = false;
+            if (objectiveDetails) objectiveDetails.open = false;
+            if (assetsDetails) assetsDetails.open = false;
+            if (optionalDetails) optionalDetails.open = false;
+            updateQuestionnaireCounts();
+        }, 0);
+    });
+}
+
 document.addEventListener("DOMContentLoaded", function() {
     const form = document.getElementById("workflow-form");
     const submit = document.querySelector("#workflow-form button[type='submit']");
     if (submit) submit.disabled = true;
     loadWorkflowCatalogue();
+    setupGuidedQuestionnaire();
     if (form) form.addEventListener("submit", renderWorkflow);
     if (form) form.addEventListener("reset", function() { window.setTimeout(resetWorkflow, 0); });
 });
