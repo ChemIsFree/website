@@ -54,3 +54,21 @@ jobs:
       - name: Test workflow ordering, UI choices, tool IDs and recipe rendering
         working-directory: website
         run: node scripts/test_workflow_planner.js
+
+      - name: Install Playwright for real-browser smoke tests
+        working-directory: website
+        run: npm install --no-save playwright
+
+      - name: Install Chromium and its system dependencies
+        working-directory: website
+        run: npx playwright install --with-deps chromium
+
+      - name: Test rendered planner and controls in Chromium
+        working-directory: website
+        run: node scripts/browser_smoke_test.js
+
+      - name: Probe live ChEMBL, UniProt and RCSB browser requests (non-blocking)
+        working-directory: website
+        run: node scripts/browser_smoke_test.js --live
+        timeout-minutes: 3
+        continue-on-error: true
