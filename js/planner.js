@@ -6,6 +6,9 @@
     const feedback = document.getElementById("workflow-intake-feedback");
     const targetPanel = document.getElementById("target-name-panel");
     const targetInput = document.getElementById("planner-target");
+    let selectedChemblTargetRecord = null;
+    let targetLookupRequest = 0;
+    let activityDownloadInProgress = false;
 
     const objectiveTitles = {
         "target-context": "Understand the target and binding site",
@@ -228,7 +231,24 @@
                     '<div class="workflow-panel-heading"><span class="workflow-step-kicker">STEP 01 / DATA</span><h3>Collect bioactivity data</h3><p>Get the full set first; compare like with like afterwards.</p></div>' +
                     '<div class="workflow-tools-row">' +
                         toolLink("Download DataWarrior", "https://openmolecules.org/datawarrior/download.html", "Desktop chemical-data analysis") +
-                        toolLink("Open target in ChEMBL", chemblUrl, "Browser-based search shortcut") +
+                        toolLink("Browse ChEMBL", chemblUrl, "Open the official database in your browser") +
+                    '</div>' +
+                    '<div class="chembl-finder">' +
+                        '<div class="chembl-finder-heading"><div><strong>Or use the ChemIsFree activity finder</strong><p>Search once, rank human single-protein targets first, compare available IC₅₀/Kᵢ/EC₅₀ records, then export the selected measurements.</p></div>' +
+                        '<button type="button" class="button button-secondary" id="chembl-target-search">Find target records</button></div>' +
+                        '<p id="chembl-finder-status" class="chembl-finder-status" role="status" aria-live="polite">Enter a target above and select Find target records. Nothing is searched while you type.</p>' +
+                        '<div id="chembl-target-results" class="chembl-target-results"></div>' +
+                        '<div id="chembl-export-panel" class="chembl-export-panel" hidden>' +
+                            '<p id="chembl-selected-target" class="chembl-selected-target"></p>' +
+                            '<fieldset class="chembl-endpoint-options"><legend>Activity endpoints to include</legend>' +
+                                '<label><input type="checkbox" name="chembl-endpoint" value="IC50" checked> IC₅₀</label>' +
+                                '<label><input type="checkbox" name="chembl-endpoint" value="Ki" checked> Kᵢ</label>' +
+                                '<label><input type="checkbox" name="chembl-endpoint" value="EC50" checked> EC₅₀</label>' +
+                            '</fieldset>' +
+                            '<button type="button" class="button button-primary" id="download-chembl-activities">Download activity CSV</button>' +
+                            '<p id="chembl-download-status" class="chembl-finder-status" role="status" aria-live="polite"></p>' +
+                            '<p class="planner-field-help">The CSV preserves each observation and assay/source metadata. It uses ChEMBL molecule IDs rather than embedding structure files; DataWarrior is the easier route when you need the chemical structures alongside every record.</p>' +
+                        '</div>' +
                     '</div>' +
                     '<ol class="workflow-short-list">' +
                         '<li>In DataWarrior, choose <strong>Databases → Search ChEMBL database</strong> and enter the target name or gene symbol.</li>' +
@@ -278,6 +298,7 @@
         results.hidden = false;
         wireTabs();
         wireCopyButtons();
+        wireChemblFinder();
     }
 
     function wireTabs() {
