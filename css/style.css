@@ -6396,3 +6396,165 @@ button {
         padding: 13px;
     }
 }
+
+
+/* In-page ChEMBL finder: explicit searches only, never type-ahead requests. */
+.chembl-finder {
+    margin: 23px 0 27px;
+    padding: 20px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.55);
+}
+.chembl-finder-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+}
+.chembl-finder-heading > div {
+    min-width: 0;
+}
+.chembl-finder-heading > div > strong {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: -.025em;
+}
+.chembl-finder-heading p {
+    max-width: 720px;
+    margin: 6px 0 0;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.65;
+}
+.chembl-finder-heading .button {
+    flex: 0 0 auto;
+    min-height: 42px;
+}
+.chembl-finder-status {
+    margin: 14px 0 0;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.6;
+}
+.chembl-target-results {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
+}
+.chembl-target-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 13px;
+    border: 1px solid var(--line);
+    background: var(--white);
+}
+.chembl-target-card-copy {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+}
+.chembl-target-card-copy > strong {
+    color: var(--ink);
+    font-size: 12px;
+    line-height: 1.4;
+}
+.chembl-target-card-copy > small {
+    color: var(--text-muted);
+    font-size: 10px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+.chembl-target-badges {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+.chembl-target-badge {
+    padding: 3px 6px;
+    border: 1px solid var(--line);
+    color: var(--violet);
+    font-family: var(--font-mono);
+    font-size: 9px;
+}
+.chembl-target-count {
+    color: var(--ink) !important;
+    font-weight: 600;
+}
+.chembl-use-target {
+    min-height: 36px;
+    padding: 8px 10px;
+    border: 1px solid var(--violet);
+    background: transparent;
+    color: var(--violet);
+    font-size: 11px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.chembl-use-target:hover,
+.chembl-use-target:focus-visible {
+    background: var(--violet);
+    color: #fff;
+    outline: none;
+}
+.chembl-export-panel {
+    margin-top: 14px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+}
+.chembl-export-panel[hidden] {
+    display: none !important;
+}
+.chembl-selected-target {
+    margin: 0 0 14px;
+    color: var(--ink);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.55;
+}
+.chembl-endpoint-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px 16px;
+    margin: 0 0 15px;
+    padding: 0;
+    border: 0;
+}
+.chembl-endpoint-options legend {
+    margin-bottom: 9px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+.chembl-endpoint-options label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.chembl-endpoint-options input {
+    accent-color: var(--violet);
+}
+@media (max-width: 620px) {
+    .chembl-finder {
+        padding: 14px;
+    }
+    .chembl-finder-heading {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    .chembl-finder-heading .button {
+        width: 100%;
+    }
+    .chembl-target-card {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .chembl-use-target {
+        justify-self: start;
+    }
+}
