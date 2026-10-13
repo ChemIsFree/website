@@ -143,22 +143,19 @@ async function selectTarget(page, targetText) {
 
     if (liveMode) {
         let selected = -1;
+        const labels = [];
         for (let index = 0; index < count; index += 1) {
             const label = await suggestions.nth(index).innerText();
-            if (/Homo sapiens/i.test(label) && /GSK3B|glycogen synthase kinase.?3 beta/i.test(label)) {
+            labels.push(label.replace(/\\s+/g, " ").trim());
+            const targetName = label.split("\\n")[0].trim();
+            if (/Homo sapiens/i.test(label) &&
+                /^glycogen synthase kinase[- ]?3 beta$/i.test(targetName)) {
                 selected = index;
                 break;
             }
         }
-        if (selected < 0) {
-            for (let index = 0; index < count; index += 1) {
-                if (/Homo sapiens/i.test(await suggestions.nth(index).innerText())) {
-                    selected = index;
-                    break;
-                }
-            }
-        }
-        assert.notEqual(selected, -1, "ChEMBL returned no human target suggestion for GSK3B.");
+        assert.notEqual(selected, -1,
+            "ChEMBL did not return the exact human GSK3B target name; refusing to use a related/interacting protein. Suggestions: " + labels.join(" | "));
         await suggestions.nth(selected).click();
     } else {
         await suggestions.first().click();
@@ -232,7 +229,7 @@ async function runLiveApiTest(page) {
 
     const response = await page.goto(page.context()._plannerUrl, { waitUntil: "domcontentloaded" });
     assert.ok(response && response.ok(), "Planner page did not load successfully.");
-    await selectTarget(page, "GSK3B");
+    await selectTarget(page, "CHEMBL262");
     await page.locator("#workflow-form button[type='submit']").waitFor({ state: "visible" });
     await page.waitForFunction(() => {
         const button = document.querySelector("#workflow-form button[type='submit']");
@@ -250,19 +247,35 @@ async function runLiveApiTest(page) {
         "Live UniProt lookup failed in the real browser: " + (await page.locator("#live-target-evidence").innerText()));
 
     const accessionSelector = page.locator("#uniprot-accession-choice");
+    const hasGsk3bRecord = async () => page.locator("#live-target-evidence .live-evidence-table tbody tr").evaluateAll((rows) =>
+        rows.some((row) => {
+            const accession = (row.querySelector("td:first-child")?.innerText || "").trim();
+            const gene = (row.querySelector("td:nth-child(2) small")?.innerText || "").trim();
+            return accession === "P49841" || gene === "GSK3B";
+        })
+    );
+    assert.ok(await hasGsk3bRecord(),
+        "The live UniProt results did not contain the GSK3B kinase itself (P49841 / gene GSK3B).");
+
     if (await accessionSelector.count()) {
         const available = await accessionSelector.locator("option").evaluateAll((options) =>
             options.map((option) => ({ value: option.value, label: option.textContent || "" }))
                 .filter((option) => option.value)
         );
         assert.ok(available.length > 0, "UniProt returned an accession chooser with no selectable records.");
-        const targetMatch = available.find((option) => /GSK3B|glycogen synthase kinase.?3 beta/i.test(option.label));
-        await accessionSelector.selectOption((targetMatch || available[0]).value);
+        const targetMatch = available.find((option) =>
+            option.value === "P49841" || /\\(GSK3B\\)/i.test(option.label)
+        );
+        assert.ok(targetMatch,
+            "Ambiguous UniProt results offered no exact GSK3B accession; refusing to choose a related protein.");
+        await accessionSelector.selectOption(targetMatch.value);
         await page.locator("#search-selected-uniprot-structures").click();
         await page.waitForFunction(() => {
             const panel = document.querySelector("#live-target-evidence");
             return panel && !/Searching structures for|Retrieving UniProt and RCSB records/i.test(panel.textContent);
         }, { timeout: 45000 });
+        assert.ok(await hasGsk3bRecord(),
+            "Accession-scoped results did not retain the GSK3B kinase record.");
     }
 
     assert.ok(requestCounts.chembl >= 1, "No live ChEMBL browser request was observed.");
