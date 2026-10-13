@@ -129,7 +129,9 @@ async function installMockRoutes(page) {
 }
 
 async function selectTarget(page, targetText) {
-    await page.locator("#question-target > summary").click();
+    if (!(await page.locator("#question-target").evaluate((section) => section.open))) {
+        await page.locator("#question-target > summary").click();
+    }
     await page.locator('input[name="target-choice"][value="yes"]').check();
     await page.locator("#planner-target").fill(targetText);
     await page.locator(".planner-target-suggestion").first().waitFor({
@@ -169,6 +171,24 @@ async function selectTarget(page, targetText) {
         "Selecting a target should fill its organism where reported.");
 }
 
+async function openQuestion(page, questionId) {
+    const section = page.locator("#" + questionId);
+    if (!(await section.evaluate((element) => element.open))) {
+        await section.locator("> summary").click();
+    }
+}
+
+async function answerRequiredQuestions(page) {
+    await openQuestion(page, "question-approach");
+    await page.locator('input[name="approach"][value="structure-based"]').check();
+    await openQuestion(page, "question-interface");
+    await page.locator('input[name="gui-only"][value="not-necessarily"]').check();
+    await openQuestion(page, "question-objectives");
+    for (const objective of ["target-context", "hit-identification", "structure-based", "interactions"]) {
+        await page.locator('input[name="objective"][value="' + objective + '"]').check();
+    }
+}
+
 async function runMockedBrowserTest(page) {
     await installMockRoutes(page);
     const response = await page.goto(page.context()._plannerUrl, { waitUntil: "domcontentloaded" });
@@ -176,10 +196,21 @@ async function runMockedBrowserTest(page) {
 
     const objectives = page.locator('input[name="objective"]');
     assert.equal(await objectives.count(), 10, "The rendered page should expose ten objectives.");
-    assert.equal(await page.locator('input[name="objective"]:checked').count(), 10,
-        "All ten objectives should be checked by default.");
+    assert.equal(await page.locator('input[name="objective"]:checked').count(), 0,
+        "Objectives should start unselected so the user defines the scope.");
+
+    await page.locator("#workflow-form button[type='submit']").waitFor({ state: "visible" });
+    await page.waitForFunction(() => {
+        const button = document.querySelector("#workflow-form button[type='submit']");
+        return button && !button.disabled;
+    });
+    await page.locator("#workflow-form button[type='submit']").click();
+    assert.match(await page.locator("#workflow-intake-feedback").innerText(), /Please answer Question 1/);
+    assert.notEqual(await page.locator("#question-target").getAttribute("open"), null,
+        "The first unanswered question should open automatically.");
 
     await selectTarget(page, "TESTA");
+    await answerRequiredQuestions(page);
     await page.locator("#workflow-form button[type='submit']").waitFor({ state: "visible" });
     await page.waitForFunction(() => {
         const button = document.querySelector("#workflow-form button[type='submit']");
@@ -233,6 +264,7 @@ async function runLiveApiTest(page) {
     const response = await page.goto(page.context()._plannerUrl, { waitUntil: "domcontentloaded" });
     assert.ok(response && response.ok(), "Planner page did not load successfully.");
     await selectTarget(page, "CHEMBL262");
+    await answerRequiredQuestions(page);
     await page.locator("#workflow-form button[type='submit']").waitFor({ state: "visible" });
     await page.waitForFunction(() => {
         const button = document.querySelector("#workflow-form button[type='submit']");
