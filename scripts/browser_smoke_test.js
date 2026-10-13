@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 "use strict";
 
-// Real Chromium smoke test for the rendered, compact workflow planner.
+// Chromium test for the streamlined workflow. ChEMBL responses are mocked to
+// test species/type/count ordering and CSV export without depending on API uptime.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const http = require("node:http");
@@ -11,6 +12,37 @@ const { chromium } = require("playwright");
 const root = process.cwd();
 const pageErrors = [];
 const apiRequests = [];
+const countByTarget = {
+    CHEMBL123: 10,
+    CHEMBL124: 450,
+    CHEMBL125: 10000,
+    CHEMBL126: 900
+};
+const activities = [
+    {
+        activity_id: 101, target_chembl_id: "CHEMBL124", target_organism: "Homo sapiens",
+        molecule_chembl_id: "CHEMBL0001", standard_type: "IC50", standard_relation: "=",
+        standard_value: "35", standard_units: "nM", pchembl_value: "7.46",
+        assay_chembl_id: "CHEMBLASSAY1", assay_type: "B", assay_description: "Biochemical inhibition",
+        data_validity_comment: null, potential_duplicate: false, document_chembl_id: "CHEMBL112233"
+    },
+    {
+        activity_id: 102, target_chembl_id: "CHEMBL124", target_organism: "Homo sapiens",
+        molecule_chembl_id: "CHEMBL0002", standard_type: "Ki", standard_relation: "=",
+        standard_value: "80", standard_units: "nM", pchembl_value: "7.10",
+        assay_chembl_id: "CHEMBLASSAY2", assay_type: "B", assay_description: "Binding inhibition",
+        data_validity_comment: null, potential_duplicate: false, document_chembl_id: "CHEMBL112234"
+    },
+    {
+        activity_id: 103, target_chembl_id: "CHEMBL124", target_organism: "Homo sapiens",
+        molecule_chembl_id: "CHEMBL0003", standard_type: "EC50", standard_relation: "<",
+        standard_value: "100", standard_units: "nM", pchembl_value: "7.00",
+        assay_chembl_id: "CHEMBLASSAY3", assay_type: "F", assay_description: "Cellular response",
+        data_validity_comment: "Potential transcription error", potential_duplicate: false,
+        document_chembl_id: "CHEMBL112235"
+    }
+];
+
 const contentTypes = {
     ".css": "text/css; charset=utf-8",
     ".html": "text/html; charset=utf-8",
@@ -60,19 +92,62 @@ function startStaticServer() {
     });
 }
 
+async function installMockRoutes(page) {
+    await page.route(/https:\/\/www\.ebi\.ac\.uk\/chembl\/api\/data\/target\/search\.json/, async (route) => {
+        apiRequests.push(route.request().url());
+        await route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify({
+                targets: [
+                    { target_chembl_id: "CHEMBL123", pref_name: "GSK3 beta (human candidate A)", organism: "Homo sapiens", target_type: "SINGLE PROTEIN" },
+                    { target_chembl_id: "CHEMBL124", pref_name: "GSK3 beta (human candidate B)", organism: "Homo sapiens", target_type: "SINGLE PROTEIN" },
+                    { target_chembl_id: "CHEMBL125", pref_name: "GSK3 beta (mouse)", organism: "Mus musculus", target_type: "SINGLE PROTEIN" },
+                    { target_chembl_id: "CHEMBL126", pref_name: "GSK3 beta-containing complex", organism: "Homo sapiens", target_type: "PROTEIN COMPLEX" }
+                ]
+            })
+        });
+    });
+
+    await page.route(/https:\/\/www\.ebi\.ac\.uk\/chembl\/api\/data\/activity\.json/, async (route) => {
+        apiRequests.push(route.request().url());
+        const url = new URL(route.request().url());
+        const targetId = url.searchParams.get("target_chembl_id");
+        const limit = url.searchParams.get("limit");
+        if (limit === "1") {
+            const count = countByTarget[targetId] || 0;
+            await route.fulfill({
+                status: 200,
+                contentType: "application/json",
+                body: JSON.stringify({
+                    page_meta: { limit: 1, offset: 0, total_count: count },
+                    activities: count ? [{ activity_id: 1 }] : []
+                })
+            });
+            return;
+        }
+        await route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify({
+                page_meta: { limit: 1000, offset: 0, total_count: activities.length },
+                activities
+            })
+        });
+    });
+}
+
 (async () => {
     const { server, url } = await startStaticServer();
     let browser;
     try {
         browser = await chromium.launch({ headless: true });
-        const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-        page.setDefaultTimeout(12000);
+        const context = await browser.newContext({ acceptDownloads: true });
+        const page = await context.newPage();
+        await page.setViewportSize({ width: 1440, height: 1000 });
+        page.setDefaultTimeout(15000);
         page.on("pageerror", (error) => pageErrors.push(error.message));
-        page.on("request", (request) => {
-            if (/chembl\/api|rest\.uniprot\.org|search\.rcsb\.org/i.test(request.url())) {
-                apiRequests.push(request.url());
-            }
-        });
+        await installMockRoutes(page);
 
         const response = await page.goto(url, { waitUntil: "domcontentloaded" });
         assert.ok(response && response.ok(), "The planner page should load.");
@@ -103,6 +178,8 @@ function startStaticServer() {
         await page.locator('input[name="approach"][value="structure-based"]').check();
         await page.locator('input[name="gui-only"][value="not-necessarily"]').check();
         await page.locator('input[name="objective"][value="interactions"]').check();
+        assert.equal(apiRequests.length, 0,
+            "Typing a target should not automatically trigger slow requests.");
         await page.locator("#workflow-form button[type='submit']").click();
 
         assert.equal(await page.locator("#workflow-results").isVisible(), true,
@@ -121,6 +198,40 @@ function startStaticServer() {
             animations: "disabled"
         });
 
+        await page.locator("#chembl-target-search").click();
+        await page.waitForFunction(() => {
+            const status = document.querySelector("#chembl-finder-status");
+            return status && status.textContent.startsWith("Ranked ");
+        });
+        assert.equal(await page.locator(".chembl-target-card").count(), 4,
+            "The target selector should present the matching candidate records.");
+        const firstCandidate = await page.locator(".chembl-target-card").first().innerText();
+        assert.match(firstCandidate, /CHEMBL124/);
+        assert.match(firstCandidate, /450 IC₅₀\/Kᵢ\/EC₅₀ records/);
+        assert.ok(firstCandidate.indexOf("Homo sapiens") !== -1,
+            "Human target records must rank above the mouse record.");
+        assert.ok(apiRequests.some((item) => item.includes("target/search.json")),
+            "The explicit search button should retrieve target candidates.");
+
+        await page.locator(".chembl-target-card").first().locator(".chembl-use-target").click();
+        assert.match(await page.locator("#chembl-selected-target").innerText(), /CHEMBL124/);
+        assert.equal(await page.locator('input[name="chembl-endpoint"]:checked').count(), 3,
+            "IC50, Ki and EC50 should all be selectable and selected by default.");
+
+        const downloadPromise = page.waitForEvent("download");
+        await page.locator("#download-chembl-activities").click();
+        const download = await downloadPromise;
+        const csvPath = path.join(artifactDirectory, "test-activity-export.csv");
+        await download.saveAs(csvPath);
+        const csv = await fs.promises.readFile(csvPath, "utf8");
+        assert.match(csv, /"standard_type"/);
+        assert.match(csv, /"IC50"/);
+        assert.match(csv, /"Ki"/);
+        assert.match(csv, /"EC50"/);
+        assert.match(csv, /"CHEMBLASSAY1"/);
+        assert.match(csv, /"CHEMBL112235"/);
+        assert.match(await page.locator("#chembl-download-status").innerText(), /Downloaded 3 activity observations/);
+
         await page.locator("#workflow-tab-2").click();
         assert.equal(await page.locator("#workflow-panel-2").isVisible(), true);
         assert.equal(await page.locator("#workflow-panel-1").isVisible(), false);
@@ -138,9 +249,6 @@ function startStaticServer() {
             "The generated guide should provide copy actions for its code blocks.");
         assert.match(await page.locator("#pymol-interactions-code").innerText(), /distance hbonds/);
         assert.match(await page.locator("#pymol-interactions-code").innerText(), /dash_color, orange/);
-
-        assert.deepEqual(apiRequests, [],
-            "The planner must not call the unreliable live ChEMBL, UniProt or PDB lookup APIs.");
         assert.deepEqual(pageErrors, [], "No JavaScript errors should occur while using the planner.");
 
         await page.locator("#edit-workflow-answers").click();
@@ -150,7 +258,7 @@ function startStaticServer() {
         assert.equal(await page.locator('input[name="target-choice"]:checked').count(), 0,
             "Reset should clear answers.");
 
-        console.log("Chromium smoke test passed: compact intake, validation, three tabs, target-specific links, endpoint and structure guidance, PyMOL code, and reset.");
+        console.log("Chromium smoke test passed: compact intake, explicit ChEMBL lookup, human-first ranking, multi-endpoint CSV export, three tabs, PDB shortlist, and PyMOL visualisation.");
     } finally {
         if (browser) await browser.close();
         await new Promise((resolve) => server.close(resolve));
