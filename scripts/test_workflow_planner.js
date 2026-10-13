@@ -71,7 +71,15 @@ assert.ok(Object.keys(protocols).length >= 10, "Expected the core protocol templ
 const totalObjectives = (html.match(/name="objective" value=/g) || []).length;
 const checkedObjectives = (html.match(/name="objective" value="[^"]+" checked/g) || []).length;
 assert.equal(totalObjectives, 10, "Expected the ten requested workflow objectives.");
-assert.equal(checkedObjectives, totalObjectives, "All objectives should be selected by default.");
+assert.equal(checkedObjectives, 0, "Objectives should start unselected so the user defines the scope.");
+assert.ok(!html.includes('name="approach" value="mixed" checked'), "Approach should require an explicit choice.");
+assert.ok(!html.includes('name="gui-only" value="yes" checked'), "Interface preference should require an explicit choice.");
+assert.ok(html.includes('id="workflow-intake-feedback"'), "Guided intake should provide accessible validation feedback.");
+assert.ok(html.includes('id="select-all-objectives"') && html.includes('id="clear-all-objectives"'), "Objective scope shortcuts are missing.");
+assert.equal(context.guidedIntakeIssue({}).sectionId, "question-target", "Target choice should be the first required answer.");
+assert.equal(context.guidedIntakeIssue({targetChoice:"yes",target:"  ",approach:"mixed",guiOnly:"yes",objectives:["target-context"]}).sectionId, "question-target", "A specific-target answer must include a target name.");
+assert.equal(context.guidedIntakeIssue({targetChoice:"private",approach:"mixed",guiOnly:"yes",objectives:[]}).sectionId, "question-objectives", "At least one objective should be required.");
+assert.equal(context.guidedIntakeIssue({targetChoice:"not-yet",approach:"ligand-based",guiOnly:"not-necessarily",objectives:["ligand-landscape"]}), null, "A complete target-agnostic intake should pass.");
 
 for (const control of [
     "structure", "native-ligand", "known-actives", "decoys", "library", "activity-data",
