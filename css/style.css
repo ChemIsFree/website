@@ -5714,3 +5714,137 @@ button {
     .uniprot-accession-selector { grid-template-columns: minmax(0, 1fr); }
     .uniprot-accession-selector .button { width: 100%; }
 }
+
+
+/* Collapsible workflow phases keep comprehensive multi-objective plans navigable. */
+.planner-phase-toolbar {
+    display: grid;
+    gap: 14px;
+    margin: 12px 0 22px;
+    padding: 18px 20px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.42);
+}
+.planner-phase-toolbar > p {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    align-items: baseline;
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.6;
+}
+.planner-phase-toolbar > p strong {
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: -0.025em;
+}
+.planner-phase-toolbar > p span { color: var(--text-muted); }
+.planner-phase-toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.planner-phase-toolbar-actions .button {
+    min-height: 36px;
+    padding: 8px 11px;
+    font-size: 11px;
+}
+.planner-phase-list {
+    display: grid;
+    gap: 10px;
+}
+.planner-workflow-phase {
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.3);
+}
+.planner-workflow-phase > summary {
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: center;
+    padding: 20px 22px;
+    cursor: pointer;
+    list-style: none;
+}
+.planner-workflow-phase > summary::-webkit-details-marker { display: none; }
+.planner-workflow-phase > summary::after {
+    content: "+";
+    grid-column: 3;
+    grid-row: 1;
+    padding-left: 8px;
+    color: var(--violet);
+    font-family: var(--font-mono);
+    font-size: 18px;
+}
+.planner-workflow-phase[open] > summary::after { content: "−"; }
+.planner-phase-number {
+    align-self: start;
+    padding-top: 3px;
+    color: var(--violet);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.07em;
+}
+.planner-phase-copy {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+.planner-phase-copy strong {
+    font-family: var(--font-display);
+    font-size: clamp(19px, 2.2vw, 25px);
+    line-height: 1.12;
+    font-weight: 500;
+    letter-spacing: -0.035em;
+}
+.planner-phase-copy small {
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.55;
+}
+.planner-phase-count {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: start;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+.planner-workflow-phase-content {
+    padding: 0 22px 8px;
+    border-top: 1px solid var(--line);
+}
+.planner-workflow-phase-content .planner-workflow-step {
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 16px;
+    padding: 26px 0;
+}
+.planner-workflow-phase-content .planner-step-content h3 {
+    font-size: clamp(22px, 2.4vw, 29px);
+}
+.planner-workflow-phase-content .planner-workflow-step:last-child { border-bottom: 0; }
+
+@media (max-width: 700px) {
+    .planner-phase-toolbar { padding: 14px; }
+    .planner-phase-toolbar-actions { display: grid; grid-template-columns: 1fr 1fr; }
+    .planner-phase-toolbar-actions .button { width: 100%; }
+    .planner-workflow-phase > summary {
+        grid-template-columns: 52px minmax(0, 1fr) 16px;
+        gap: 10px;
+        padding: 16px 13px;
+    }
+    .planner-phase-copy strong { font-size: 19px; }
+    .planner-phase-copy small { font-size: 11px; }
+    .planner-phase-count { grid-column: 2; }
+    .planner-workflow-phase-content { padding: 0 13px 4px; }
+    .planner-workflow-phase-content .planner-workflow-step {
+        grid-template-columns: 28px minmax(0, 1fr);
+        gap: 10px;
+        padding: 21px 0;
+    }
+}
