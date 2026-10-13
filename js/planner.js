@@ -193,6 +193,285 @@
             escapeHtml(code) + '</code></pre><p class="copy-code-status" aria-live="polite"></p></div>';
     }
 
+    async function fetchChemblJson(url, timeoutMs) {
+        const controller = new AbortController();
+        const timeout = window.setTimeout(function () { controller.abort(); }, timeoutMs || 7000);
+        try {
+            const response = await fetch(url, { signal: controller.signal });
+            if (!response.ok) throw new Error("ChEMBL request failed (HTTP " + response.status + ").");
+            return await response.json();
+        } finally {
+            window.clearTimeout(timeout);
+        }
+    }
+
+    function isHumanTarget(target) {
+        return String(target.organism || "").trim().toLowerCase() === "homo sapiens";
+    }
+
+    function isSingleProteinTarget(target) {
+        return String(target.targetType || "").trim().toUpperCase() === "SINGLE PROTEIN";
+    }
+
+    function sortChemblTargets(targets) {
+        return targets.slice().sort(function (a, b) {
+            if (isHumanTarget(a) !== isHumanTarget(b)) return isHumanTarget(a) ? -1 : 1;
+            if (isSingleProteinTarget(a) !== isSingleProteinTarget(b)) return isSingleProteinTarget(a) ? -1 : 1;
+            const aCount = Number.isFinite(a.activityCount) ? a.activityCount : -1;
+            const bCount = Number.isFinite(b.activityCount) ? b.activityCount : -1;
+            if (aCount !== bCount) return bCount - aCount;
+            return a.searchOrder - b.searchOrder;
+        });
+    }
+
+    async function countChemblActivities(target) {
+        const params = new URLSearchParams({
+            target_chembl_id: target.id,
+            standard_type__in: "IC50,Ki,EC50",
+            limit: "1",
+            only: "activity_id"
+        });
+        const payload = await fetchChemblJson(
+            "https://www.ebi.ac.uk/chembl/api/data/activity.json?" + params.toString(), 6000);
+        if (payload.page_meta && payload.page_meta.total_count !== undefined) {
+            return Number(payload.page_meta.total_count);
+        }
+        return Array.isArray(payload.activities) ? payload.activities.length : null;
+    }
+
+    function renderChemblTargetCandidates(targets) {
+        const list = document.getElementById("chembl-target-results");
+        if (!list) return;
+        list.innerHTML = targets.map(function (target) {
+            const organism = target.organism || "Organism not reported";
+            const type = target.targetType || "Target type not reported";
+            const count = Number.isFinite(target.activityCount)
+                ? target.activityCount.toLocaleString() + " IC₅₀/Kᵢ/EC₅₀ records"
+                : "Activity count unavailable";
+            const humanTag = isHumanTarget(target)
+                ? '<span class="chembl-target-badge">Homo sapiens</span>' : "";
+            const proteinTag = isSingleProteinTarget(target)
+                ? '<span class="chembl-target-badge">Single protein</span>' : "";
+            return '<article class="chembl-target-card">' +
+                '<div class="chembl-target-card-copy"><strong>' + escapeHtml(target.name) + '</strong>' +
+                '<small>' + escapeHtml(target.id) + ' · ' + escapeHtml(organism) + ' · ' + escapeHtml(type) + '</small>' +
+                '<div class="chembl-target-badges">' + humanTag + proteinTag + '</div>' +
+                '<small class="chembl-target-count">' + escapeHtml(count) + '</small></div>' +
+                '<button type="button" class="chembl-use-target" data-target-id="' + escapeHtml(target.id) + '">Use target</button>' +
+                '</article>';
+        }).join("");
+
+        list.querySelectorAll(".chembl-use-target").forEach(function (button) {
+            button.addEventListener("click", function () {
+                const target = targets.find(function (item) {
+                    return item.id === button.getAttribute("data-target-id");
+                });
+                if (!target) return;
+                selectedChemblTargetRecord = target;
+                const panel = document.getElementById("chembl-export-panel");
+                const selected = document.getElementById("chembl-selected-target");
+                const status = document.getElementById("chembl-download-status");
+                if (panel) panel.hidden = false;
+                if (selected) {
+                    selected.textContent = target.name + " (" + target.id + ") · " +
+                        (target.organism || "organism unknown") + " · " +
+                        (Number.isFinite(target.activityCount)
+                            ? target.activityCount.toLocaleString() + " qualifying activity records"
+                            : "activity record count unavailable");
+                }
+                if (status) status.textContent = "Choose one or more endpoints. The download keeps their original endpoint labels and assay metadata.";
+            });
+        });
+    }
+
+    async function searchChemblTargets() {
+        const input = document.getElementById("planner-target");
+        const button = document.getElementById("chembl-target-search");
+        const status = document.getElementById("chembl-finder-status");
+        const resultsList = document.getElementById("chembl-target-results");
+        const exportPanel = document.getElementById("chembl-export-panel");
+        const query = input ? input.value.trim() : "";
+        const requestId = ++targetLookupRequest;
+
+        if (!query) {
+            if (status) status.textContent = "Enter a target name or gene symbol in Question 1 first.";
+            return;
+        }
+        selectedChemblTargetRecord = null;
+        if (exportPanel) exportPanel.hidden = true;
+        if (resultsList) resultsList.replaceChildren();
+        if (button) button.disabled = true;
+        if (status) status.textContent = "Searching ChEMBL once for target records…";
+        try {
+            const params = new URLSearchParams({ q: query, limit: "20" });
+            const payload = await fetchChemblJson(
+                "https://www.ebi.ac.uk/chembl/api/data/target/search.json?" + params.toString(), 9000);
+            if (requestId !== targetLookupRequest) return;
+            const records = Array.isArray(payload.targets) ? payload.targets
+                : Array.isArray(payload.target_search_results) ? payload.target_search_results : [];
+            const seen = new Set();
+            const candidates = records.map(function (record, index) {
+                return {
+                    id: String(record.target_chembl_id || record.chembl_id || ""),
+                    name: String(record.pref_name || record.target_name || record.name || "Unnamed target"),
+                    organism: String(record.organism || record.target_organism || ""),
+                    targetType: String(record.target_type || record.target_type_description || ""),
+                    activityCount: null,
+                    searchOrder: index
+                };
+            }).filter(function (target) {
+                if (!/^CHEMBL\d+$/i.test(target.id) || seen.has(target.id)) return false;
+                seen.add(target.id);
+                return true;
+            });
+
+            if (!candidates.length) {
+                if (status) status.textContent =
+                    "ChEMBL returned no target records for this query. Check the spelling or use the DataWarrior / official ChEMBL route above.";
+                return;
+            }
+
+            const shortlist = sortChemblTargets(candidates).slice(0, 10);
+            renderChemblTargetCandidates(shortlist);
+            if (status) status.textContent = "Found " + candidates.length +
+                " matching target records. Checking IC₅₀/Kᵢ/EC₅₀ record counts for the leading 10; results are already selectable.";
+
+            const countResults = await Promise.all(shortlist.map(async function (target) {
+                try {
+                    target.activityCount = await countChemblActivities(target);
+                } catch (error) {
+                    target.activityCount = null;
+                }
+                return target;
+            }));
+            if (requestId !== targetLookupRequest) return;
+            const sorted = sortChemblTargets(countResults);
+            renderChemblTargetCandidates(sorted);
+            const counted = sorted.filter(function (target) { return Number.isFinite(target.activityCount); }).length;
+            if (status) status.textContent = "Ranked " + sorted.length +
+                " targets: Homo sapiens first, then single-protein targets, then the largest number of IC₅₀/Kᵢ/EC₅₀ records. Counts are measurements, not unique compounds." +
+                (counted < sorted.length ? " Some counts could not be retrieved; those records are marked unavailable." : "");
+        } catch (error) {
+            if (requestId !== targetLookupRequest) return;
+            if (status) status.textContent =
+                "The ChemIsFree lookup could not reach ChEMBL in this browser session. Use DataWarrior's Databases → Search ChEMBL database or open ChEMBL directly above.";
+            if (resultsList) resultsList.replaceChildren();
+        } finally {
+            if (button && requestId === targetLookupRequest) button.disabled = false;
+        }
+    }
+
+    function csvCell(value) {
+        const text = value === undefined || value === null ? "" : String(value);
+        return '"' + text.replace(/"/g, '""') + '"';
+    }
+
+    function triggerCsvDownload(rows, targetId, endpoints, truncated, totalAvailable) {
+        const columns = [
+            "activity_id", "target_chembl_id", "target_organism", "molecule_chembl_id",
+            "standard_type", "standard_relation", "standard_value", "standard_units", "pchembl_value",
+            "assay_chembl_id", "assay_type", "assay_description", "data_validity_comment",
+            "potential_duplicate", "document_chembl_id", "bao_label", "src_id"
+        ];
+        const lines = [columns.map(csvCell).join(",")];
+        rows.forEach(function (row) {
+            lines.push(columns.map(function (column) { return csvCell(row[column]); }).join(","));
+        });
+        const blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = targetId + "_" + endpoints.join("_") + "_activities.csv";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+        const status = document.getElementById("chembl-download-status");
+        if (status) status.textContent = "Downloaded " + rows.length.toLocaleString() +
+            " activity observations for " + endpoints.join(", ") + ". " +
+            (truncated ? "ChEMBL reports " + Number(totalAvailable).toLocaleString() +
+                " total; the browser safety limit was reached, so use DataWarrior for the complete dataset." :
+                "All observations reported by this query were included. The CSV preserves repeated measurements and assay/source fields.");
+    }
+
+    async function downloadChemblActivities() {
+        if (!selectedChemblTargetRecord || activityDownloadInProgress) return;
+        const endpoints = Array.from(document.querySelectorAll('#chembl-export-panel input[name="chembl-endpoint"]:checked'))
+            .map(function (input) { return input.value; });
+        const status = document.getElementById("chembl-download-status");
+        const button = document.getElementById("download-chembl-activities");
+        if (!endpoints.length) {
+            if (status) status.textContent = "Select at least one endpoint.";
+            return;
+        }
+
+        activityDownloadInProgress = true;
+        if (button) button.disabled = true;
+        try {
+            const target = selectedChemblTargetRecord;
+            const pageSize = 1000;
+            const maxRows = 50000;
+            const fields = [
+                "activity_id", "molecule_chembl_id", "standard_type", "standard_relation",
+                "standard_value", "standard_units", "pchembl_value", "assay_chembl_id",
+                "assay_type", "assay_description", "data_validity_comment", "potential_duplicate",
+                "document_chembl_id", "bao_label", "src_id", "target_chembl_id", "target_organism"
+            ].join(",");
+            async function getPage(offset) {
+                const params = new URLSearchParams({
+                    target_chembl_id: target.id,
+                    standard_type__in: endpoints.join(","),
+                    limit: String(pageSize),
+                    offset: String(offset),
+                    only: fields
+                });
+                const payload = await fetchChemblJson(
+                    "https://www.ebi.ac.uk/chembl/api/data/activity.json?" + params.toString(), 14000);
+                return {
+                    rows: Array.isArray(payload.activities) ? payload.activities : [],
+                    total: Number(payload.page_meta && payload.page_meta.total_count !== undefined
+                        ? payload.page_meta.total_count : 0)
+                };
+            }
+
+            if (status) status.textContent = "Retrieving selected activity endpoints from ChEMBL…";
+            const first = await getPage(0);
+            const totalAvailable = first.total || first.rows.length;
+            const targetRows = Math.min(totalAvailable, maxRows);
+            let rows = first.rows.slice(0, targetRows);
+            const offsets = [];
+            for (let offset = pageSize; offset < targetRows; offset += pageSize) offsets.push(offset);
+
+            for (let i = 0; i < offsets.length; i += 4) {
+                const batch = offsets.slice(i, i + 4);
+                const pages = await Promise.all(batch.map(getPage));
+                pages.forEach(function (page) { rows.push.apply(rows, page.rows); });
+                if (status) status.textContent = "Retrieving ChEMBL data… " +
+                    Math.min(rows.length, targetRows).toLocaleString() + " of " + targetRows.toLocaleString() + " records.";
+            }
+
+            rows = rows.slice(0, targetRows);
+            if (!rows.length) {
+                if (status) status.textContent = "No activity observations were returned for the selected target and endpoints. This is not proof that the target has no active compounds.";
+                return;
+            }
+            triggerCsvDownload(rows, target.id, endpoints, totalAvailable > rows.length, totalAvailable);
+        } catch (error) {
+            if (status) status.textContent =
+                "The activity export failed before all records were retrieved. Try again or use DataWarrior for the full target dataset.";
+        } finally {
+            activityDownloadInProgress = false;
+            if (button) button.disabled = false;
+        }
+    }
+
+    function wireChemblFinder() {
+        const searchButton = document.getElementById("chembl-target-search");
+        const downloadButton = document.getElementById("download-chembl-activities");
+        if (searchButton) searchButton.addEventListener("click", searchChemblTargets);
+        if (downloadButton) downloadButton.addEventListener("click", downloadChemblActivities);
+    }
+
     function renderWorkflow() {
         const targetChoice = selectedValue("target-choice");
         const target = targetChoice === "yes" ? targetInput.value.trim() : "";
