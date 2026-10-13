@@ -175,8 +175,11 @@ async function installMockRoutes(page) {
 
         await page.locator('input[name="target-choice"][value="yes"]').check();
         await page.locator("#planner-target").fill("GSK3B");
+        await page.locator("#question-approach > summary").click();
         await page.locator('input[name="approach"][value="structure-based"]').check();
+        await page.locator("#question-interface > summary").click();
         await page.locator('input[name="gui-only"][value="not-necessarily"]').check();
+        await page.locator("#question-objectives > summary").click();
         await page.locator('input[name="objective"][value="interactions"]').check();
         assert.equal(apiRequests.length, 0,
             "Typing a target should not automatically trigger slow requests.");
