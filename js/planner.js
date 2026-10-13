@@ -1635,6 +1635,7 @@ function renderWorkflow(event) {
     if (event) event.preventDefault();
     const results = document.getElementById("workflow-results");
     if (!results) return;
+    if (!validateGuidedIntake()) return;
 
     const objectives = selectedObjectives().filter(function(id) { return Boolean(protocolLibrary[id]); });
     const stageInput = document.querySelector('input[name="stage"]:checked');
@@ -1814,14 +1815,98 @@ let chemblTargetSearchRequest = 0;
 let selectedChemblTargetRecord = null;
 let lastChemblActivityRows = [];
 
+function guidedIntakeIssue(answers) {
+    const state = answers || {};
+    if (!state.targetChoice) {
+        return {
+            sectionId: "question-target",
+            selector: 'input[name="target-choice"]',
+            message: "Please answer Question 1: choose a target, continue without naming one, or keep it private."
+        };
+    }
+    if (state.targetChoice === "yes" && !String(state.target || "").trim()) {
+        return {
+            sectionId: "question-target",
+            selector: "#planner-target",
+            message: "You selected a specific target. Enter a target name or gene symbol, or choose “Not yet” to continue without naming one."
+        };
+    }
+    if (!state.approach) {
+        return {
+            sectionId: "question-approach",
+            selector: 'input[name="approach"]',
+            message: "Please answer Question 2 by choosing a ligand-based, structure-based, or mixed approach."
+        };
+    }
+    if (!state.guiOnly) {
+        return {
+            sectionId: "question-interface",
+            selector: 'input[name="gui-only"]',
+            message: "Please answer Question 3 so the workflow can respect your preferred tool interface."
+        };
+    }
+    if (!Array.isArray(state.objectives) || !state.objectives.length) {
+        return {
+            sectionId: "question-objectives",
+            selector: 'input[name="objective"]',
+            message: "Please choose at least one objective in Question 4. Select only what is relevant, or use “Select all” for a broad survey."
+        };
+    }
+    return null;
+}
+
+function clearGuidedIntakeFeedback() {
+    const feedback = document.getElementById("workflow-intake-feedback");
+    if (feedback) {
+        feedback.hidden = true;
+        feedback.textContent = "";
+    }
+}
+
+function validateGuidedIntake() {
+    const targetChoice = document.querySelector('input[name="target-choice"]:checked');
+    const targetInput = document.getElementById("planner-target");
+    const approach = document.querySelector('input[name="approach"]:checked');
+    const guiOnly = document.querySelector('input[name="gui-only"]:checked');
+    const objectives = Array.from(document.querySelectorAll('input[name="objective"]:checked')).map(function(input) {
+        return input.value;
+    });
+    const issue = guidedIntakeIssue({
+        targetChoice: targetChoice ? targetChoice.value : "",
+        target: targetInput ? targetInput.value : "",
+        approach: approach ? approach.value : "",
+        guiOnly: guiOnly ? guiOnly.value : "",
+        objectives: objectives
+    });
+    if (!issue) {
+        clearGuidedIntakeFeedback();
+        return true;
+    }
+    const section = document.getElementById(issue.sectionId);
+    if (section) section.open = true;
+    const feedback = document.getElementById("workflow-intake-feedback");
+    if (feedback) {
+        feedback.textContent = issue.message;
+        feedback.hidden = false;
+    }
+    const field = document.querySelector(issue.selector);
+    if (field && typeof field.focus === "function") field.focus();
+    if (section && typeof section.scrollIntoView === "function") {
+        section.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    return false;
+}
+
 function updateQuestionnaireCounts() {
     const objectiveInputs = Array.from(document.querySelectorAll('input[name="objective"]'));
     const selectedObjectivesCount = objectiveInputs.filter(function(input) { return input.checked; }).length;
     const objectiveState = document.getElementById("objective-question-state");
     if (objectiveState) {
-        objectiveState.textContent = selectedObjectivesCount === objectiveInputs.length
-            ? "All " + objectiveInputs.length + " activities selected"
-            : selectedObjectivesCount + " of " + objectiveInputs.length + " selected";
+        objectiveState.textContent = selectedObjectivesCount === 0
+            ? "Choose activities"
+            : selectedObjectivesCount === objectiveInputs.length
+                ? "All " + objectiveInputs.length + " selected"
+                : selectedObjectivesCount + " of " + objectiveInputs.length + " selected";
     }
     const assetInputs = Array.from(document.querySelectorAll('input[name="asset"]'));
     const selectedAssetsCount = assetInputs.filter(function(input) { return input.checked; }).length;
@@ -1835,9 +1920,11 @@ function updateQuestionnaireCounts() {
         : "Choose one";
     const interfaceState = document.querySelector("#question-interface .planner-question-state");
     const guiOnly = document.querySelector('input[name="gui-only"]:checked');
-    if (interfaceState) interfaceState.textContent = guiOnly && guiOnly.value === "yes"
-        ? "Graphical interface only"
-        : "Command line / code also acceptable";
+    if (interfaceState) interfaceState.textContent = !guiOnly
+        ? "Choose one"
+        : guiOnly.value === "yes"
+            ? "Graphical interface only"
+            : "Command line / code also acceptable";
 }
 
 function setTargetQuestionState(text) {
@@ -2166,6 +2253,7 @@ function setupGuidedQuestionnaire() {
     const styleControl = document.getElementById("planner-tool-style");
 
     function handleTargetChoice() {
+        clearGuidedIntakeFeedback();
         const choice = document.querySelector('input[name="target-choice"]:checked');
         const value = choice ? choice.value : "";
         if (searchPanel) searchPanel.hidden = value !== "yes";
@@ -2186,6 +2274,7 @@ function setupGuidedQuestionnaire() {
 
     if (targetInput) {
         targetInput.addEventListener("input", function() {
+            clearGuidedIntakeFeedback();
             const typed = targetInput.value.trim();
             const chemblId = document.getElementById("planner-target-chembl-id");
             const selection = document.getElementById("target-selection-summary");
@@ -2223,7 +2312,23 @@ function setupGuidedQuestionnaire() {
     if (activityButton) activityButton.addEventListener("click", fetchChemblActivities);
 
     document.querySelectorAll('input[name="approach"], input[name="gui-only"], input[name="objective"], input[name="asset"]').forEach(function(input) {
-        input.addEventListener("change", updateQuestionnaireCounts);
+        input.addEventListener("change", function() {
+            clearGuidedIntakeFeedback();
+            updateQuestionnaireCounts();
+        });
+    });
+
+    const selectAllObjectives = document.getElementById("select-all-objectives");
+    const clearAllObjectives = document.getElementById("clear-all-objectives");
+    if (selectAllObjectives) selectAllObjectives.addEventListener("click", function() {
+        document.querySelectorAll('input[name="objective"]').forEach(function(input) { input.checked = true; });
+        clearGuidedIntakeFeedback();
+        updateQuestionnaireCounts();
+    });
+    if (clearAllObjectives) clearAllObjectives.addEventListener("click", function() {
+        document.querySelectorAll('input[name="objective"]').forEach(function(input) { input.checked = false; });
+        clearGuidedIntakeFeedback();
+        updateQuestionnaireCounts();
     });
     document.querySelectorAll('input[name="gui-only"]').forEach(function(input) {
         input.addEventListener("change", function() {
@@ -2252,17 +2357,22 @@ function setupGuidedQuestionnaire() {
     if (form) form.addEventListener("reset", function() {
         window.setTimeout(function() {
             clearChEMBLSelection();
+            clearGuidedIntakeFeedback();
             if (searchPanel) searchPanel.hidden = true;
             if (targetStatus) targetStatus.textContent = "Enter at least two characters to search ChEMBL.";
             setTargetQuestionState("Not answered");
             const approachDetails = document.getElementById("question-approach");
             const targetDetails = document.getElementById("question-target");
             const objectiveDetails = document.getElementById("question-objectives");
+            const interfaceDetails = document.getElementById("question-interface");
             const assetsDetails = document.getElementById("question-assets");
+            const optionalDetails = document.querySelector(".planner-question-advanced");
             if (approachDetails) approachDetails.open = false;
             if (targetDetails) targetDetails.open = false;
+            if (interfaceDetails) interfaceDetails.open = false;
             if (objectiveDetails) objectiveDetails.open = false;
             if (assetsDetails) assetsDetails.open = false;
+            if (optionalDetails) optionalDetails.open = false;
             updateQuestionnaireCounts();
         }, 0);
     });
