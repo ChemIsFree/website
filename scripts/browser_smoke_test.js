@@ -195,6 +195,7 @@ async function installMockRoutes(page) {
         assert.match(await page.locator("#workflow-panel-1").innerText(), /IC₅₀.*Kᵢ.*EC₅₀/s);
         assert.match(await page.locator("#workflow-panel-1 a").first().getAttribute("href"), /openmolecules\.org/);
 
+        await page.locator("#workflow-results").scrollIntoViewIfNeeded();
         await page.screenshot({
             path: path.join(artifactDirectory, "planner-preview-generated-workflow.png"),
             fullPage: false,
