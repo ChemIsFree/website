@@ -49,6 +49,7 @@
         "show sticks, ligand",
         "util.cbag ligand",
         "color salmon, ligand and elem C",
+        "set valence, 1  # display ligand bond orders where the structure records them",
         "",
         "set stick_radius, 0.18",
         "bg_color white",
@@ -478,7 +479,7 @@
         const targetLabel = target || (targetChoice === "private" ? "Target not disclosed" :
             targetChoice === "not-yet" ? "Target not selected yet" : "Target not specified");
         const chemblUrl = target
-            ? queryLink("https://www.ebi.ac.uk/chembl/g/#search_results/all/query=", target)
+            ? queryLink("https://www.ebi.ac.uk/chembl/web_components/search_results/", target)
             : "https://www.ebi.ac.uk/chembl/";
         const pdbUrl = target
             ? queryLink("https://www.rcsb.org/search?query=", target)
