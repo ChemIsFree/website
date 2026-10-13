@@ -145,6 +145,27 @@ const allObjectives = [
 const mixedSteps = context.composeProtocolSteps(allObjectives, "structure-based", "mixed");
 const ligandSteps = context.composeProtocolSteps(allObjectives, "ligand-landscape", "ligand-based");
 const stepIds = Array.from(mixedSteps, (step) => step.id);
+const mixedPhases = Array.from(context.groupWorkflowStepsByPhase(mixedSteps, "mixed"));
+const ligandPhases = Array.from(context.groupWorkflowStepsByPhase(ligandSteps, "ligand-based"));
+assert.ok(mixedPhases.length > 1 && mixedPhases.length < mixedSteps.length,
+    "The combined mixed workflow should be grouped into a smaller number of phases.");
+assert.ok(ligandPhases.length > 1 && ligandPhases.length < ligandSteps.length,
+    "The ligand-first workflow should be grouped into a smaller number of phases.");
+assert.deepEqual(
+    Array.from(mixedPhases.flatMap((phase) => Array.from(phase.steps, (step) => step.id))),
+    stepIds,
+    "Grouped mixed workflow must preserve the exact generated step order."
+);
+assert.deepEqual(
+    Array.from(ligandPhases.flatMap((phase) => Array.from(phase.steps, (step) => step.id))),
+    Array.from(ligandSteps, (step) => step.id),
+    "Grouped ligand-based workflow must preserve the exact generated step order."
+);
+assert.ok(mixedPhases.some((phase) => phase.title.includes("Target, structure")),
+    "Mixed workflow should expose a target/structure evidence phase.");
+assert.ok(ligandPhases.some((phase) => phase.title.includes("Structural cross-check")),
+    "Ligand-first workflow should keep structural analysis as a later cross-check.");
+
 assert.equal(new Set(stepIds).size, stepIds.length, "Combined workflow should not duplicate the same scientific phase.");
 assert.ok(stepIds.indexOf("target.resolve") < stepIds.indexOf("structure.choose"));
 assert.ok(stepIds.indexOf("structure.choose") < stepIds.indexOf("ligand.query"),
@@ -159,6 +180,17 @@ assert.ok(ligandSteps.findIndex((step) => step.id === "ligand.query") <
 
 assert.ok(plannerSource.includes('class="planner-workflow-step-details"'),
     "Generated scientific phases should be expandable.");
+assert.ok(plannerSource.includes("function groupWorkflowStepsByPhase"),
+    "Long workflows should be grouped into navigable phases.");
+assert.ok(plannerSource.includes("function renderWorkflowPhases"),
+    "Grouped phase rendering function is missing.");
+for (const id of [
+    "expand-workflow-phases", "collapse-workflow-phases",
+    "expand-workflow-instructions", "collapse-workflow-instructions"
+]) {
+    assert.ok(plannerSource.includes(id), "Missing workflow navigation control " + id + ".");
+}
+
 assert.ok(html.includes('src="js/workflow-recipes.js'),
     "Recipe helper script must be loaded by the page.");
 
