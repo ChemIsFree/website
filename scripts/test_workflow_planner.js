@@ -21,15 +21,15 @@ assert.ok(!html.includes("planner-activity-box") && !html.includes("target-sugge
 assert.ok(!html.includes("workflow-recipes.js") && !html.includes("protocols.js"),
     "The old recipe/protocol engines must not be loaded by the planner.");
 assert.ok(html.includes("Build my workflow"), "The intake form needs a clear build action.");
-assert.ok(html.includes("Databases → Search ChEMBL database"),
+assert.ok(js.includes("Databases → Search ChEMBL database"),
     "Step 1 must give the DataWarrior ChEMBL menu path.");
-assert.ok(html.includes("Homo sapiens") && html.includes("usable activity records"),
+assert.ok(js.includes("Homo sapiens") && js.includes("usable activity records"),
     "Step 1 must guide manual species-aware target selection.");
-assert.ok(html.includes("IC₅₀") && html.includes("Kᵢ") && html.includes("EC₅₀"),
+assert.ok(js.includes("IC₅₀") && js.includes("Kᵢ") && js.includes("EC₅₀"),
     "Step 1 must support IC50, Ki and EC50.");
-assert.ok(html.includes("Download 10 candidate structures") && html.includes("RCSB PDB"),
+assert.ok(js.includes("Download 10 candidate structures") && js.includes("RCSB PDB"),
     "Step 2 must guide a PDB shortlist.");
-assert.ok(html.includes("semi-transparent cyan cartoon") && html.includes("PyMOL"),
+assert.ok(html.includes("PyMOL") && js.includes("semi-transparent cyan cartoon"),
     "Step 3 must describe PyMOL visualisation.");
 
 assert.ok(js.includes("firstValidationIssue"), "Required intake answers must be validated.");
