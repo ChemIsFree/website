@@ -250,6 +250,7 @@ async function installMockRoutes(page) {
         assert.match(visualCode, /zoom ligand, 8/);
         assert.equal(await page.locator("[data-copy]").count(), 3,
             "The generated guide should provide copy actions for its code blocks.");
+        await page.locator("#workflow-panel-3 details.workflow-more").nth(1).locator("summary").click();
         assert.match(await page.locator("#pymol-interactions-code").innerText(), /distance hbonds/);
         assert.match(await page.locator("#pymol-interactions-code").innerText(), /dash_color, orange/);
         assert.deepEqual(pageErrors, [], "No JavaScript errors should occur while using the planner.");
