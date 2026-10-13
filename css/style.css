@@ -5848,3 +5848,40 @@ button {
         padding: 21px 0;
     }
 }
+
+
+/* Guided intake: explicit choices before generating a tailored protocol. */
+.planner-intake-message {
+    margin: 18px 0 2px;
+    padding: 13px 16px;
+    border-left: 3px solid var(--violet);
+    background: rgba(255, 255, 255, .58);
+    color: var(--ink);
+    font-size: 12px;
+    line-height: 1.65;
+}
+.planner-intake-message[hidden] {
+    display: none !important;
+}
+.planner-objective-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 16px;
+}
+.planner-objective-action {
+    padding: 7px 11px;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: .04em;
+    cursor: pointer;
+}
+.planner-objective-action:hover,
+.planner-objective-action:focus-visible {
+    border-color: var(--violet);
+    color: var(--ink);
+    outline: none;
+}
