@@ -145,17 +145,20 @@ async function selectTarget(page, targetText) {
         let selected = -1;
         const labels = [];
         for (let index = 0; index < count; index += 1) {
-            const label = await suggestions.nth(index).innerText();
-            labels.push(label.replace(/\\s+/g, " ").trim());
-            const targetName = label.split("\\n")[0].trim();
-            if (/Homo sapiens/i.test(label) &&
-                /^glycogen synthase kinase[- ]?3 beta$/i.test(targetName)) {
+            const suggestion = suggestions.nth(index);
+            const targetName = (await suggestion.locator("strong").textContent() || "").trim();
+            const targetId = (await suggestion.locator("code").textContent() || "").trim();
+            const metadata = (await suggestion.locator("small").textContent() || "").trim();
+            labels.push([targetName, metadata, targetId].filter(Boolean).join(" / "));
+            const normalizedName = targetName.replace(/\\s*\\(human\\)\\s*$/i, "").trim();
+            if (targetId.toUpperCase() === "CHEMBL262" &&
+                /^glycogen synthase kinase[- ]?3 beta$/i.test(normalizedName)) {
                 selected = index;
                 break;
             }
         }
         assert.notEqual(selected, -1,
-            "ChEMBL did not return the exact human GSK3B target name; refusing to use a related/interacting protein. Suggestions: " + labels.join(" | "));
+            "ChEMBL did not return the exact CHEMBL262 human GSK3B target name; refusing to use a related/interacting protein. Suggestions: " + labels.join(" | "));
         await suggestions.nth(selected).click();
     } else {
         await suggestions.first().click();
