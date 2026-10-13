@@ -201,7 +201,7 @@ async function installMockRoutes(page) {
         await page.locator("#chembl-target-search").click();
         await page.waitForFunction(() => {
             const status = document.querySelector("#chembl-finder-status");
-            return status && status.textContent.startsWith("Ranked ");
+            return status && status.textContent.startsWith("Showing the top ");
         });
         assert.equal(await page.locator(".chembl-target-card").count(), 4,
             "The target selector should present the matching candidate records.");
