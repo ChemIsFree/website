@@ -332,12 +332,15 @@
                 return;
             }
 
-            const shortlist = sortChemblTargets(candidates).slice(0, 10);
-            renderChemblTargetCandidates(shortlist);
+            const provisional = sortChemblTargets(candidates).slice(0, 10);
+            renderChemblTargetCandidates(provisional);
             if (status) status.textContent = "Found " + candidates.length +
-                " matching target records. Checking IC₅₀/Kᵢ/EC₅₀ record counts for the leading 10; results are already selectable.";
+                " matching target records. Checking activity-record counts so data-rich human single-protein targets can rank first.";
 
-            const countResults = await Promise.all(shortlist.map(async function (target) {
+            // Rank by counts across every returned candidate, not only the
+            // search endpoint's first few records. Results are capped at 20
+            // candidates, and counts are requested concurrently.
+            const countResults = await Promise.all(candidates.map(async function (target) {
                 try {
                     target.activityCount = await countChemblActivities(target);
                 } catch (error) {
@@ -346,12 +349,12 @@
                 return target;
             }));
             if (requestId !== targetLookupRequest) return;
-            const sorted = sortChemblTargets(countResults);
+            const sorted = sortChemblTargets(countResults).slice(0, 10);
             renderChemblTargetCandidates(sorted);
-            const counted = sorted.filter(function (target) { return Number.isFinite(target.activityCount); }).length;
-            if (status) status.textContent = "Ranked " + sorted.length +
-                " targets: Homo sapiens first, then single-protein targets, then the largest number of IC₅₀/Kᵢ/EC₅₀ records. Counts are measurements, not unique compounds." +
-                (counted < sorted.length ? " Some counts could not be retrieved; those records are marked unavailable." : "");
+            const counted = countResults.filter(function (target) { return Number.isFinite(target.activityCount); }).length;
+            if (status) status.textContent = "Showing the top " + sorted.length + " of " + countResults.length +
+                " matches, ranked by Homo sapiens first, then single-protein target type, then IC₅₀/Kᵢ/EC₅₀ activity-record count. Counts are measurements, not unique compounds." +
+                (counted < countResults.length ? " Some counts could not be retrieved; those records are marked unavailable." : "");
         } catch (error) {
             if (requestId !== targetLookupRequest) return;
             if (status) status.textContent =
