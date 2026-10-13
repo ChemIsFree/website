@@ -229,6 +229,7 @@
         const params = new URLSearchParams({
             target_chembl_id: target.id,
             standard_type__in: "IC50,Ki,EC50",
+            standard_value__isnull: "false",
             limit: "1",
             only: "activity_id"
         });
