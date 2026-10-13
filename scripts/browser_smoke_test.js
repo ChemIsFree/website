@@ -194,6 +194,16 @@ async function runMockedBrowserTest(page) {
     const response = await page.goto(page.context()._plannerUrl, { waitUntil: "domcontentloaded" });
     assert.ok(response && response.ok(), "Planner page did not load successfully.");
 
+    // Save a full-page intake image so a reviewer can inspect the actual rendered
+    // page before merging, without changing the production GitHub Pages deployment.
+    const artifactDirectory = path.join(root, "artifacts");
+    await fs.promises.mkdir(artifactDirectory, { recursive: true });
+    await page.screenshot({
+        path: path.join(artifactDirectory, "planner-preview-intake.png"),
+        fullPage: true,
+        animations: "disabled"
+    });
+
     const objectives = page.locator('input[name="objective"]');
     assert.equal(await objectives.count(), 10, "The rendered page should expose ten objectives.");
     assert.equal(await page.locator('input[name="objective"]:checked').count(), 0,
@@ -223,6 +233,14 @@ async function runMockedBrowserTest(page) {
     assert.ok(await phaseCards.count() >= 3, "Generated workflow should be divided into phases.");
     assert.ok(await phaseCards.first().getAttribute("open") !== null,
         "The first phase should open by default.");
+
+    // Capture the generated workflow as the user sees it in the browser.
+    await page.locator("#workflow-results").scrollIntoViewIfNeeded();
+    await page.screenshot({
+        path: path.join(root, "artifacts", "planner-preview-generated-workflow.png"),
+        fullPage: false,
+        animations: "disabled"
+    });
 
     // Two plausible UniProt records must pause PDB lookup until the user chooses.
     await page.locator("#uniprot-accession-choice").waitFor({ state: "visible" });
@@ -329,6 +347,7 @@ async function runLiveApiTest(page) {
         browser = await chromium.launch({ headless: true });
         const context = await browser.newContext();
         const page = await context.newPage();
+        await page.setViewportSize({ width: 1440, height: 1000 });
         page.context()._plannerUrl = url;
         page.setDefaultTimeout(liveMode ? 30000 : 12000);
         page.on("pageerror", (error) => pageErrors.push(error.message));
