@@ -364,7 +364,7 @@ def main():
     supplemental = load_json(ASSAYER_FILE)
     tools, imported_count, skipped_duplicates = merge_catalogue(primary, supplemental)
 
-    curation_data = load_yaml(CURATION_FILE)
+    curation_data = load_yaml(CURATION_FILE) if CURATION_FILE.exists() else {}
     category_curation = curation_data.get("category_curation", {})
     for tool in tools:
         normalize_tool_domains(tool, category_curation)
