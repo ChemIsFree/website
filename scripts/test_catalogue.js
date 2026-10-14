@@ -128,6 +128,17 @@ const breeze = tools.find(tool => matchesAlias(tool, ["breeze"]));
 if (breeze) assert.ok(breeze.domain.includes("visualization"), "BREEZE belongs in Visualization.");
 const fastTargetPred = tools.find(tool => matchesAlias(tool, ["fasttargetpred"]));
 if (fastTargetPred) assert.equal(fastTargetPred.catalogue, "app", "FastTargetPred must be presented as a tool.");
+for (const [label, aliases] of [
+    ["PharmMapper", ["pharmmapper"]],
+    ["SuperPred", ["superpred"]],
+    ["MolTarPred", ["moltarpred"]]
+]) {
+    const entry = tools.find(tool => matchesAlias(tool, aliases));
+    assert.ok(entry, label + " must have a catalogue record.");
+    assert.equal(entry.catalogue, "app", label + " must be classified as a tool.");
+    assert.ok(/^https?:\/\//i.test(String(entry.website || "")),
+        label + " should have a website link.");
+}
 const oddt = tools.find(tool => matchesAlias(tool, ["oddt", "opendrugdiscoverytoolkit"]));
 if (oddt) assert.equal(oddt.catalogue, "app", "ODDT must be presented as a tool, not a library card.");
 
