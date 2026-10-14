@@ -155,6 +155,7 @@
     function matchesAccess(tool, filter) {
         if (!filter) return true;
         if (filter === "open-source") return isOpenSource(tool);
+        if (filter === "free") return isFree(tool);
         if (filter === "free-web") return isFreeWeb(tool);
         if (filter === "commercial") return isCommercial(tool);
         return true;
@@ -229,6 +230,7 @@
         const filters = [
             { id: "", label: "Any access", count: scoped.length },
             { id: "open-source", label: "Open source", count: scoped.filter(isOpenSource).length },
+            { id: "free", label: "Free", count: scoped.filter(isFree).length },
             { id: "free-web", label: "Free web", count: scoped.filter(isFreeWeb).length },
             { id: "commercial", label: "Commercial / paid", count: scoped.filter(isCommercial).length }
         ];
@@ -353,7 +355,7 @@
         state.search = params.get("search") || "";
         const search = $("#search");
         if (search) search.value = state.search;
-        if (state.access && !["open-source", "free-web", "commercial"].includes(state.access)) state.access = "";
+        if (state.access && !["open-source", "free", "free-web", "commercial"].includes(state.access)) state.access = "";
         if (state.domain && !Object.hasOwn(taxonomy.domains || {}, state.domain)) state.domain = "";
     }
 
