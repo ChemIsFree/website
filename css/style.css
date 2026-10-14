@@ -7181,3 +7181,248 @@ button {
         font-size: 19px;
     }
 }
+
+
+/* Direct access links on compact catalogue cards. */
+.catalogue-card-status-link {
+    position: relative;
+    z-index: 2;
+    text-decoration: none;
+    cursor: pointer;
+}
+.catalogue-card-status-link:hover,
+.catalogue-card-status-link:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    outline-color: var(--violet);
+}
+
+/* Compact tool details: description, link/citation row, then a single metadata grid. */
+.tool-detail-hero .container {
+    padding-bottom: 46px;
+}
+.tool-detail-hero-grid {
+    grid-template-columns: minmax(0, 1.25fr) minmax(245px, .6fr);
+    gap: 52px;
+    padding-top: 46px;
+}
+.tool-detail-heading h1 {
+    font-size: clamp(48px, 7vw, 88px);
+    line-height: .94;
+    overflow-wrap: break-word;
+    word-break: normal;
+}
+.tool-detail-heading > p,
+.tool-detail-heading > .tool-detail-full-description {
+    display: block;
+    max-height: none;
+    height: auto;
+    max-width: 820px;
+    margin: 24px 0 0;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: normal;
+    hyphens: auto;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    color: var(--text-on-dark-muted);
+    font-size: 16px;
+    line-height: 1.7;
+}
+.tool-detail-body {
+    padding: 36px 0 76px;
+}
+.tool-detail-compact-layout {
+    display: grid;
+    gap: 16px;
+    min-width: 0;
+}
+.tool-detail-link-citation-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    align-items: stretch;
+}
+.tool-detail-link-citation-row.single-panel {
+    grid-template-columns: minmax(0, 1fr);
+}
+.tool-detail-link-citation-row .tool-section {
+    min-width: 0;
+    padding: 18px;
+    margin: 0;
+    border: 1px solid var(--line);
+    background: var(--white);
+}
+.tool-detail-link-citation-row .tool-section-label {
+    margin-bottom: 9px;
+}
+.tool-detail-link-citation-row .tool-section h2 {
+    margin: 0 0 13px;
+    font-size: 23px;
+    line-height: 1.1;
+    letter-spacing: -.04em;
+}
+.tool-detail-resource-panel .tool-external-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+.tool-detail-resource-panel .external-link {
+    display: inline-flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    min-height: 38px;
+    flex: 1 1 145px;
+    max-width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    color: var(--text);
+    font-size: 10px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+.tool-detail-resource-panel .external-link span {
+    color: var(--violet);
+    flex: 0 0 auto;
+}
+.tool-detail-citation-panel .tool-citation {
+    padding: 0;
+    border-left: 0;
+    background: transparent;
+    font-size: 11px;
+    line-height: 1.55;
+    color: var(--text-muted);
+    overflow-wrap: break-word;
+}
+.tool-detail-citation-panel .tool-citation p + p {
+    margin-top: 7px;
+}
+.tool-detail-citation-panel .tool-citation a {
+    display: inline;
+    color: var(--text);
+    text-decoration: underline;
+    text-decoration-color: var(--line-dark);
+    text-underline-offset: 3px;
+    overflow-wrap: anywhere;
+}
+.tool-detail-citation-panel .tool-citation a:hover {
+    color: var(--violet);
+}
+.tool-detail-citation-panel .tool-citation a span {
+    color: var(--violet);
+    margin-left: 4px;
+}
+.tool-info-availability {
+    min-width: 0;
+    padding: 18px 20px 14px;
+    margin: 0;
+}
+.tool-info-availability .tool-info-card-heading {
+    padding-bottom: 11px;
+    margin-bottom: 2px;
+}
+.tool-info-availability .tool-info-card-heading h2 {
+    font-size: 22px;
+}
+.tool-info-availability-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+}
+.tool-info-cell {
+    min-width: 0;
+    padding: 13px 14px 12px 0;
+    margin-right: 14px;
+    border-bottom: 1px solid var(--line);
+}
+.tool-info-cell dt {
+    margin: 0 0 5px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 7px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+}
+.tool-info-cell dd {
+    margin: 0;
+    color: var(--text);
+    font-size: 11px;
+    line-height: 1.5;
+    overflow-wrap: break-word;
+    word-break: normal;
+}
+.tool-info-availability .tool-interface-confidence-note {
+    margin: 10px 0 0;
+    font-size: 10px;
+    line-height: 1.5;
+}
+.tool-detail-notes {
+    padding: 18px 20px;
+    margin: 0;
+    border: 1px solid var(--line);
+    background: var(--white);
+}
+.tool-detail-notes .tool-section-label {
+    margin-bottom: 8px;
+}
+.tool-detail-notes h2 {
+    margin: 0 0 8px;
+    font-size: 20px;
+}
+.tool-detail-notes p {
+    max-width: none;
+    font-size: 12px;
+    line-height: 1.6;
+}
+@media (max-width: 1000px) {
+    .tool-detail-link-citation-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .tool-info-availability-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+@media (max-width: 700px) {
+    .tool-detail-hero .container {
+        padding-bottom: 42px;
+    }
+    .tool-detail-hero-grid {
+        padding-top: 38px;
+        gap: 28px;
+    }
+    .tool-detail-heading h1 {
+        font-size: clamp(44px, 13vw, 68px);
+    }
+    .tool-detail-heading > p,
+    .tool-detail-heading > .tool-detail-full-description {
+        margin-top: 18px;
+        font-size: 14px;
+        line-height: 1.7;
+    }
+    .tool-detail-body {
+        padding: 24px 0 56px;
+    }
+    .tool-detail-link-citation-row,
+    .tool-detail-link-citation-row.single-panel {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .tool-info-availability-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .tool-info-cell {
+        padding-right: 10px;
+        margin-right: 10px;
+    }
+}
+@media (max-width: 380px) {
+    .tool-info-availability-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .tool-info-cell {
+        margin-right: 0;
+    }
+}
