@@ -1,4 +1,4 @@
-name: Validate Workflows & Tutorials planner
+name: Validate catalogue taxonomy and workflow planner
 
 on:
   pull_request:
@@ -48,6 +48,9 @@ jobs:
         working-directory: website
         run: |
           node --check js/planner.js
+          node --check js/catalogue.js
+          node --check js/tool.js
+          node --check scripts/browser_smoke_test.js
 
       - name: Test workflow ordering, UI choices, tool IDs and recipe rendering
         working-directory: website
