@@ -263,7 +263,57 @@ async function installMockRoutes(page) {
         assert.equal(await page.locator('input[name="target-choice"]:checked').count(), 0,
             "Reset should clear answers.");
 
-        console.log("Chromium smoke test passed: compact intake, explicit ChEMBL lookup, human-first ranking, multi-endpoint CSV export, three tabs, PDB shortlist, and PyMOL visualisation.");
+        // Catalogue smoke test: the same local server serves built catalogue JSON.
+        const catalogueResponse = await page.goto(new URL("/tools.html", url).toString(), { waitUntil: "domcontentloaded" });
+        assert.ok(catalogueResponse && catalogueResponse.ok(), "The catalogue page should load.");
+        await page.locator(".catalogue-tool-card").first().waitFor();
+        const featuredCardCount = await page.locator(".catalogue-tool-card").count();
+        assert.ok(featuredCardCount > 0, "Featured view should display curated entries.");
+        assert.equal(await page.locator("#view-featured").getAttribute("aria-pressed"), "true");
+        const allListed = Number(await page.locator("#all-count").innerText());
+        assert.ok(allListed > featuredCardCount, "All listed view should contain more entries than the featured shortlist.");
+        assert.ok(await page.locator("#category-filters [data-domain]").count() >= 6,
+            "The category row should expose computational areas.");
+        assert.ok(await page.locator("#access-filters [data-access='open-source']").isVisible());
+        await page.screenshot({
+            path: path.join(artifactDirectory, "planner-preview-catalogue.png"),
+            fullPage: false,
+            animations: "disabled"
+        });
+
+        await page.locator("#view-all").click();
+        assert.equal(await page.locator("#view-all").getAttribute("aria-pressed"), "true");
+        assert.equal(await page.locator(".catalogue-tool-card").count(), allListed,
+            "All listed view should display the full de-duplicated catalogue.");
+        const cardLinks = await page.locator(".catalogue-tool-card h3 a").evaluateAll(nodes => nodes.map(node => node.getAttribute("href")));
+        assert.equal(new Set(cardLinks).size, cardLinks.length, "Each tool should appear only once in the grid.");
+
+        await page.locator('#category-filters [data-domain="structure-based-discovery"]').click();
+        assert.ok(await page.locator(".catalogue-tool-card").count() > 0,
+            "Choosing a computational category should filter the cards.");
+        assert.match(await page.locator("#active-filter-summary").innerText(), /STRUCTURE-BASED DISCOVERY/);
+        await page.locator('#category-filters [data-domain=""]').click();
+
+        await page.locator('#access-filters [data-access="open-source"]').click();
+        assert.ok(await page.locator(".catalogue-tool-card").count() > 0,
+            "Open-source filtering should return matching tools.");
+        await page.locator("#search").fill("GNINA");
+        assert.equal(await page.locator(".catalogue-tool-card").count(), 1,
+            "Search should work together with access filters.");
+        assert.match(await page.locator(".catalogue-tool-card h3").first().innerText(), /GNINA/i);
+        await page.locator("#clear-filters").click();
+        assert.equal(await page.locator("#search").inputValue(), "");
+        assert.equal(await page.locator(".catalogue-tool-card").count(), allListed,
+            "Reset should clear category, access and search filters.");
+
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.locator(".catalogue-tool-card").first().waitFor();
+        const firstCard = await page.locator(".catalogue-tool-card").first().boundingBox();
+        assert.ok(firstCard && firstCard.width > 130 && firstCard.width < 390,
+            "Catalogue cards should reflow to a compact mobile grid.");
+        assert.deepEqual(pageErrors, [], "No JavaScript errors should occur across planner and catalogue pages.");
+
+        console.log("Chromium smoke test passed: guided planner plus featured/all catalogue views, category/access filters, combined search, unique compact cards, and mobile layout.");
     } finally {
         if (browser) await browser.close();
         await new Promise((resolve) => server.close(resolve));
