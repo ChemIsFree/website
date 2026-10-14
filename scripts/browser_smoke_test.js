@@ -352,6 +352,7 @@ async function installMockRoutes(page) {
         assert.ok(await page.locator('a.category-card[href="tools.html?domain=libraries-datasets"]').isVisible());
 
         // Detail page: complete description, horizontal Resources/Citation, then unified metadata.
+        await page.setViewportSize({ width: 1280, height: 900 });
         const detailResponse = await page.goto(new URL("/tool.html?id=datawarrior", url).toString(), { waitUntil: "domcontentloaded" });
         assert.ok(detailResponse && detailResponse.ok(), "The tool detail page should load.");
         await page.locator(".tool-detail-full-description").waitFor();
