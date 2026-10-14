@@ -9,6 +9,7 @@ const path = require("node:path");
 const root = process.cwd();
 const read = name => fs.readFileSync(path.join(root, name), "utf8");
 const html = read("tools.html");
+const homepage = read("index.html");
 const script = read("js/catalogue.js");
 const builder = read("scripts/build_catalogue.py");
 const css = read("css/style.css");
@@ -62,6 +63,11 @@ assert.ok(tools.some(tool => tool.catalogue === "resource"), "The catalogue need
 categoryIds.forEach((id, index) => {
     assert.ok(script.includes('id: "' + id + '"'), "Missing category ID in the catalogue UI: " + id);
     assert.ok(script.includes('label: "' + categoryLabels[index] + '"'), "Missing category label in the catalogue UI: " + categoryLabels[index]);
+});
+assert.equal((homepage.match(/class="category-card(?: category-card-large)?"/g) || []).length, 14,
+    "The homepage should link to each of the 14 categories.");
+categoryIds.forEach(id => {
+    assert.ok(homepage.includes('tools.html?domain=' + id), "Homepage category link is missing: " + id);
 });
 assert.ok(html.includes('id="category-filters"'), "Computational category chips are required.");
 assert.ok(html.includes('id="all-count"'), "The all-entry count is required.");
