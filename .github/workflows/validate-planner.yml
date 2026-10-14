@@ -53,6 +53,10 @@ jobs:
         working-directory: website
         run: node scripts/test_workflow_planner.js
 
+      - name: Test concise catalogue data and filter contract
+        working-directory: website
+        run: node scripts/test_catalogue.js
+
       - name: Install Playwright for real-browser smoke tests
         working-directory: website
         run: npm install --no-save playwright
