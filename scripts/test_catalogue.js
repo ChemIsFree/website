@@ -60,6 +60,104 @@ tools.forEach(tool => {
 assert.ok(tools.some(tool => tool.catalogue === "app"), "The catalogue needs primary tools.");
 assert.ok(tools.some(tool => tool.catalogue === "resource"), "The catalogue needs supporting resources.");
 
+function normalizedName(value) {
+    return String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+function matchesAlias(tool, aliases) {
+    const values = [normalizedName(tool.name), normalizedName(tool.id)];
+    return aliases.some(alias => {
+        const expected = normalizedName(alias);
+        return values.some(value => value === expected ||
+            (expected.length >= 5 && value.includes(expected)) ||
+            (value.startsWith("assayer") && value.endsWith(expected)));
+    });
+}
+
+const requiredTargetEntries = [
+    ["canSAR", ["cansar"]],
+    ["ChEMBL multitask model", ["chemblmultitask"]],
+    ["CTD", ["ctd", "comparativetoxicogenomicsdatabase"]],
+    ["DAPredict", ["dapredict"]],
+    ["DataWarrior", ["datawarrior"]],
+    ["DeepCDR", ["deepcdr"]],
+    ["DGIdb", ["dgidb"]],
+    ["DynaMut2", ["dynamut2"]],
+    ["FTMap", ["ftmap"]],
+    ["GeneMANIA", ["genemania"]],
+    ["Open Targets", ["opentargets"]],
+    ["GPCRdb", ["gpcrdb"]],
+    ["KLIFS", ["klifs"]],
+    ["LigTMap", ["ligtmap"]],
+    ["OmniPath", ["omnipath"]],
+    ["PatentChem", ["patentchem"]],
+    ["PDBe-KB", ["pdbekb"]],
+    ["PLATO", ["plato"]],
+    ["PPB2", ["ppb2"]],
+    ["ProteinsPlus / DogSiteScorer", ["dogsitescorer", "proteinsplus"]],
+    ["Reactome", ["reactome"]],
+    ["SEA", ["similarityensembleapproach", "sea"]],
+    ["SSM-DTA", ["ssmdta"]],
+    ["SwissTargetPrediction", ["swisstargetprediction"]],
+    ["TargetNet", ["targetnet"]],
+    ["TransformerCPI", ["transformercpi"]],
+    ["ZINClick", ["zinclick"]],
+    ["PharmMapper", ["pharmmapper"]],
+    ["SuperPred", ["superpred"]],
+    ["MolTarPred", ["moltarpred"]],
+    ["FastTargetPred", ["fasttargetpred"]],
+    ["Therapeutic Target Database", ["therapeutictargetdatabase"]],
+    ["UniProt annotation", ["uniprot"]],
+    ["DrugBank", ["drugbank"]],
+    ["GtoPdb", ["gtopdb", "guidetopharmacology"]]
+];
+for (const [label, aliases] of requiredTargetEntries) {
+    const record = tools.find(tool => matchesAlias(tool, aliases));
+    assert.ok(record, "Required Target Identification entry is missing from the merged catalogue: " + label);
+    assert.ok((record.domain || []).includes("target-identification"),
+        label + " must be assigned to Target Identification. Actual record: " +
+        JSON.stringify({ id: record.id, name: record.name, domain: record.domain, catalogue: record.catalogue }));
+}
+
+const requiredTargetDatabases = [
+    ["GPCRdb", ["gpcrdb"]],
+    ["ZINClick", ["zinclick"]],
+    ["Therapeutic Target Database", ["therapeutictargetdatabase"]],
+    ["UniProt", ["uniprot"]],
+    ["DrugBank", ["drugbank"]],
+    ["GtoPdb", ["gtopdb", "guidetopharmacology"]]
+];
+for (const [label, aliases] of requiredTargetDatabases) {
+    const record = tools.find(tool => matchesAlias(tool, aliases));
+    assert.ok(record, label + " must exist as a target-related database.");
+    assert.equal(record.catalogue, "resource", label + " should be shown in Libraries & Datasets.");
+    assert.equal(record.resource_type, "database", label + " must have database resource metadata.");
+}
+
+const opera = tools.find(tool => normalizedName(tool.name) === "opera" || normalizedName(tool.id) === "opera");
+if (opera) {
+    assert.ok(opera.domain.includes("admet-prediction"), "OPERA belongs in ADMET Prediction.");
+    assert.ok(opera.domain.includes("ligand-based-qsar"), "OPERA belongs in Ligand-Based and QSAR.");
+    assert.ok(!opera.domain.includes("target-identification"), "OPERA must not remain in Target Identification.");
+}
+const breeze = tools.find(tool => matchesAlias(tool, ["breeze"]));
+if (breeze) assert.ok(breeze.domain.includes("visualization"), "BREEZE belongs in Visualization.");
+const fastTargetPred = tools.find(tool => matchesAlias(tool, ["fasttargetpred"]));
+if (fastTargetPred) assert.equal(fastTargetPred.catalogue, "app", "FastTargetPred must be presented as a tool.");
+for (const [label, aliases] of [
+    ["PharmMapper", ["pharmmapper"]],
+    ["SuperPred", ["superpred"]],
+    ["MolTarPred", ["moltarpred"]]
+]) {
+    const entry = tools.find(tool => matchesAlias(tool, aliases));
+    assert.ok(entry, label + " must have a catalogue record.");
+    assert.equal(entry.catalogue, "app", label + " must be classified as a tool.");
+    assert.ok(/^https?:\/\//i.test(String(entry.website || "")),
+        label + " should have a website link.");
+}
+const oddt = tools.find(tool => matchesAlias(tool, ["oddt", "opendrugdiscoverytoolkit"]));
+if (oddt) assert.equal(oddt.catalogue, "app", "ODDT must be presented as a tool, not a library card.");
+
+
 categoryIds.forEach((id, index) => {
     assert.ok(script.includes('id: "' + id + '"'), "Missing category ID in the catalogue UI: " + id);
     assert.ok(script.includes('label: "' + categoryLabels[index] + '"'), "Missing category label in the catalogue UI: " + categoryLabels[index]);
@@ -76,7 +174,7 @@ assert.ok(!html.includes('id="view-featured"') && !html.includes('id="view-all"'
 assert.ok(html.includes('id="catalogue-grid"'), "Cards should render in the category-aware results area.");
 assert.ok(!html.includes('id="domain-filter"') && !html.includes('id="task-filter"'),
     "The old stacked select filters should remain removed.");
-assert.ok(html.includes('js/catalogue.js?v=2'), "The page should load the new functional-category renderer.");
+assert.ok(html.includes('js/catalogue.js?v=3'), "The page should load the new functional-category renderer.");
 assert.ok(script.includes('renderCardSection("Tools"') && script.includes('renderCardSection("Libraries & datasets"'),
     "Tools must be displayed before the supporting library/dataset section.");
 assert.ok(script.includes("getToolCategories") && script.includes("TASK_CATEGORY_MAP"),
@@ -85,6 +183,17 @@ assert.ok(builder.includes("normalize_tool_domains") && builder.includes("CATEGO
     "Imported registry entries should be normalized into the functional categories.");
 assert.ok(script.includes('data-access') && script.includes("isOpenSource") && script.includes("isFreeWeb"),
     "Access/licence filters should remain available.");
+assert.ok(script.includes("getCardOutboundUrl") && script.includes("catalogue-card-status-link"),
+    "Open source and Free web badges should link directly to the official site or repository.");
+assert.ok(script.includes("isResourceInCurrentView") && script.includes("isGtoPdb"),
+    "GtoPdb should be visible with tools in Target Identification and as a resource in Libraries & Datasets.");
+const detailScript = read("js/tool.js");
+assert.ok(detailScript.includes("tool-detail-link-citation-row"), "Tool details need the horizontal links/citation row.");
+assert.ok(detailScript.includes("tool-info-availability-grid"), "Tool details need consolidated information/availability.");
+assert.ok(!detailScript.includes("What it helps you do") && !detailScript.includes("<h2>About</h2>"),
+    "Duplicate task and About sections should be removed from tool details.");
+assert.ok(detailScript.includes("tool-detail-full-description"), "The complete description should be rendered in the detail hero.");
+
 assert.ok(css.includes(".catalogue-card-section") && css.includes(".catalogue-card-grid"),
     "Both tool and resource sections need compact responsive card styling.");
 

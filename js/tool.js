@@ -36,7 +36,7 @@ async function loadTool() {
 }
 
 function renderTool(tool) {
-    document.title = `${tool.name || "Tool"} — ChemIsFree`;
+    document.title = String(tool.name || "Tool") + " — ChemIsFree";
 
     const hero = document.getElementById("tool-hero-content");
     const content = document.getElementById("tool-content");
@@ -44,89 +44,52 @@ function renderTool(tool) {
 
     const description = tool.description || "No description available.";
     const domains = getToolDomains(tool);
-    const tasks = getToolTasks(tool);
 
-    hero.innerHTML = `
-        <div class="tool-detail-hero-grid">
-            <div class="tool-detail-heading">
-                ${createStatusBadge(tool)}
-                <div class="tool-detail-type">${escapeHtml(formatLabel(tool.type || "resource"))}</div>
-                <h1>${escapeHtml(tool.name || "Unnamed resource")}</h1>
-                <p>${escapeHtml(description)}</p>
-            </div>
-            <div class="tool-detail-side-intro">
-                <div class="detail-kicker">WHERE IT FITS</div>
-                <div class="detail-taxonomy-list">
-                    ${domains.map(domain => `
-                        <a href="tools.html?domain=${encodeURIComponent(domain)}">
-                            ${escapeHtml(getDomainName(domain))}
-                            <span>↗</span>
-                        </a>
-                    `).join("")}
-                </div>
-            </div>
-        </div>
-    `;
+    hero.innerHTML =
+        '<div class="tool-detail-hero-grid">' +
+            '<div class="tool-detail-heading">' +
+                createStatusBadge(tool) +
+                '<div class="tool-detail-type">' + escapeHtml(formatLabel(tool.type || "resource")) + '</div>' +
+                '<h1>' + escapeHtml(tool.name || "Unnamed resource") + '</h1>' +
+                '<p class="tool-detail-full-description">' + escapeHtml(description) + '</p>' +
+            '</div>' +
+            '<div class="tool-detail-side-intro">' +
+                '<div class="detail-kicker">WHERE IT FITS</div>' +
+                '<div class="detail-taxonomy-list">' +
+                    domains.map(domain =>
+                        '<a href="tools.html?domain=' + encodeURIComponent(domain) + '">' +
+                            escapeHtml(getDomainName(domain)) + '<span>↗</span>' +
+                        '</a>'
+                    ).join("") +
+                '</div>' +
+            '</div>' +
+        '</div>';
 
-    content.innerHTML = `
-        <div class="tool-detail-layout">
-            <div class="tool-detail-main">
-                ${createTaskSection(tasks)}
-                <section class="tool-section">
-                    <div class="tool-section-label">01 / OVERVIEW</div>
-                    <h2>About</h2>
-                    <p>${escapeHtml(description)}</p>
-                </section>
-                ${createLinksSection(tool)}
-                ${createNotesSection(tool)}
-                ${createCitationSection(tool)}
-            </div>
-            <aside class="tool-detail-sidebar">
-                ${createInformationCard(tool)}
-                ${createAvailabilityCard(tool)}
-                ${createPrimaryLink(tool)}
-            </aside>
-        </div>
-    `;
+    const linksSection = createLinksSection(tool);
+    const citationSection = createCitationSection(tool);
+    const topPanels = [linksSection, citationSection].filter(Boolean);
+    const panelClass = topPanels.length > 1 ? "two-panels" : "single-panel";
+
+    content.innerHTML =
+        '<div class="tool-detail-compact-layout">' +
+            (topPanels.length
+                ? '<div class="tool-detail-link-citation-row ' + panelClass + '">' + topPanels.join("") + '</div>'
+                : '') +
+            createInformationAvailabilitySection(tool) +
+            createNotesSection(tool) +
+        '</div>';
 }
 
-function createTaskSection(taskIds) {
-    if (!taskIds.length) return "";
-
-    const tasks = deduplicate(taskIds).map(taskId => ({ id: taskId, name: getTaskName(taskId) }));
-
-    return `
-        <section class="tool-section tool-task-section">
-            <div class="tool-section-label">00 / TASKS</div>
-            <h2>What it helps you do</h2>
-            <div class="tool-task-tags">
-                ${tasks.map(task => `
-                    <a href="tools.html?task=${encodeURIComponent(task.id)}" class="tool-task-tag">
-                        ${escapeHtml(task.name)}
-                        <span>↗</span>
-                    </a>
-                `).join("")}
-            </div>
-        </section>
-    `;
+function firstValidUrl(value) {
+    const candidates = Array.isArray(value) ? value : [value];
+    for (const candidate of candidates) {
+        const url = String(candidate || "").trim();
+        if (/^https?:\/\//i.test(url) && url !== "[]") return url;
+    }
+    return "";
 }
 
-function createInformationCard(tool) {
-    return `
-        <div class="tool-info-card">
-            <div class="tool-info-card-heading"><span>01</span><h2>Information</h2></div>
-            <dl>
-                ${createDefinition("Type", formatLabel(tool.type || "resource"))}
-                ${createDefinition("Access", getDisplayAccess(tool))}
-                ${createDefinition("License", tool.license || "Not specified")}
-                ${createDefinition("Developer", (tool.developers || []).join(", ") || "Not specified")}
-            </dl>
-        </div>
-    `;
-}
-
-function createAvailabilityCard(tool) {
-    const interfaces = getInterfaceLabels(tool);
+function createInformationAvailabilitySection(tool) {
     const classification = tool.interface_classification;
     let confidenceNote = "";
 
@@ -141,73 +104,71 @@ function createAvailabilityCard(tool) {
             '</p>';
     }
 
-    return '<div class="tool-info-card">' +
-        '<div class="tool-info-card-heading"><span>02</span><h2>Availability</h2></div>' +
-        '<dl>' +
-            createDefinition("Platforms", (tool.platforms || []).map(formatLabel).join(", ") || "Not specified") +
-            createDefinition("Interfaces", interfaces.join(" + ") || "Not specified") +
-            createDefinition("Languages", (tool.languages || []).join(", ") || "Not specified") +
-        '</dl>' + confidenceNote +
-    '</div>';
-}
+    const fields = [
+        ["Type", formatLabel(tool.type || (tool.catalogue === "resource" ? "resource" : "software"))],
+        ["Access", getDisplayAccess(tool)],
+        ["License", tool.license || "Not specified"],
+        ["Developer", (Array.isArray(tool.developers) ? tool.developers : []).join(", ") || "Not specified"],
+        ["Platforms", (Array.isArray(tool.platforms) ? tool.platforms : []).map(formatLabel).join(", ") || "Not specified"],
+        ["Interfaces", getInterfaceLabels(tool).join(" + ") || "Not specified"],
+        ["Languages", (Array.isArray(tool.languages) ? tool.languages : []).join(", ") || "Not specified"]
+    ];
 
-function createDefinition(label, value) {
-    return `<div class="tool-info-row"><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`;
+    return '<section class="tool-info-card tool-info-availability">' +
+        '<div class="tool-info-card-heading"><span>02</span><h2>Information &amp; availability</h2></div>' +
+        '<dl class="tool-info-availability-grid">' +
+            fields.map(([label, value]) =>
+                '<div class="tool-info-cell"><dt>' + escapeHtml(label) + '</dt><dd>' + escapeHtml(value) + '</dd></div>'
+            ).join("") +
+        '</dl>' + confidenceNote +
+    '</section>';
 }
 
 function createLinksSection(tool) {
-    const links = [];
-
-    if (tool.website) links.push(`<a href="${escapeAttribute(tool.website)}" target="_blank" rel="noopener noreferrer" class="external-link">Official website <span>↗</span></a>`);
-    if (tool.repository) links.push(`<a href="${escapeAttribute(tool.repository)}" target="_blank" rel="noopener noreferrer" class="external-link">Source repository <span>↗</span></a>`);
-    if (tool.documentation) links.push(`<a href="${escapeAttribute(tool.documentation)}" target="_blank" rel="noopener noreferrer" class="external-link">Documentation <span>↗</span></a>`);
+    const links = [
+        { label: "Official website", url: firstValidUrl(tool.website) },
+        { label: "Source repository", url: firstValidUrl(tool.repository) },
+        { label: "Documentation", url: firstValidUrl(tool.documentation) }
+    ].filter(link => link.url);
 
     if (!links.length) return "";
 
-    return `
-        <section class="tool-section">
-            <div class="tool-section-label">02 / LINKS</div>
-            <h2>Resources</h2>
-            <div class="tool-external-links">${links.join("")}</div>
-        </section>
-    `;
+    return '<section class="tool-section tool-detail-resource-panel">' +
+        '<div class="tool-section-label">01 / LINKS</div><h2>Resources</h2>' +
+        '<div class="tool-external-links">' +
+            links.map(link =>
+                '<a href="' + escapeAttribute(link.url) + '" target="_blank" rel="noopener noreferrer" class="external-link">' +
+                    escapeHtml(link.label) + '<span>↗</span></a>'
+            ).join("") +
+        '</div>' +
+    '</section>';
 }
 
 function createNotesSection(tool) {
     if (!tool.notes) return "";
-
-    return `
-        <section class="tool-section">
-            <div class="tool-section-label">03 / CHEMISFREE NOTE</div>
-            <h2>Notes</h2>
-            <p>${escapeHtml(tool.notes)}</p>
-        </section>
-    `;
+    const note = Array.isArray(tool.notes) ? tool.notes.join(" ") : String(tool.notes);
+    return '<section class="tool-section tool-detail-notes">' +
+        '<div class="tool-section-label">03 / CHEMISFREE NOTE</div><h2>Notes</h2>' +
+        '<p>' + escapeHtml(note) + '</p>' +
+    '</section>';
 }
 
 function createCitationSection(tool) {
     if (!Array.isArray(tool.citation) || !tool.citation.length) return "";
 
-    return `
-        <section class="tool-section">
-            <div class="tool-section-label">04 / CITATION</div>
-            <h2>Citation</h2>
-            <div class="tool-citation">
-                ${tool.citation.map(item => `<p>${escapeHtml(item)}</p>`).join("")}
-            </div>
-        </section>
-    `;
-}
+    const citationItems = tool.citation.map(item => {
+        const citation = String(item || "").trim();
+        if (/^https?:\/\//i.test(citation)) {
+            return '<p><a href="' + escapeAttribute(citation) + '" target="_blank" rel="noopener noreferrer">' +
+                escapeHtml(citation) + '<span>↗</span></a></p>';
+        }
+        return '<p>' + escapeHtml(citation) + '</p>';
+    }).join("");
 
-function createPrimaryLink(tool) {
-    const url = tool.website || tool.repository || tool.documentation;
-    if (!url) return "";
-
-    return `
-        <a href="${escapeAttribute(url)}" target="_blank" rel="noopener noreferrer" class="button button-primary tool-primary-button">
-            Visit resource <span>↗</span>
-        </a>
-    `;
+    return '<section class="tool-section tool-detail-citation-panel">' +
+        '<div class="tool-section-label">01 / CITATION</div><h2>Citation</h2>' +
+        '<div class="tool-citation">' + citationItems + '</div>' +
+    '</section>';
 }
 
 function getToolDomains(tool) { return Array.isArray(tool.domain) ? tool.domain : []; }

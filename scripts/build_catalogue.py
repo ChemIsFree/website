@@ -10,6 +10,7 @@ TOOLS_FILE = Path("../catalogue/data/tools.yaml")
 TAXONOMY_FILE = Path("../catalogue/data/taxonomy.yaml")
 ASSAYER_FILE = Path("../catalogue/data/assayer_free_registry.json")
 FEATURED_FILE = Path("../catalogue/data/featured_tools.yaml")
+CURATION_FILE = Path("../catalogue/data/category_curation.yaml")
 
 TOOLS_OUTPUT = Path("data/tools.json")
 TAXONOMY_OUTPUT = Path("data/taxonomy.json")
@@ -233,7 +234,39 @@ CATEGORY_PATTERNS = [
         r"compound management|project management", re.I)),
 ]
 
+def name_matches(tool, aliases):
+    """Match stable name/ID tokens while tolerating punctuation and display-name variants."""
+    values = [
+        normalized_name(tool.get("name")),
+        normalized_name(tool.get("id")),
+        normalized_name(tool.get("title")),
+    ]
+    normalized_aliases = [normalized_name(alias) for alias in aliases]
+    for value in values:
+        if not value:
+            continue
+        for alias in normalized_aliases:
+            if not alias:
+                continue
+            if value == alias:
+                return True
+            # Avoid matching short abbreviations inside unrelated words.
+            if len(alias) >= 5 and alias in value:
+                return True
+            if value.startswith("assayer") and value.endswith(alias):
+                return True
+    return False
+
+def is_opera(tool):
+    name = normalized_name(tool.get("name"))
+    record_id = normalized_name(tool.get("id"))
+    return name == "opera" or record_id in {"opera", "assayeropera"}
+
 def is_supporting_resource(tool):
+    # An explicit catalogue classification takes precedence over a broad type label.
+    # ODDT, for example, is a tool for users even though it is a Python library.
+    if tool.get("catalogue") == "app":
+        return False
     if tool.get("catalogue") == "resource":
         return True
     resource_type = str(tool.get("resource_type") or tool.get("type") or "").lower()
@@ -241,8 +274,27 @@ def is_supporting_resource(tool):
         "library", "database", "dataset", "educational", "tutorial", "resource"
     }
 
-def normalize_tool_domains(tool):
-    """Convert both curated and imported registry records to the same 14-category taxonomy."""
+def apply_record_overrides(tool, domains, overrides):
+    for override in overrides:
+        names = override.get("names") or []
+        if not names or not name_matches(tool, names):
+            continue
+
+        if override.get("replace_categories"):
+            domains = list(override.get("categories") or [])
+        else:
+            domains.extend(override.get("add_categories") or [])
+
+        for field in ("catalogue", "type", "resource_type"):
+            if field in override and override[field] is not None:
+                tool[field] = override[field]
+        if override.get("clear_resource_type"):
+            tool.pop("resource_type", None)
+
+    return domains
+
+def normalize_tool_domains(tool, category_curation):
+    """Apply the functional taxonomy and the explicitly curated categories."""
     raw_domains = tool.get("domain") or []
     if isinstance(raw_domains, str):
         raw_domains = [raw_domains]
@@ -264,11 +316,8 @@ def normalize_tool_domains(tool):
         task_slug = str(task or "").strip().lower().replace(" ", "-").replace("_", "-")
         task_domains.extend(TASK_CATEGORY_MAP.get(task_slug, []))
 
-    # Prefer an existing new taxonomy assignment, then task-specific classification.
     domains = current_domains or task_domains or legacy_domains
 
-    # Registry imports can have Assayer category labels instead of ChemIsFree domain IDs/tasks.
-    # Apply text inference only when the record has no recognizable direct mapping.
     if not domains:
         values = []
         for key in ("name", "description", "category", "categories", "tags", "domain", "type", "resource_type"):
@@ -283,6 +332,23 @@ def normalize_tool_domains(tool):
             if pattern.search(searchable)
         ]
 
+    curation = category_curation or {}
+    domains = apply_record_overrides(
+        tool,
+        domains,
+        curation.get("record_overrides", []),
+    )
+
+    # Keep Target Identification intentionally curated. An allowed entry may receive the
+    # category even when a registry record's original tags did not place it there.
+    target_rule = (curation.get("target-identification") or {})
+    target_keep = target_rule.get("keep") or []
+    if name_matches(tool, target_keep):
+        domains.append("target-identification")
+    else:
+        domains = [domain for domain in domains if domain != "target-identification"]
+
+    # Supporting libraries/databases/datasets remain in the lower resource section.
     if is_supporting_resource(tool) and str(tool.get("resource_type") or tool.get("type") or "").lower() in {
         "library", "database", "dataset"
     }:
@@ -298,8 +364,10 @@ def main():
     supplemental = load_json(ASSAYER_FILE)
     tools, imported_count, skipped_duplicates = merge_catalogue(primary, supplemental)
 
+    curation_data = load_yaml(CURATION_FILE) if CURATION_FILE.exists() else {}
+    category_curation = curation_data.get("category_curation", {})
     for tool in tools:
-        normalize_tool_domains(tool)
+        normalize_tool_domains(tool, category_curation)
 
     taxonomy = load_yaml(TAXONOMY_FILE)
     featured = load_yaml(FEATURED_FILE)
