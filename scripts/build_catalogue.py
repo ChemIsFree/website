@@ -10,6 +10,7 @@ TOOLS_FILE = Path("../catalogue/data/tools.yaml")
 TAXONOMY_FILE = Path("../catalogue/data/taxonomy.yaml")
 ASSAYER_FILE = Path("../catalogue/data/assayer_free_registry.json")
 FEATURED_FILE = Path("../catalogue/data/featured_tools.yaml")
+CURATION_FILE = Path("../catalogue/data/category_curation.yaml")
 
 TOOLS_OUTPUT = Path("data/tools.json")
 TAXONOMY_OUTPUT = Path("data/taxonomy.json")
@@ -233,34 +234,20 @@ CATEGORY_PATTERNS = [
         r"compound management|project management", re.I)),
 ]
 
-TARGET_IDENTIFICATION_KEEP = [
-    "cansar", "chemblmultitask", "comparativetoxicogenomicsdatabase", "ctd",
-    "dapredict", "datawarrior", "deepcdr", "dgidb", "dynamut2", "ftmap",
-    "genemania", "opentargets", "gpcrdb", "klifs", "ligtmap", "omnipath",
-    "patentchem", "pdbekb", "plato", "ppb2", "proteinsplus", "dogsitescorer",
-    "reactome", "similarityensembleapproach", "sea", "ssmdta",
-    "swisstargetprediction", "targetnet", "transformercpi", "zinclick",
-    "pharmmapper", "superpred", "moltarpred", "fasttargetpred",
-    "therapeutictargetdatabase", "uniprot", "drugbank", "gtopdb",
-    "guidetopharmacology",
-]
-
-TARGET_IDENTIFICATION_DATABASES = [
-    "gpcrdb", "zinclick", "therapeutictargetdatabase", "uniprot",
-    "drugbank", "gtopdb", "guidetopharmacology",
-]
-
 def name_matches(tool, aliases):
-    """Match stable name/ID tokens despite minor display-name differences."""
+    """Match stable name/ID tokens while tolerating punctuation and display-name variants."""
     values = [
         normalized_name(tool.get("name")),
         normalized_name(tool.get("id")),
         normalized_name(tool.get("title")),
     ]
+    normalized_aliases = [normalized_name(alias) for alias in aliases]
     for value in values:
         if not value:
             continue
-        for alias in aliases:
+        for alias in normalized_aliases:
+            if not alias:
+                continue
             if value == alias:
                 return True
             # Avoid matching short abbreviations inside unrelated words.
@@ -271,14 +258,13 @@ def name_matches(tool, aliases):
     return False
 
 def is_opera(tool):
-    return (
-        normalized_name(tool.get("name")) == "opera"
-        or normalized_name(tool.get("id")) in {"opera", "assayeropera"}
-    )
+    name = normalized_name(tool.get("name"))
+    record_id = normalized_name(tool.get("id"))
+    return name == "opera" or record_id in {"opera", "assayeropera"}
 
 def is_supporting_resource(tool):
-    # Explicit catalogue classification takes precedence over broad software type labels.
-    # For example, ODDT is a developer-facing tool even though it is a Python library.
+    # An explicit catalogue classification takes precedence over a broad type label.
+    # ODDT, for example, is a tool for users even though it is a Python library.
     if tool.get("catalogue") == "app":
         return False
     if tool.get("catalogue") == "resource":
@@ -288,8 +274,27 @@ def is_supporting_resource(tool):
         "library", "database", "dataset", "educational", "tutorial", "resource"
     }
 
-def normalize_tool_domains(tool):
-    """Apply the functional taxonomy and the current Target Identification curation."""
+def apply_record_overrides(tool, domains, overrides):
+    for override in overrides:
+        names = override.get("names") or []
+        if not names or not name_matches(tool, names):
+            continue
+
+        if override.get("replace_categories"):
+            domains = list(override.get("categories") or [])
+        else:
+            domains.extend(override.get("add_categories") or [])
+
+        for field in ("catalogue", "type", "resource_type"):
+            if field in override and override[field] is not None:
+                tool[field] = override[field]
+        if override.get("clear_resource_type"):
+            tool.pop("resource_type", None)
+
+    return domains
+
+def normalize_tool_domains(tool, category_curation):
+    """Apply the functional taxonomy and the explicitly curated categories."""
     raw_domains = tool.get("domain") or []
     if isinstance(raw_domains, str):
         raw_domains = [raw_domains]
@@ -327,43 +332,23 @@ def normalize_tool_domains(tool):
             if pattern.search(searchable)
         ]
 
-    # Correct the few entries explicitly identified during curation.
-    if name_matches(tool, ["breeze"]):
-        tool["catalogue"] = "app"
-        tool["type"] = "web-tool"
-        tool.pop("resource_type", None)
-        domains = ["visualization"]
+    curation = category_curation or {}
+    domains = apply_record_overrides(
+        tool,
+        domains,
+        curation.get("record_overrides", []),
+    )
 
-    elif name_matches(tool, ["fasttargetpred"]):
-        tool["catalogue"] = "app"
-        tool["type"] = "web-tool"
-        tool.pop("resource_type", None)
-        domains = [domain for domain in domains if domain != "libraries-datasets"]
-        domains.append("target-identification")
-
-    elif name_matches(tool, ["oddt", "opendrugdiscoverytoolkit"]):
-        tool["catalogue"] = "app"
-        tool["type"] = "software"
-        tool.pop("resource_type", None)
-
-    elif name_matches(tool, TARGET_IDENTIFICATION_DATABASES):
-        tool["catalogue"] = "resource"
-        tool["resource_type"] = "database"
-        tool["type"] = "database"
-        domains.extend(["target-identification", "libraries-datasets"])
-
-    if is_opera(tool):
-        domains = [domain for domain in domains if domain != "target-identification"]
-        domains.extend(["admet-prediction", "ligand-based-qsar"])
-
-    # Keep Target Identification intentionally curated. Everything not on the keep-list
-    # remains available in other relevant categories, but it no longer crowds category 1.
-    if name_matches(tool, TARGET_IDENTIFICATION_KEEP):
+    # Keep Target Identification intentionally curated. An allowed entry may receive the
+    # category even when a registry record's original tags did not place it there.
+    target_rule = (curation.get("target-identification") or {})
+    target_keep = target_rule.get("keep") or []
+    if name_matches(tool, target_keep):
         domains.append("target-identification")
     else:
         domains = [domain for domain in domains if domain != "target-identification"]
 
-    # Resource collections remain in the lower Libraries & Datasets section.
+    # Supporting libraries/databases/datasets remain in the lower resource section.
     if is_supporting_resource(tool) and str(tool.get("resource_type") or tool.get("type") or "").lower() in {
         "library", "database", "dataset"
     }:
@@ -379,8 +364,10 @@ def main():
     supplemental = load_json(ASSAYER_FILE)
     tools, imported_count, skipped_duplicates = merge_catalogue(primary, supplemental)
 
+    curation_data = load_yaml(CURATION_FILE)
+    category_curation = curation_data.get("category_curation", {})
     for tool in tools:
-        normalize_tool_domains(tool)
+        normalize_tool_domains(tool, category_curation)
 
     taxonomy = load_yaml(TAXONOMY_FILE)
     featured = load_yaml(FEATURED_FILE)
