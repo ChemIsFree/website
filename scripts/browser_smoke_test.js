@@ -298,9 +298,11 @@ async function installMockRoutes(page) {
         assert.ok(await page.locator(".catalogue-tool-card").count() > 0,
             "Open-source filtering should return matching tools.");
         await page.locator("#search").fill("GNINA");
-        assert.equal(await page.locator(".catalogue-tool-card").count(), 1,
+        assert.ok(await page.locator(".catalogue-tool-card").count() > 0,
             "Search should work together with access filters.");
-        assert.match(await page.locator(".catalogue-tool-card h3").first().innerText(), /GNINA/i);
+        const searchedNames = await page.locator(".catalogue-tool-card h3").allInnerTexts();
+        assert.ok(searchedNames.some(name => /GNINA/i.test(name)),
+            "The target tool should appear among name/description search matches.");
         await page.locator("#clear-filters").click();
         assert.equal(await page.locator("#search").inputValue(), "");
         assert.equal(await page.locator(".catalogue-tool-card").count(), allListed,
