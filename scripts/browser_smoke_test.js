@@ -263,19 +263,42 @@ async function installMockRoutes(page) {
         assert.equal(await page.locator('input[name="target-choice"]:checked').count(), 0,
             "Reset should clear answers.");
 
-        // Catalogue smoke test: the same local server serves built catalogue JSON.
+        // Catalogue smoke test: categories, all entries, and separate resource sections.
         const catalogueResponse = await page.goto(new URL("/tools.html", url).toString(), { waitUntil: "domcontentloaded" });
         assert.ok(catalogueResponse && catalogueResponse.ok(), "The catalogue page should load.");
         await page.locator(".catalogue-tool-card").first().waitFor();
-        const featuredCardCount = await page.locator(".catalogue-tool-card").count();
-        assert.ok(featuredCardCount > 0, "Featured view should display curated entries.");
-        assert.equal(await page.locator("#view-featured").getAttribute("aria-pressed"), "true");
-        const allListed = Number(await page.locator("#all-count").innerText());
-        assert.ok(allListed > featuredCardCount, "All listed view should contain more entries than the featured shortlist.");
-        assert.ok(await page.locator("#category-filters [data-domain]").count() >= 6,
-            "The category row should expose computational areas.");
+        const allListed = Number((await page.locator("#all-count").innerText()).replace(/,/g, ""));
+        assert.ok(allListed > 0, "The full catalogue count should be available.");
+        assert.equal(await page.locator("#view-featured, #view-all").count(), 0,
+            "Curation should start with all entries visible rather than a featured-only view.");
+        assert.equal(await page.locator("#category-filters [data-domain]").count(), 15,
+            "The category row should expose All categories and exactly 14 functional categories.");
+        const expectedCategories = [
+            "Target Identification", "Protein Structures", "Visualization", "Binding Pockets",
+            "Structure-Based", "Molecular Dynamics", "Cheminformatics", "De Novo Design",
+            "Ligand-Based and QSAR", "ADMET Prediction", "Retrosynthesis",
+            "Nomenclature and Format Conversion", "Libraries and Datasets", "Organization"
+        ];
+        const visibleCategories = await page.locator("#category-filters [data-domain]:not([data-domain=''])").allInnerTexts();
+        expectedCategories.forEach(label => {
+            assert.ok(visibleCategories.some(item => item.startsWith(label)),
+                "Missing functional category: " + label);
+        });
         assert.ok(await page.locator("#access-filters [data-access='open-source']").isVisible());
         assert.ok(await page.locator("#access-filters [data-access='free']").isVisible());
+
+        const totalCards = await page.locator(".catalogue-tool-card").count();
+        assert.equal(totalCards, allListed,
+            "All listed entries should appear in the default view.");
+        const cardLinks = await page.locator(".catalogue-tool-card h3 a").evaluateAll(nodes => nodes.map(node => node.getAttribute("href")));
+        assert.equal(new Set(cardLinks).size, cardLinks.length, "Each entry should appear only once in the All categories view.");
+
+        const sectionTitles = await page.locator("#catalogue-grid .catalogue-card-section-heading h3").allInnerTexts();
+        assert.ok(sectionTitles.length >= 2, "The catalogue should have separate tool and resource sections.");
+        assert.equal(sectionTitles[0], "Tools", "Applications must be shown first.");
+        assert.equal(sectionTitles[sectionTitles.length - 1], "Libraries & datasets",
+            "Libraries, databases, and datasets must be shown after tools.");
+
         await page.evaluate(() => window.scrollTo(0, 700));
         await page.screenshot({
             path: path.join(artifactDirectory, "planner-preview-catalogue.png"),
@@ -283,25 +306,20 @@ async function installMockRoutes(page) {
             animations: "disabled"
         });
 
-        await page.locator("#view-all").click();
-        assert.equal(await page.locator("#view-all").getAttribute("aria-pressed"), "true");
-        assert.equal(await page.locator(".catalogue-tool-card").count(), allListed,
-            "All listed view should display the full de-duplicated catalogue.");
-        const cardLinks = await page.locator(".catalogue-tool-card h3 a").evaluateAll(nodes => nodes.map(node => node.getAttribute("href")));
-        assert.equal(new Set(cardLinks).size, cardLinks.length, "Each tool should appear only once in the grid.");
-
-        await page.locator('#category-filters [data-domain="structure-based-discovery"]').click();
+        await page.locator('#category-filters [data-domain="structure-based"]').click();
         assert.ok(await page.locator(".catalogue-tool-card").count() > 0,
-            "Choosing a computational category should filter the cards.");
-        assert.match(await page.locator("#active-filter-summary").innerText(), /STRUCTURE-BASED DISCOVERY/);
+            "Choosing a new functional category should filter the cards.");
+        assert.match(await page.locator("#active-filter-summary").innerText(), /STRUCTURE-BASED/);
+        const selectedTitles = await page.locator("#catalogue-grid .catalogue-card-section-heading h3").allInnerTexts();
+        assert.equal(selectedTitles[0], "Tools", "Filtered tools should stay in the upper section.");
         await page.locator('#category-filters [data-domain=""]').click();
 
         await page.locator('#access-filters [data-access="free"]').click();
         assert.ok(await page.locator(".catalogue-tool-card").count() > 0,
-            "Free-access filtering should return matching tools.");
+            "Free-access filtering should return matching entries.");
         await page.locator('#access-filters [data-access="open-source"]').click();
         assert.ok(await page.locator(".catalogue-tool-card").count() > 0,
-            "Open-source filtering should return matching tools.");
+            "Open-source filtering should return matching entries.");
         await page.locator("#search").fill("GNINA");
         assert.ok(await page.locator(".catalogue-tool-card").count() > 0,
             "Search should work together with access filters.");
@@ -318,6 +336,7 @@ async function installMockRoutes(page) {
         const firstCard = await page.locator(".catalogue-tool-card").first().boundingBox();
         assert.ok(firstCard && firstCard.width > 130 && firstCard.width < 390,
             "Catalogue cards should reflow to a compact mobile grid.");
+
         assert.deepEqual(pageErrors, [], "No JavaScript errors should occur across planner and catalogue pages.");
 
         console.log("Chromium smoke test passed: guided planner plus featured/all catalogue views, category/access filters, combined search, unique compact cards, and mobile layout.");
