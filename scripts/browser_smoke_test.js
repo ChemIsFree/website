@@ -275,6 +275,7 @@ async function installMockRoutes(page) {
         assert.ok(await page.locator("#category-filters [data-domain]").count() >= 6,
             "The category row should expose computational areas.");
         assert.ok(await page.locator("#access-filters [data-access='open-source']").isVisible());
+        assert.ok(await page.locator("#access-filters [data-access='free']").isVisible());
         await page.evaluate(() => window.scrollTo(0, 700));
         await page.screenshot({
             path: path.join(artifactDirectory, "planner-preview-catalogue.png"),
@@ -295,6 +296,9 @@ async function installMockRoutes(page) {
         assert.match(await page.locator("#active-filter-summary").innerText(), /STRUCTURE-BASED DISCOVERY/);
         await page.locator('#category-filters [data-domain=""]').click();
 
+        await page.locator('#access-filters [data-access="free"]').click();
+        assert.ok(await page.locator(".catalogue-tool-card").count() > 0,
+            "Free-access filtering should return matching tools.");
         await page.locator('#access-filters [data-access="open-source"]').click();
         assert.ok(await page.locator(".catalogue-tool-card").count() > 0,
             "Open-source filtering should return matching tools.");
