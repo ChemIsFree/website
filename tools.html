@@ -4,18 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Explore Tools — ChemIsFree</title>
-    <meta name="description" content="Find open chemistry, drug discovery, molecular modelling, machine learning and laboratory applications.">
-    <link rel="stylesheet" href="css/style.css?v=16">
+    <meta name="description" content="A concise, filterable catalogue of chemistry and drug-discovery applications, libraries, and resources.">
+    <link rel="stylesheet" href="css/style.css?v=25">
 </head>
 <body>
 <header class="site-header">
     <div class="container header-inner">
         <a href="index.html" class="site-wordmark">
-            <span class="wordmark-main">ChemIsFree</span>
-            <span class="wordmark-dot"></span>
+            <span class="wordmark-main">ChemIsFree</span><span class="wordmark-dot"></span>
         </a>
         <nav class="main-nav">
-            <a href="tools.html">Explore</a>
+            <a href="tools.html" aria-current="page">Explore</a>
             <a href="planner.html">Workflows &amp; tutorials</a>
             <a href="index.html#categories">Categories</a>
             <a href="about.html">About</a>
@@ -30,89 +29,88 @@
         <div class="container">
             <div class="catalogue-hero-top">
                 <div class="catalogue-label">
-                    <span>CHEMISFREE</span>
-                    <span>/</span>
-                    <span>THE OPEN CHEMISTRY INDEX</span>
+                    <span>CHEMISFREE</span><span>/</span><span>THE OPEN CHEMISTRY INDEX</span>
                 </div>
                 <div class="catalogue-index">001</div>
             </div>
             <div class="catalogue-hero-content">
                 <h1>Find<br>the tool.</h1>
                 <div class="catalogue-hero-description">
-                    <p>Discover applications for specific chemistry and drug-discovery tasks, grouped by what they help you do.</p>
+                    <p>A focused index of tools for chemistry and drug discovery. Start with the featured shortlist, or search the full registry.</p>
                     <span class="catalogue-scroll-hint">SEARCH THE INDEX ↓</span>
                 </div>
             </div>
         </div>
     </section>
 
-    <section class="catalogue-section">
+    <section class="catalogue-section catalogue-browser">
         <div class="container">
+            <div class="catalogue-browser-intro">
+                <div>
+                    <p class="eyebrow">EXPLORE / THE CATALOGUE</p>
+                    <h2>Less scrolling.<br><em>Better discovery.</em></h2>
+                </div>
+                <p>Filter by what a tool helps you do, then narrow by access or licence. Each entry appears once, with details one click away.</p>
+            </div>
+
             <div class="catalogue-search">
-                <label for="search">Search the catalogue</label>
+                <label for="search">SEARCH BY NAME, TASK OR DESCRIPTION</label>
                 <div class="catalogue-search-field">
-                    <input id="search" type="search" placeholder="What are you trying to do?" autocomplete="off">
-                    <span class="search-symbol">/</span>
+                    <input id="search" type="search" placeholder="e.g. docking, bioactivity, molecular visualisation…" autocomplete="off">
+                    <span class="search-symbol" aria-hidden="true">/</span>
                 </div>
             </div>
 
-            <div class="catalogue-filter-bar">
-                <div class="filter-control">
-                    <label for="domain-filter">Area</label>
-                    <select id="domain-filter">
-                        <option value="">All areas</option>
-                    </select>
+            <section class="catalogue-filter-section" aria-labelledby="category-filter-heading">
+                <div class="catalogue-filter-heading">
+                    <h3 id="category-filter-heading">Browse by computational area</h3>
+                    <span>01 / CATEGORY</span>
                 </div>
-                <div class="filter-control">
-                    <label for="task-filter">Task</label>
-                    <select id="task-filter">
-                        <option value="">All tasks</option>
-                    </select>
+                <div id="category-filters" class="catalogue-chip-row" role="group" aria-label="Filter by computational area">
+                    <button type="button" class="catalogue-chip is-active" data-domain="">All areas</button>
                 </div>
-                <div class="filter-control">
-                    <label for="interface-filter">Interface</label>
-                    <select id="interface-filter">
-                        <option value="">All interfaces</option>
-                        <option value="gui-web">GUI / Web</option>
-                        <option value="programmatic">CLI / Programmatic</option>
-                    </select>
+            </section>
+
+            <div class="catalogue-controls-row">
+                <div class="catalogue-view-controls" role="group" aria-label="Catalogue view">
+                    <button id="view-featured" type="button" class="catalogue-view-button is-active" aria-pressed="true">
+                        Featured <span id="featured-count" class="catalogue-count-badge">—</span>
+                    </button>
+                    <button id="view-all" type="button" class="catalogue-view-button" aria-pressed="false">
+                        All listed <span id="all-count" class="catalogue-count-badge">—</span>
+                    </button>
                 </div>
-                <div class="filter-control">
-                    <label for="access-filter">Access</label>
-                    <select id="access-filter">
-                        <option value="">All access types</option>
-                        <option value="free">Free</option>
-                        <option value="open-source">Open Source</option>
-                    </select>
-                </div>
-                <button id="clear-filters" type="button" class="filter-clear">Clear filters</button>
+                <button id="clear-filters" type="button" class="catalogue-reset">Reset filters ↺</button>
             </div>
+
+            <section class="catalogue-filter-section catalogue-access-section" aria-labelledby="access-filter-heading">
+                <div class="catalogue-filter-heading">
+                    <h3 id="access-filter-heading">Narrow by access</h3>
+                    <span>02 / ACCESS &amp; LICENCE</span>
+                </div>
+                <div id="access-filters" class="catalogue-chip-row" role="group" aria-label="Filter by access and licence status">
+                    <button type="button" class="catalogue-chip is-active" data-access="">Any access</button>
+                    <button type="button" class="catalogue-chip" data-access="open-source">Open source</button>
+                    <button type="button" class="catalogue-chip" data-access="free-web">Free web</button>
+                    <button type="button" class="catalogue-chip" data-access="commercial">Commercial / paid</button>
+                </div>
+                <p class="catalogue-filter-note">Access labels are based on the catalogue record; check the linked licence and provider terms for any tool you plan to use.</p>
+            </section>
 
             <div class="catalogue-results-header">
                 <div class="catalogue-results-count">
-                    <span class="results-marker"></span>
-                    <span id="result-count">Loading catalogue...</span>
+                    <span class="results-marker" aria-hidden="true"></span>
+                    <span id="result-count" aria-live="polite">Loading catalogue…</span>
                 </div>
-                <div class="catalogue-results-note">APPLICATIONS FIRST · RESOURCES BELOW</div>
+                <span id="active-filter-summary" class="catalogue-results-note">FEATURED SHORTLIST</span>
             </div>
 
-            <div id="applications-catalogue" class="applications-catalogue"></div>
-
-            <section id="resources-catalogue" class="resources-catalogue">
-                <div class="resources-intro">
-                    <div>
-                        <p class="eyebrow">USEFUL RESOURCES</p>
-                        <h2>The supporting<br>layer.</h2>
-                    </div>
-                    <p>Libraries, databases and other resources that support chemistry and drug-discovery workflows.</p>
-                </div>
-                <div id="resources-content" class="resources-content"></div>
-            </section>
+            <div id="catalogue-grid" class="catalogue-card-grid"></div>
 
             <div id="no-results" class="no-results" hidden>
                 <span class="no-results-number">000</span>
                 <h3>Nothing found.</h3>
-                <p>Try changing your search or filters.</p>
+                <p>Try another category, search term or access filter.</p>
                 <button id="clear-filters-empty" type="button">Reset catalogue</button>
             </div>
         </div>
@@ -149,7 +147,6 @@
         <span>Community-driven • Open access</span>
     </div>
 </footer>
-
-<script src="js/app.js?v=9"></script>
+<script src="js/catalogue.js?v=1"></script>
 </body>
 </html>
