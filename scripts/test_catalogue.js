@@ -68,7 +68,7 @@ function matchesAlias(tool, aliases) {
     return aliases.some(alias => {
         const expected = normalizedName(alias);
         return values.some(value => value === expected ||
-            (expected.length >= 5 && (value.includes(expected) || expected.includes(value))) ||
+            (expected.length >= 5 && value.includes(expected)) ||
             (value.startsWith("assayer") && value.endsWith(expected)));
     });
 }
