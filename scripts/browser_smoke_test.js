@@ -267,6 +267,13 @@ async function installMockRoutes(page) {
         const catalogueResponse = await page.goto(new URL("/tools.html", url).toString(), { waitUntil: "domcontentloaded" });
         assert.ok(catalogueResponse && catalogueResponse.ok(), "The catalogue page should load.");
         await page.locator(".catalogue-tool-card").first().waitFor();
+        const directBadge = page.locator(".catalogue-card-status-link").first();
+        assert.ok(await directBadge.count() > 0, "At least one access badge should link directly to a provider.");
+        const directBadgeUrl = await directBadge.getAttribute("href");
+        assert.match(directBadgeUrl || "", /^https?:\/\//i, "An access badge should open a provider URL.");
+        assert.equal(await directBadge.getAttribute("target"), "_blank");
+        assert.ok(!String(directBadgeUrl).includes("tool.html?id="),
+            "Access badges should open the provider, not the internal detail page.");
         const allListed = Number((await page.locator("#all-count").innerText()).replace(/,/g, ""));
         assert.ok(allListed > 0, "The full catalogue count should be available.");
         assert.equal(await page.locator("#view-featured, #view-all").count(), 0,
@@ -344,9 +351,40 @@ async function installMockRoutes(page) {
         assert.ok(await page.locator('a.category-card[href="tools.html?domain=target-identification"]').isVisible());
         assert.ok(await page.locator('a.category-card[href="tools.html?domain=libraries-datasets"]').isVisible());
 
-        assert.deepEqual(pageErrors, [], "No JavaScript errors should occur across planner, catalogue, and homepage pages.");
+        // Detail page: complete description, horizontal Resources/Citation, then unified metadata.
+        const detailResponse = await page.goto(new URL("/tool.html?id=datawarrior", url).toString(), { waitUntil: "domcontentloaded" });
+        assert.ok(detailResponse && detailResponse.ok(), "The tool detail page should load.");
+        await page.locator(".tool-detail-full-description").waitFor();
+        assert.equal(await page.locator(".tool-detail-link-citation-row .tool-detail-resource-panel").count(), 1,
+            "The resource links panel should appear directly below the description.");
+        assert.equal(await page.locator(".tool-detail-link-citation-row .tool-detail-citation-panel").count(), 1,
+            "The citation panel should sit beside the resources panel.");
+        assert.equal(await page.locator(".tool-info-availability").count(), 1,
+            "Information and availability should be consolidated into one section.");
+        assert.equal(await page.locator(".tool-detail-main").count(), 0,
+            "The old long two-column detail layout should be removed.");
+        assert.equal(await page.locator(".tool-section h2").filter({ hasText: /^About$/ }).count(), 0,
+            "The duplicate About section should be removed.");
+        assert.equal(await page.locator(".tool-section h2").filter({ hasText: /What it helps you do/i }).count(), 0,
+            "The duplicate task-heading section should be removed.");
+        const descriptionStyle = await page.locator(".tool-detail-full-description").evaluate(node => {
+            const style = getComputedStyle(node);
+            return { display: style.display, overflow: style.overflow, clamp: style.webkitLineClamp };
+        });
+        assert.notEqual(descriptionStyle.display, "-webkit-box", "Long descriptions must not use line-clamp display.");
+        assert.notEqual(descriptionStyle.overflow, "hidden", "Long descriptions must not be clipped.");
+        const resourceBox = await page.locator(".tool-detail-resource-panel").boundingBox();
+        const citationBox = await page.locator(".tool-detail-citation-panel").boundingBox();
+        assert.ok(resourceBox && citationBox && resourceBox.x < citationBox.x,
+            "Resources and citation should be arranged horizontally on desktop.");
+        const metadataBox = await page.locator(".tool-info-availability").boundingBox();
+        assert.ok(metadataBox && resourceBox && citationBox &&
+            metadataBox.y >= Math.max(resourceBox.y + resourceBox.height, citationBox.y + citationBox.height),
+            "Information/availability should sit below the Resources/Citation row.");
 
-        console.log("Chromium smoke test passed: guided planner plus 14 functional categories, all-entry catalogue, resource separation, access filters, search, and mobile layout.");
+        assert.deepEqual(pageErrors, [], "No JavaScript errors should occur across planner, catalogue, homepage and detail pages.");
+
+        console.log("Chromium smoke test passed: guided planner, 14 categories, clickable access badges, all-entry catalogue, separate resource sections, compact detail pages, and mobile layout.");
     } finally {
         if (browser) await browser.close();
         await new Promise((resolve) => server.close(resolve));
