@@ -382,6 +382,12 @@ async function installMockRoutes(page) {
         assert.ok(metadataBox && resourceBox && citationBox &&
             metadataBox.y >= Math.max(resourceBox.y + resourceBox.height, citationBox.y + citationBox.height),
             "Information/availability should sit below the Resources/Citation row.");
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await page.screenshot({
+            path: path.join(artifactDirectory, "planner-preview-tool-detail.png"),
+            fullPage: true,
+            animations: "disabled"
+        });
 
         assert.deepEqual(pageErrors, [], "No JavaScript errors should occur across planner, catalogue, homepage and detail pages.");
 
