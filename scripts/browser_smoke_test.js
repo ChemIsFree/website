@@ -275,7 +275,7 @@ async function installMockRoutes(page) {
         assert.ok(await page.locator("#category-filters [data-domain]").count() >= 6,
             "The category row should expose computational areas.");
         assert.ok(await page.locator("#access-filters [data-access='open-source']").isVisible());
-        await page.locator(".catalogue-controls-row").scrollIntoViewIfNeeded();
+        await page.evaluate(() => window.scrollTo(0, 700));
         await page.screenshot({
             path: path.join(artifactDirectory, "planner-preview-catalogue.png"),
             fullPage: false,
