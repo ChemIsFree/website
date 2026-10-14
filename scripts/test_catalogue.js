@@ -118,6 +118,21 @@ for (const [label, aliases] of requiredTargetEntries) {
         JSON.stringify({ id: record.id, name: record.name, domain: record.domain, catalogue: record.catalogue }));
 }
 
+const requiredTargetDatabases = [
+    ["GPCRdb", ["gpcrdb"]],
+    ["ZINClick", ["zinclick"]],
+    ["Therapeutic Target Database", ["therapeutictargetdatabase"]],
+    ["UniProt", ["uniprot"]],
+    ["DrugBank", ["drugbank"]],
+    ["GtoPdb", ["gtopdb", "guidetopharmacology"]]
+];
+for (const [label, aliases] of requiredTargetDatabases) {
+    const record = tools.find(tool => matchesAlias(tool, aliases));
+    assert.ok(record, label + " must exist as a target-related database.");
+    assert.equal(record.catalogue, "resource", label + " should be shown in Libraries & Datasets.");
+    assert.equal(record.resource_type, "database", label + " must have database resource metadata.");
+}
+
 const opera = tools.find(tool => normalizedName(tool.name) === "opera" || normalizedName(tool.id) === "opera");
 if (opera) {
     assert.ok(opera.domain.includes("admet-prediction"), "OPERA belongs in ADMET Prediction.");
