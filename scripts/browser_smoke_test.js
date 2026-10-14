@@ -337,9 +337,16 @@ async function installMockRoutes(page) {
         assert.ok(firstCard && firstCard.width > 130 && firstCard.width < 390,
             "Catalogue cards should reflow to a compact mobile grid.");
 
-        assert.deepEqual(pageErrors, [], "No JavaScript errors should occur across planner and catalogue pages.");
+        const homepageResponse = await page.goto(new URL("/index.html", url).toString(), { waitUntil: "domcontentloaded" });
+        assert.ok(homepageResponse && homepageResponse.ok(), "The homepage should load.");
+        assert.equal(await page.locator(".category-card").count(), 14,
+            "The homepage should link to all 14 functional categories.");
+        assert.ok(await page.locator('a.category-card[href="tools.html?domain=target-identification"]').isVisible());
+        assert.ok(await page.locator('a.category-card[href="tools.html?domain=libraries-datasets"]').isVisible());
 
-        console.log("Chromium smoke test passed: guided planner plus featured/all catalogue views, category/access filters, combined search, unique compact cards, and mobile layout.");
+        assert.deepEqual(pageErrors, [], "No JavaScript errors should occur across planner, catalogue, and homepage pages.");
+
+        console.log("Chromium smoke test passed: guided planner plus 14 functional categories, all-entry catalogue, resource separation, access filters, search, and mobile layout.");
     } finally {
         if (browser) await browser.close();
         await new Promise((resolve) => server.close(resolve));
