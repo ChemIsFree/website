@@ -233,7 +233,54 @@ CATEGORY_PATTERNS = [
         r"compound management|project management", re.I)),
 ]
 
+TARGET_IDENTIFICATION_KEEP = [
+    "cansar", "chemblmultitask", "comparativetoxicogenomicsdatabase", "ctd",
+    "dapredict", "datawarrior", "deepcdr", "dgidb", "dynamut2", "ftmap",
+    "genemania", "opentargets", "gpcrdb", "klifs", "ligtmap", "omnipath",
+    "patentchem", "pdbekb", "plato", "ppb2", "proteinsplus", "dogsitescorer",
+    "reactome", "similarityensembleapproach", "sea", "ssmdta",
+    "swisstargetprediction", "targetnet", "transformercpi", "zinclick",
+    "pharmmapper", "superpred", "moltarpred", "fasttargetpred",
+    "therapeutictargetdatabase", "uniprot", "drugbank", "gtopdb",
+    "guidetopharmacology",
+]
+
+TARGET_IDENTIFICATION_DATABASES = [
+    "gpcrdb", "zinclick", "therapeutictargetdatabase", "uniprot",
+    "drugbank", "gtopdb", "guidetopharmacology",
+]
+
+def name_matches(tool, aliases):
+    """Match stable name/ID tokens despite minor display-name differences."""
+    values = [
+        normalized_name(tool.get("name")),
+        normalized_name(tool.get("id")),
+        normalized_name(tool.get("title")),
+    ]
+    for value in values:
+        if not value:
+            continue
+        for alias in aliases:
+            if value == alias:
+                return True
+            # Avoid matching short abbreviations inside unrelated words.
+            if len(alias) >= 5 and alias in value:
+                return True
+            if value.startswith("assayer") and value.endswith(alias):
+                return True
+    return False
+
+def is_opera(tool):
+    return (
+        normalized_name(tool.get("name")) == "opera"
+        or normalized_name(tool.get("id")) in {"opera", "assayeropera"}
+    )
+
 def is_supporting_resource(tool):
+    # Explicit catalogue classification takes precedence over broad software type labels.
+    # For example, ODDT is a developer-facing tool even though it is a Python library.
+    if tool.get("catalogue") == "app":
+        return False
     if tool.get("catalogue") == "resource":
         return True
     resource_type = str(tool.get("resource_type") or tool.get("type") or "").lower()
@@ -242,7 +289,7 @@ def is_supporting_resource(tool):
     }
 
 def normalize_tool_domains(tool):
-    """Convert both curated and imported registry records to the same 14-category taxonomy."""
+    """Apply the functional taxonomy and the current Target Identification curation."""
     raw_domains = tool.get("domain") or []
     if isinstance(raw_domains, str):
         raw_domains = [raw_domains]
@@ -264,11 +311,8 @@ def normalize_tool_domains(tool):
         task_slug = str(task or "").strip().lower().replace(" ", "-").replace("_", "-")
         task_domains.extend(TASK_CATEGORY_MAP.get(task_slug, []))
 
-    # Prefer an existing new taxonomy assignment, then task-specific classification.
     domains = current_domains or task_domains or legacy_domains
 
-    # Registry imports can have Assayer category labels instead of ChemIsFree domain IDs/tasks.
-    # Apply text inference only when the record has no recognizable direct mapping.
     if not domains:
         values = []
         for key in ("name", "description", "category", "categories", "tags", "domain", "type", "resource_type"):
@@ -283,6 +327,43 @@ def normalize_tool_domains(tool):
             if pattern.search(searchable)
         ]
 
+    # Correct the few entries explicitly identified during curation.
+    if name_matches(tool, ["breeze"]):
+        tool["catalogue"] = "app"
+        tool["type"] = "web-tool"
+        tool.pop("resource_type", None)
+        domains = ["visualization"]
+
+    elif name_matches(tool, ["fasttargetpred"]):
+        tool["catalogue"] = "app"
+        tool["type"] = "web-tool"
+        tool.pop("resource_type", None)
+        domains = [domain for domain in domains if domain != "libraries-datasets"]
+        domains.append("target-identification")
+
+    elif name_matches(tool, ["oddt", "opendrugdiscoverytoolkit"]):
+        tool["catalogue"] = "app"
+        tool["type"] = "software"
+        tool.pop("resource_type", None)
+
+    elif name_matches(tool, TARGET_IDENTIFICATION_DATABASES):
+        tool["catalogue"] = "resource"
+        tool["resource_type"] = "database"
+        tool["type"] = "database"
+        domains.extend(["target-identification", "libraries-datasets"])
+
+    if is_opera(tool):
+        domains = [domain for domain in domains if domain != "target-identification"]
+        domains.extend(["admet-prediction", "ligand-based-qsar"])
+
+    # Keep Target Identification intentionally curated. Everything not on the keep-list
+    # remains available in other relevant categories, but it no longer crowds category 1.
+    if name_matches(tool, TARGET_IDENTIFICATION_KEEP):
+        domains.append("target-identification")
+    else:
+        domains = [domain for domain in domains if domain != "target-identification"]
+
+    # Resource collections remain in the lower Libraries & Datasets section.
     if is_supporting_resource(tool) and str(tool.get("resource_type") or tool.get("type") or "").lower() in {
         "library", "database", "dataset"
     }:
