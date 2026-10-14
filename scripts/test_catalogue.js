@@ -114,7 +114,8 @@ for (const [label, aliases] of requiredTargetEntries) {
     const record = tools.find(tool => matchesAlias(tool, aliases));
     assert.ok(record, "Required Target Identification entry is missing from the merged catalogue: " + label);
     assert.ok((record.domain || []).includes("target-identification"),
-        label + " must be assigned to Target Identification.");
+        label + " must be assigned to Target Identification. Actual record: " +
+        JSON.stringify({ id: record.id, name: record.name, domain: record.domain, catalogue: record.catalogue }));
 }
 
 const opera = tools.find(tool => normalizedName(tool.name) === "opera" || normalizedName(tool.id) === "opera");
