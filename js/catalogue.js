@@ -19,7 +19,7 @@
     ];
     const CATEGORY_IDS = CATEGORY_ORDER.map(item => item.id);
     const CATEGORY_BY_ID = new Map(CATEGORY_ORDER.map(item => [item.id, item]));
-    const state = { domain: "", access: "", search: "" };
+    const state = { domain: "", access: "", search: "", task: "" };
     let allTools = [];
 
     const LEGACY_DOMAIN_MAP = {
@@ -318,7 +318,12 @@
 
     function getSearchTools() {
         const query = state.search.toLowerCase().trim();
-        return query ? allTools.filter(tool => buildSearchText(tool).includes(query)) : allTools.slice();
+        let tools = query ? allTools.filter(tool => buildSearchText(tool).includes(query)) : allTools.slice();
+        if (state.task) {
+            tools = tools.filter(tool => (Array.isArray(tool.tasks) ? tool.tasks : [])
+                .some(task => slugify(task) === state.task));
+        }
+        return tools;
     }
 
     function getScopedTools() {
@@ -422,6 +427,7 @@
             if (state.domain) parts.push(CATEGORY_BY_ID.get(state.domain)?.label.toUpperCase() || "");
             if (state.access) parts.push(state.access.replace("-", " ").toUpperCase());
             if (state.search) parts.push("SEARCH: " + state.search.toUpperCase());
+            if (state.task) parts.push("TASK: " + state.task.replace(/-/g, " ").toUpperCase());
             summary.textContent = parts.filter(Boolean).join(" · ");
         }
     }
@@ -454,6 +460,7 @@
             state.domain = "";
             state.access = "";
             state.search = "";
+            state.task = "";
             const search = $("#search");
             if (search) search.value = "";
             renderAll();
@@ -471,6 +478,7 @@
         state.domain = normalizeCategory(params.get("domain") || params.get("area") || "");
         state.access = params.get("access") || "";
         state.search = params.get("search") || "";
+        state.task = params.get("task") || "";
         const search = $("#search");
         if (search) search.value = state.search;
         if (state.access && !["open-source", "free", "free-web", "commercial"].includes(state.access)) state.access = "";
@@ -481,6 +489,7 @@
         if (state.domain) params.set("domain", state.domain);
         if (state.access) params.set("access", state.access);
         if (state.search) params.set("search", state.search);
+        if (state.task) params.set("task", state.task);
         const query = params.toString();
         window.history.replaceState({}, "", query ? window.location.pathname + "?" + query : window.location.pathname);
     }
