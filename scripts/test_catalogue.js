@@ -30,8 +30,9 @@ assert.ok(matchedFeatured.length < tools.length, "Featured view should be a mean
 assert.ok(html.includes('id="category-filters"'), "Computational area chips are required.");
 assert.ok(html.includes('id="view-featured"') && html.includes('id="view-all"'),
     "Featured and All listed views are required.");
-assert.ok(html.includes('data-access="open-source"') && html.includes('data-access="free-web"') &&
-    html.includes('data-access="commercial"'), "Access and licence filters are required.");
+assert.ok(html.includes('data-access="open-source"') && html.includes('data-access="free"') &&
+    html.includes('data-access="free-web"') && html.includes('data-access="commercial"'),
+    "Open-source, free, free-web and commercial access filters are required.");
 assert.ok(html.includes('id="catalogue-grid"'), "Cards should render in one deduplicated grid.");
 assert.ok(!html.includes('id="domain-filter"') && !html.includes('id="task-filter"'),
     "The old stacked select filters should be removed.");
