@@ -178,9 +178,40 @@
     }
 
     function isResource(tool) {
+        // Primary catalogue type wins over broad implementation labels.
+        if (tool.catalogue === "app") return false;
         if (tool.catalogue === "resource") return true;
         const type = String(tool.resource_type || tool.type || "").toLowerCase();
         return ["library", "database", "dataset", "educational", "tutorial", "resource"].includes(type);
+    }
+
+    function firstValidUrl(value) {
+        const candidates = Array.isArray(value) ? value : [value];
+        for (const candidate of candidates) {
+            const url = String(candidate || "").trim();
+            if (/^https?:\/\//i.test(url) && url !== "[]") return url;
+        }
+        return "";
+    }
+
+    function getCardOutboundUrl(tool) {
+        // Direct links prefer the official website; use the source repository as fallback.
+        return firstValidUrl(tool.website) || firstValidUrl(tool.repository);
+    }
+
+    function isGtoPdb(tool) {
+        const name = String(tool.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+        const id = String(tool.id || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+        return name.includes("gtopdb") || name.includes("guidetopharmacology") ||
+            id.includes("gtopdb") || id.includes("guidetopharmacology");
+    }
+
+    function isResourceInCurrentView(tool) {
+        // GtoPdb is intentionally accessible as a target-identification tool as well
+        // as a database; the category view puts it with Tools, while Libraries & Datasets
+        // and the all-categories view retain its resource placement.
+        if (state.domain === "target-identification" && isGtoPdb(tool)) return false;
+        return isResource(tool);
     }
 
     function resourceTypeName(tool) {
@@ -382,9 +413,16 @@
         const categoryTag = category
             ? '<span class="catalogue-card-chip catalogue-card-category">' + escapeHtml(category.label) + '</span>'
             : "";
-        const statuses = getStatusBadges(tool).map(item =>
-            '<span class="catalogue-card-chip catalogue-card-status status-' + item.type + '">' + escapeHtml(item.label) + '</span>'
-        ).join("");
+        const outboundUrl = getCardOutboundUrl(tool);
+        const statuses = getStatusBadges(tool).map(item => {
+            const classes = 'catalogue-card-chip catalogue-card-status status-' + item.type;
+            if (!outboundUrl) return '<span class="' + classes + '">' + escapeHtml(item.label) + '</span>';
+            const destinationLabel = firstValidUrl(tool.website) ? "official website" : "source repository";
+            return '<a class="' + classes + ' catalogue-card-status-link" href="' + escapeAttribute(outboundUrl) +
+                '" target="_blank" rel="noopener noreferrer" title="Open ' + destinationLabel +
+                '" aria-label="Open ' + destinationLabel + ' for ' + escapeAttribute(tool.name || "this entry") + '">' +
+                escapeHtml(item.label) + '</a>';
+        }).join("");
         const ownStatus = tool.chemisfree_status === "chemisfree-project"
             ? '<span class="catalogue-card-project">ChemIsFree</span>' : "";
 
@@ -413,8 +451,8 @@
         const noResults = $("#no-results");
         if (!grid) return;
         const filtered = getScopedTools();
-        const applications = filtered.filter(tool => !isResource(tool));
-        const resources = filtered.filter(isResource);
+        const applications = filtered.filter(tool => !isResourceInCurrentView(tool));
+        const resources = filtered.filter(isResourceInCurrentView);
         grid.innerHTML =
             renderCardSection("Tools", "Applications and end-user software", applications) +
             renderCardSection("Libraries & datasets", "Libraries, databases, reference collections, and supporting resources", resources);
