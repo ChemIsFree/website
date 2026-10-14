@@ -7107,3 +7107,77 @@ button {
         grid-template-columns: 1fr;
     }
 }
+
+
+/* Functional category review: retain compact ChemIsFree cards, split tools/resources. */
+.catalogue-current-note {
+    align-self: center;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 8px;
+    letter-spacing: .07em;
+    line-height: 1.5;
+}
+.catalogue-card-groups {
+    display: block;
+}
+.catalogue-card-section {
+    margin: 0 0 35px;
+}
+.catalogue-card-section-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 0 0 10px;
+    padding: 0 0 10px;
+    border-bottom: 1px solid var(--line);
+}
+.catalogue-card-section-heading h3 {
+    margin: 0;
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -.035em;
+    line-height: 1.15;
+}
+.catalogue-card-section-heading > span {
+    flex: 0 0 auto;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: .04em;
+}
+.catalogue-card-section-note {
+    margin: 0 0 13px;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.5;
+}
+.catalogue-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 225px), 1fr));
+    gap: 11px;
+}
+.catalogue-tool-card {
+    min-height: 174px;
+}
+.catalogue-card-type {
+    max-width: 80%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.catalogue-chip-row {
+    row-gap: 8px;
+}
+@media (max-width: 560px) {
+    .catalogue-current-note {
+        width: 100%;
+        line-height: 1.65;
+    }
+    .catalogue-card-section-heading h3 {
+        font-size: 19px;
+    }
+}
