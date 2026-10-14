@@ -214,7 +214,35 @@ function getToolDomains(tool) { return Array.isArray(tool.domain) ? tool.domain 
 function getToolTasks(tool) { return Array.isArray(tool.tasks) ? tool.tasks : []; }
 
 function getDomainName(domainId) {
-    return taxonomy.domains?.[domainId]?.name || formatLabel(domainId);
+    const functionalNames = {
+        "target-identification": "Target Identification",
+        "protein-structures": "Protein Structures",
+        "visualization": "Visualization",
+        "binding-pockets": "Binding Pockets",
+        "structure-based": "Structure-Based",
+        "molecular-dynamics": "Molecular Dynamics",
+        "cheminformatics": "Cheminformatics",
+        "de-novo-design": "De Novo Design",
+        "ligand-based-qsar": "Ligand-Based and QSAR",
+        "admet-prediction": "ADMET Prediction",
+        "retrosynthesis": "Retrosynthesis",
+        "nomenclature-format-conversion": "Nomenclature and Format Conversion",
+        "libraries-datasets": "Libraries and Datasets",
+        "organization": "Organization"
+    };
+    if (functionalNames[domainId]) return functionalNames[domainId];
+
+    const legacyNames = {
+        "chemical-structures": "Cheminformatics",
+        "ligand-based-discovery": "Ligand-Based and QSAR",
+        "structure-based-discovery": "Structure-Based",
+        "molecular-properties-admet": "ADMET Prediction",
+        "synthesis-reaction-design": "Retrosynthesis",
+        "data-analysis": "Target Identification",
+        "visualization-and-interpretation": "Visualization",
+        "laboratory-workflows": "Organization"
+    };
+    return legacyNames[domainId] || taxonomy.domains?.[domainId]?.name || formatLabel(domainId);
 }
 
 function getTaskName(taskId) {
