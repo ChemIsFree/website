@@ -411,10 +411,15 @@
                 button.setAttribute("aria-pressed", active ? "true" : "false");
             });
         }
+        // Counts describe the selected category (or the entire catalogue for All areas),
+        // independent of the current search term and access/licence filter.
+        const categoryTools = state.domain
+            ? allTools.filter(tool => getToolCategories(tool).includes(state.domain))
+            : allTools;
         const allCount = $("#all-count");
-        if (allCount) allCount.textContent = allTools.length.toLocaleString();
+        if (allCount) allCount.textContent = categoryTools.length.toLocaleString();
         const featuredCount = $("#featured-count");
-        if (featuredCount) featuredCount.textContent = allTools.filter(isFeatured).length.toLocaleString();
+        if (featuredCount) featuredCount.textContent = categoryTools.filter(isFeatured).length.toLocaleString();
     }
 
     function populateCategoryFilters() {
