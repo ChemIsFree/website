@@ -19,8 +19,21 @@
     ];
     const CATEGORY_IDS = CATEGORY_ORDER.map(item => item.id);
     const CATEGORY_BY_ID = new Map(CATEGORY_ORDER.map(item => [item.id, item]));
-    const state = { domain: "", access: "", search: "", task: "" };
+    const state = { domain: "", access: "", search: "", task: "", view: "featured" };
     let allTools = [];
+    let featuredCatalogue = { domains: {} };
+
+    const FEATURED_DOMAIN_MAP = {
+        "chemical-structures": ["cheminformatics"],
+        "ligand-based-discovery": ["ligand-based-qsar", "de-novo-design"],
+        "structure-based-discovery": ["structure-based", "protein-structures", "binding-pockets", "molecular-dynamics"],
+        "molecular-properties-admet": ["admet-prediction"],
+        "synthesis-reaction-design": ["retrosynthesis"],
+        "data-analysis": ["ligand-based-qsar", "libraries-datasets"],
+        "visualization-and-interpretation": ["visualization"],
+        "visualization": ["visualization"],
+        "laboratory-workflows": ["organization"]
+    };
 
     const LEGACY_DOMAIN_MAP = {
         "chemical-structures": ["cheminformatics"],
@@ -132,11 +145,15 @@
 
     async function loadCatalogue() {
         try {
-            const response = await fetch("data/tools.json");
+            const [response, featuredResponse] = await Promise.all([
+                fetch("data/tools.json"),
+                fetch("data/featured_tools.json")
+            ]);
             if (!response.ok) throw new Error("Catalogue request failed (HTTP " + response.status + ").");
+            if (!featuredResponse.ok) throw new Error("Featured catalogue request failed (HTTP " + featuredResponse.status + ").");
             const payload = await response.json();
+            featuredCatalogue = await featuredResponse.json();
             allTools = deduplicateTools(Array.isArray(payload) ? payload : []);
-            $("#all-count").textContent = allTools.length.toLocaleString();
             readUrlState();
             renderAll();
             bindEvents();
@@ -347,6 +364,22 @@
         ].filter(Boolean).join(" ").toLowerCase();
     }
 
+    function getFeaturedIds(domain) {
+        const ids = new Set();
+        const domains = featuredCatalogue && featuredCatalogue.domains || {};
+        Object.entries(domains).forEach(([key, entry]) => {
+            const categories = CATEGORY_BY_ID.has(key) ? [key] : (FEATURED_DOMAIN_MAP[key] || []);
+            if (domain && !categories.includes(domain)) return;
+            const list = entry && Array.isArray(entry.tools) ? entry.tools : [];
+            list.forEach(id => ids.add(String(id)));
+        });
+        return ids;
+    }
+
+    function isFeatured(tool) {
+        return getFeaturedIds("").has(String(tool && tool.id || ""));
+    }
+
     function getSearchTools() {
         const query = state.search.toLowerCase().trim();
         let tools = query ? allTools.filter(tool => buildSearchText(tool).includes(query)) : allTools.slice();
@@ -357,17 +390,37 @@
         return tools;
     }
 
+    function getViewTools() {
+        const tools = getSearchTools();
+        return state.view === "featured" ? tools.filter(isFeatured) : tools;
+    }
+
     function getScopedTools() {
-        return getSearchTools()
+        return getViewTools()
             .filter(tool => !state.domain || getToolCategories(tool).includes(state.domain))
             .filter(tool => matchesAccess(tool, state.access))
             .sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
     }
 
+    function populateViewControls() {
+        const controls = $("#catalogue-view-controls");
+        if (controls) {
+            controls.querySelectorAll("[data-view]").forEach(button => {
+                const active = button.getAttribute("data-view") === state.view;
+                button.classList.toggle("is-active", active);
+                button.setAttribute("aria-pressed", active ? "true" : "false");
+            });
+        }
+        const allCount = $("#all-count");
+        if (allCount) allCount.textContent = allTools.length.toLocaleString();
+        const featuredCount = $("#featured-count");
+        if (featuredCount) featuredCount.textContent = allTools.filter(isFeatured).length.toLocaleString();
+    }
+
     function populateCategoryFilters() {
         const container = $("#category-filters");
         if (!container) return;
-        const base = getSearchTools();
+        const base = getViewTools();
         const buttons = [
             '<button type="button" class="catalogue-chip' + (!state.domain ? ' is-active' : '') +
             '" data-domain="" aria-pressed="' + (!state.domain ? 'true' : 'false') + '">All categories <span>' +
@@ -386,7 +439,7 @@
     function populateAccessFilters() {
         const container = $("#access-filters");
         if (!container) return;
-        const scoped = getSearchTools().filter(tool => !state.domain || getToolCategories(tool).includes(state.domain));
+        const scoped = getViewTools().filter(tool => !state.domain || getToolCategories(tool).includes(state.domain));
         const filters = [
             { id: "", label: "Any access", count: scoped.length },
             { id: "open-source", label: "Open source", count: scoped.filter(isOpenSource).length },
@@ -461,7 +514,7 @@
         if (noResults) noResults.hidden = filtered.length !== 0;
         const summary = $("#active-filter-summary");
         if (summary) {
-            const parts = ["ALL LISTED TOOLS"];
+            const parts = [state.view === "featured" ? "FEATURED SELECTION" : "ALL LISTED TOOLS"];
             if (state.domain) parts.push(CATEGORY_BY_ID.get(state.domain)?.label.toUpperCase() || "");
             if (state.access) parts.push(state.access.replace("-", " ").toUpperCase());
             if (state.search) parts.push("SEARCH: " + state.search.toUpperCase());
@@ -471,6 +524,7 @@
     }
 
     function renderAll() {
+        populateViewControls();
         populateCategoryFilters();
         populateAccessFilters();
         renderCards();
@@ -480,6 +534,14 @@
     function bindEvents() {
         $("#search")?.addEventListener("input", () => {
             state.search = $("#search").value.trim();
+            renderAll();
+        });
+        $("#catalogue-view-controls")?.addEventListener("click", event => {
+            const button = event.target.closest("[data-view]");
+            if (!button) return;
+            const view = button.getAttribute("data-view");
+            if (view !== "featured" && view !== "all") return;
+            state.view = view;
             renderAll();
         });
         $("#category-filters")?.addEventListener("click", event => {
@@ -499,6 +561,7 @@
             state.access = "";
             state.search = "";
             state.task = "";
+            state.view = "featured";
             const search = $("#search");
             if (search) search.value = "";
             renderAll();
@@ -514,6 +577,8 @@
     function readUrlState() {
         const params = new URLSearchParams(window.location.search);
         state.domain = normalizeCategory(params.get("domain") || params.get("area") || "");
+        state.view = params.get("view") || "featured";
+        if (!["featured", "all"].includes(state.view)) state.view = "featured";
         state.access = params.get("access") || "";
         state.search = params.get("search") || "";
         state.task = params.get("task") || "";
@@ -525,6 +590,7 @@
     function updateUrlState() {
         const params = new URLSearchParams();
         if (state.domain) params.set("domain", state.domain);
+        if (state.view !== "featured") params.set("view", state.view);
         if (state.access) params.set("access", state.access);
         if (state.search) params.set("search", state.search);
         if (state.task) params.set("task", state.task);
