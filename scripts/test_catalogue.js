@@ -97,8 +97,8 @@ const hmdb = tools.find(tool => tool.id === "hmdb");
 assert.match(hmdb.license || "", /CC BY-NC 4\.0/i, "HMDB's non-commercial data terms should be explicit.");
 assert.ok(!(hmdb.access || []).includes("open-source"), "HMDB data must not be labelled open-source.");
 const alphafoldDb = tools.find(tool => tool.id === "alphafold-protein-structure-database");
-assert.deepEqual(alphafoldDb.domain, ["protein-structures", "libraries-datasets"],
-    "AlphaFold DB should be a protein-structure database, not a pocket-prediction tool.");
+assert.deepEqual(alphafoldDb.domain, ["libraries-datasets"],
+    "AlphaFold DB should remain a supporting database, outside the curated Protein Structures shortlist.");
 const inchi = tools.find(tool => tool.id === "inchi-software");
 assert.match(inchi.license || "", /IUPAC\/InChI Trust InChI Licence 1\.0/i);
 
@@ -233,14 +233,14 @@ assert.ok(html.includes('data-view="featured"') && html.includes('data-view="all
     "The catalogue should offer Featured selection and All listed tools views.");
 assert.ok(html.includes('id="featured-count"'),
     "The featured-entry count is required.");
-assert.ok(script.includes('data/featured_tools.json') && script.includes("getFeaturedIds") && script.includes('view: "featured"'),
-    "The catalogue should load the editorial shortlist and default to Featured selection.");
+assert.ok(script.includes('data/featured_tools.json?v=2') && script.includes("getFeaturedIds") && script.includes('view: "featured"'),
+    "The catalogue should load the cache-busted editorial shortlist and default to Featured selection.");
 assert.ok(script.includes("categoryTools.filter(isFeatured).length"),
     "Featured counts should include the global featured union for the selected category.");
 assert.ok(html.includes('id="catalogue-grid"'), "Cards should render in the category-aware results area.");
 assert.ok(!html.includes('id="domain-filter"') && !html.includes('id="task-filter"'),
     "The old stacked select filters should remain removed.");
-assert.ok(html.includes('js/catalogue.js?v=6'), "The page should load the updated featured-aware catalogue renderer.");
+assert.ok(html.includes('js/catalogue.js?v=7'), "The page should load the updated featured-aware catalogue renderer.");
 assert.ok(script.includes('renderCardSection("Tools"') && script.includes('renderCardSection("Libraries & datasets"'),
     "Tools must be displayed before the supporting library/dataset section.");
 assert.ok(script.includes("getToolCategories") && script.includes("TASK_CATEGORY_MAP"),
