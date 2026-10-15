@@ -276,8 +276,12 @@ async function installMockRoutes(page) {
             "Access badges should open the provider, not the internal detail page.");
         const allListed = Number((await page.locator("#all-count").innerText()).replace(/,/g, ""));
         assert.ok(allListed > 0, "The full catalogue count should be available.");
-        assert.equal(await page.locator("#view-featured, #view-all").count(), 0,
-            "Curation should start with all entries visible rather than a featured-only view.");
+        assert.equal(await page.locator('[data-view="featured"], [data-view="all"]').count(), 2,
+            "The catalogue should offer Featured selection and All listed tools.");
+        assert.equal(await page.locator('[data-view="featured"]').getAttribute("aria-pressed"), "true",
+            "Featured selection should be the default view.");
+        const featuredCount = Number((await page.locator("#featured-count").innerText()).replace(/,/g, ""));
+        assert.ok(featuredCount > 0, "The curated featured count should be available.");
         assert.equal(await page.locator("#category-filters [data-domain]").count(), 15,
             "The category row should expose All categories and exactly 14 functional categories.");
         const expectedCategories = [
@@ -295,8 +299,14 @@ async function installMockRoutes(page) {
         assert.ok(await page.locator("#access-filters [data-access='free']").isVisible());
 
         const totalCards = await page.locator(".catalogue-tool-card").count();
-        assert.equal(totalCards, allListed,
-            "All listed entries should appear in the default view.");
+        assert.equal(totalCards, featuredCount,
+            "The default view should show the curated featured selection.");
+        await page.locator('[data-view="all"]').click();
+        assert.equal(await page.locator(".catalogue-tool-card").count(), allListed,
+            "The All listed tools view should expose the full registry.");
+        await page.locator('[data-view="featured"]').click();
+        assert.equal(await page.locator(".catalogue-tool-card").count(), featuredCount,
+            "Switching back should restore the featured shortlist.");
         const cardLinks = await page.locator(".catalogue-tool-card h3 a").evaluateAll(nodes => nodes.map(node => node.getAttribute("href")));
         assert.equal(new Set(cardLinks).size, cardLinks.length, "Each entry should appear only once in the All categories view.");
 
@@ -335,8 +345,8 @@ async function installMockRoutes(page) {
             "The target tool should appear among name/description search matches.");
         await page.locator("#clear-filters").click();
         assert.equal(await page.locator("#search").inputValue(), "");
-        assert.equal(await page.locator(".catalogue-tool-card").count(), allListed,
-            "Reset should clear category, access and search filters.");
+        assert.equal(await page.locator(".catalogue-tool-card").count(), featuredCount,
+            "Reset should clear filters and return to Featured selection.");
 
         await page.setViewportSize({ width: 390, height: 844 });
         await page.locator(".catalogue-tool-card").first().waitFor();
@@ -391,7 +401,7 @@ async function installMockRoutes(page) {
 
         assert.deepEqual(pageErrors, [], "No JavaScript errors should occur across planner, catalogue, homepage and detail pages.");
 
-        console.log("Chromium smoke test passed: guided planner, 14 categories, clickable access badges, all-entry catalogue, separate resource sections, compact detail pages, and mobile layout.");
+        console.log("Chromium smoke test passed: guided planner, 14 categories, clickable access badges, featured-first catalogue with full-registry toggle, separate resource sections, compact detail pages, and mobile layout.");
     } finally {
         if (browser) await browser.close();
         await new Promise((resolve) => server.close(resolve));
