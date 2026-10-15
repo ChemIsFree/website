@@ -252,7 +252,7 @@ def name_matches(tool, aliases):
                 return True
             # Imported IDs may carry a stable "assayer-" prefix; avoid broad
             # substring matching that can accidentally select related names.
-            if value.startswith("assayer") and value.endswith(alias):
+            if value.startswith("assayer") and value[7:] == alias:
                 return True
     return False
 
