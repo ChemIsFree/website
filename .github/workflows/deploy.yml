@@ -7,13 +7,18 @@ on:
     branches:
       - main
 
-  # Catalogue changes coming from ChemIsFree/tools
+  # Rebuild regularly so updates to ChemIsFree/tools are reflected even if
+  # the cross-repository dispatch token is not configured.
+  schedule:
+    - cron: "17 * * * *"
+
+  # Optional immediate rebuild from the Actions tab
+  workflow_dispatch:
+
+  # Optional event from ChemIsFree/tools when cross-repository dispatch is configured
   repository_dispatch:
     types:
       - catalogue-updated
-
-  # Manual emergency rebuild
-  workflow_dispatch:
 
 
 permissions:
