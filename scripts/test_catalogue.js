@@ -97,8 +97,8 @@ const hmdb = tools.find(tool => tool.id === "hmdb");
 assert.match(hmdb.license || "", /CC BY-NC 4\.0/i, "HMDB's non-commercial data terms should be explicit.");
 assert.ok(!(hmdb.access || []).includes("open-source"), "HMDB data must not be labelled open-source.");
 const alphafoldDb = tools.find(tool => tool.id === "alphafold-protein-structure-database");
-assert.deepEqual(alphafoldDb.domain, ["protein-structures", "libraries-datasets"],
-    "AlphaFold DB should be a protein-structure database, not a pocket-prediction tool.");
+assert.deepEqual(alphafoldDb.domain, ["libraries-datasets"],
+    "AlphaFold DB should remain a supporting database, outside the curated Protein Structures shortlist.");
 const inchi = tools.find(tool => tool.id === "inchi-software");
 assert.match(inchi.license || "", /IUPAC\/InChI Trust InChI Licence 1\.0/i);
 
