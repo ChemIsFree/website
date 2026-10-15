@@ -60,6 +60,26 @@ tools.forEach(tool => {
 assert.ok(tools.some(tool => tool.catalogue === "app"), "The catalogue needs primary tools.");
 assert.ok(tools.some(tool => tool.catalogue === "resource"), "The catalogue needs supporting resources.");
 
+const extraValidatedEntries = [
+    ["FTMap", ["ftmap"], ["target-identification", "binding-pockets"]],
+    ["DoGSiteScorer", ["dogsitescorer"], ["binding-pockets"]],
+    ["CHAPERONg", ["chaperong"], ["molecular-dynamics"]],
+    ["GenBench3D", ["genbench3d"], ["de-novo-design", "libraries-datasets"]],
+    ["PocketFlow", ["pocketflow"], ["de-novo-design", "structure-based"]],
+    ["OptiPharm", ["optipharm"], ["ligand-based-qsar"]],
+    ["GAFF2 / Antechamber", ["gaff2antechamber"], ["molecular-dynamics"]],
+    ["MMPBSA.py", ["mmpbsapy"], ["molecular-dynamics"]],
+    ["cpptraj / pytraj", ["cpptrajpytraj"], ["molecular-dynamics"]],
+    ["Virtual Screening Validation Resources", ["virtualscreeningvalidationresources"], ["ligand-based-qsar", "libraries-datasets"]]
+];
+for (const [label, aliases, domains] of extraValidatedEntries) {
+    const record = tools.find(tool => matchesAlias(tool, aliases));
+    assert.ok(record, "Recent catalogue addition is missing: " + label);
+    domains.forEach(domain => assert.ok((record.domain || []).includes(domain),
+        label + " is missing category " + domain + "; actual domains: " + JSON.stringify(record.domain)));
+}
+
+
 function normalizedName(value) {
     return String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
 }
