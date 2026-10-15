@@ -225,6 +225,13 @@ const openfold3 = tools.find(tool => normalizedName(tool.name) === "openfold3");
 assert.ok(openfold3 && (openfold3.access || []).includes("open-source"),
     "OpenFold3 should carry its explicit Apache-2.0 open-source classification.");
 
+const genbench3d = tools.find(tool => normalizedName(tool.name) === "genbench3d");
+assert.ok(genbench3d && (genbench3d.domain || []).includes("de-novo-design") &&
+    (genbench3d.domain || []).includes("libraries-datasets"),
+    "GenBench3D should be discoverable as both a generation-evaluation tool and benchmark resource.");
+assert.match(String(genbench3d && genbench3d.license || ""), /MIT/i,
+    "GenBench3D's verified MIT software licence should be recorded.");
+
 const enamine = tools.find(tool => normalizedName(tool.name) === "enaminereal");
 assert.ok(enamine && enamine.catalogue === "resource" &&
     (enamine.access || []).includes("commercial"),
