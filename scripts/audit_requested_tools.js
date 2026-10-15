@@ -1255,7 +1255,8 @@ const requested = {
     [
       "InChI / InChIKey",
       "InChI",
-      "InChIKey"
+      "InChIKey",
+      "InChI Software"
     ],
     [
       "SELFIES",
