@@ -250,9 +250,8 @@ def name_matches(tool, aliases):
                 continue
             if value == alias:
                 return True
-            # Avoid matching short abbreviations inside unrelated words.
-            if len(alias) >= 5 and alias in value:
-                return True
+            # Imported IDs may carry a stable "assayer-" prefix; avoid broad
+            # substring matching that can accidentally select related names.
             if value.startswith("assayer") and value.endswith(alias):
                 return True
     return False
