@@ -274,10 +274,19 @@ def is_supporting_resource(tool):
         "library", "database", "dataset", "educational", "tutorial", "resource"
     }
 
+def name_matches_exact(tool, aliases):
+    """Match record overrides only to exact normalised names/IDs, avoiding prefix collisions."""
+    values = {
+        normalized_name(tool.get("name")),
+        normalized_name(tool.get("id")),
+        normalized_name(tool.get("title")),
+    }
+    return any(normalized_name(alias) in values for alias in aliases if normalized_name(alias))
+
 def apply_record_overrides(tool, domains, overrides):
     for override in overrides:
         names = override.get("names") or []
-        if not names or not name_matches(tool, names):
+        if not names or not name_matches_exact(tool, names):
             continue
 
         if override.get("replace_categories"):
