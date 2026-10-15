@@ -240,7 +240,7 @@ assert.ok(script.includes("categoryTools.filter(isFeatured).length"),
 assert.ok(html.includes('id="catalogue-grid"'), "Cards should render in the category-aware results area.");
 assert.ok(!html.includes('id="domain-filter"') && !html.includes('id="task-filter"'),
     "The old stacked select filters should remain removed.");
-assert.ok(html.includes('js/catalogue.js?v=5'), "The page should load the updated featured-aware catalogue renderer.");
+assert.ok(html.includes('js/catalogue.js?v=6'), "The page should load the updated featured-aware catalogue renderer.");
 assert.ok(script.includes('renderCardSection("Tools"') && script.includes('renderCardSection("Libraries & datasets"'),
     "Tools must be displayed before the supporting library/dataset section.");
 assert.ok(script.includes("getToolCategories") && script.includes("TASK_CATEGORY_MAP"),
