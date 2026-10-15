@@ -373,6 +373,10 @@ def normalize_tool_domains(tool, category_curation):
     ]
     if matched_categories:
         domains = matched_categories
+        # Preserve explicitly curated Target Identification keep-list entries such as
+        # DataWarrior even if the tool is also matched to Cheminformatics in the new list.
+        if name_matches(tool, target_keep):
+            domains.append("target-identification")
 
     # Supporting libraries/databases/datasets remain in the lower resource section.
     if is_supporting_resource(tool) and str(tool.get("resource_type") or tool.get("type") or "").lower() in {
