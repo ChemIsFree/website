@@ -223,12 +223,16 @@ categoryIds.forEach(id => {
 });
 assert.ok(html.includes('id="category-filters"'), "Computational category chips are required.");
 assert.ok(html.includes('id="all-count"'), "The all-entry count is required.");
-assert.ok(!html.includes('id="view-featured"') && !html.includes('id="view-all"'),
-    "The catalogue should expose all entries while featured selection is pending.");
+assert.ok(html.includes('data-view="featured"') && html.includes('data-view="all"'),
+    "The catalogue should offer Featured selection and All listed tools views.");
+assert.ok(html.includes('id="featured-count"'),
+    "The featured-entry count is required.");
+assert.ok(script.includes('data/featured_tools.json') && script.includes("getFeaturedIds") && script.includes('view: "featured"'),
+    "The catalogue should load the editorial shortlist and default to Featured selection.");
 assert.ok(html.includes('id="catalogue-grid"'), "Cards should render in the category-aware results area.");
 assert.ok(!html.includes('id="domain-filter"') && !html.includes('id="task-filter"'),
     "The old stacked select filters should remain removed.");
-assert.ok(html.includes('js/catalogue.js?v=3'), "The page should load the new functional-category renderer.");
+assert.ok(html.includes('js/catalogue.js?v=4'), "The page should load the updated featured-aware catalogue renderer.");
 assert.ok(script.includes('renderCardSection("Tools"') && script.includes('renderCardSection("Libraries & datasets"'),
     "Tools must be displayed before the supporting library/dataset section.");
 assert.ok(script.includes("getToolCategories") && script.includes("TASK_CATEGORY_MAP"),
