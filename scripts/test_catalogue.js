@@ -215,7 +215,7 @@ if (oddt) assert.equal(oddt.catalogue, "app", "ODDT must be presented as a tool,
 assert.ok(
     script.includes("const categoryTools = state.domain") &&
     script.includes('getToolCategories(tool).includes(state.domain)') &&
-    script.includes("getFeaturedIds(state.domain)") && script.includes("featuredTotal"),
+    script.includes("categoryTools.filter(isFeatured).length"),
     "Featured and all-listed count badges should reflect the selected category, while ignoring search/access filters."
 );
 categoryIds.forEach((id, index) => {
@@ -235,6 +235,8 @@ assert.ok(html.includes('id="featured-count"'),
     "The featured-entry count is required.");
 assert.ok(script.includes('data/featured_tools.json') && script.includes("getFeaturedIds") && script.includes('view: "featured"'),
     "The catalogue should load the editorial shortlist and default to Featured selection.");
+assert.ok(script.includes("categoryTools.filter(isFeatured).length"),
+    "Featured counts should include the global featured union for the selected category.");
 assert.ok(html.includes('id="catalogue-grid"'), "Cards should render in the category-aware results area.");
 assert.ok(!html.includes('id="domain-filter"') && !html.includes('id="task-filter"'),
     "The old stacked select filters should remain removed.");
