@@ -60,6 +60,60 @@ tools.forEach(tool => {
 assert.ok(tools.some(tool => tool.catalogue === "app"), "The catalogue needs primary tools.");
 assert.ok(tools.some(tool => tool.catalogue === "resource"), "The catalogue needs supporting resources.");
 
+const requiredNewRecords = [
+    ["pdv", "visualization", "app"],
+    ["leview", "visualization", "app"],
+    ["flexaid", "structure-based", "app"],
+    ["shafts", "ligand-based-qsar", "app"],
+    ["open3dqsar", "ligand-based-qsar", "app"],
+    ["plethem", "admet-prediction", "app"],
+    ["merlin-expo", "admet-prediction", "app"],
+    ["br-sascore", "retrosynthesis", "app"],
+    ["bigbind", "libraries-datasets", "resource"],
+    ["lbs-comparison", "binding-pockets", "resource"],
+    ["dubs", "structure-based", "app"],
+    ["uspto-reaction-dataset", "retrosynthesis", "resource"],
+    ["awesome-chemistry-datasets", "libraries-datasets", "resource"],
+    ["awesome-cheminformatics", "libraries-datasets", "resource"],
+    ["jupyterlab", "organization", "app"],
+    ["conda", "organization", "app"],
+    ["docker-engine", "organization", "app"],
+    ["pymol-open-source-build", "visualization", "app"],
+    ["admetboost", "admet-prediction", "app"],
+    ["pred-herg", "admet-prediction", "app"],
+    ["tdc-admet-benchmark-group", "libraries-datasets", "resource"]
+];
+for (const [id, category, expectedType] of requiredNewRecords) {
+    const record = tools.find(tool => tool.id === id);
+    assert.ok(record, "Missing newly added catalogue record: " + id);
+    assert.equal(record.catalogue, expectedType, id + " is in the wrong Tools/Resources section.");
+    assert.ok((record.domain || []).includes(category), id + " is missing category " + category + ".");
+}
+
+const vega = tools.find(tool => tool.id === "vega");
+assert.equal(vega.license, "GPL-3.0", "VEGA QSAR should reflect the declared GPL-3.0 software licence.");
+assert.ok((vega.access || []).includes("open-source"));
+const hmdb = tools.find(tool => tool.id === "hmdb");
+assert.match(hmdb.license || "", /CC BY-NC 4\.0/i, "HMDB's non-commercial data terms should be explicit.");
+assert.ok(!(hmdb.access || []).includes("open-source"), "HMDB data must not be labelled open-source.");
+const alphafoldDb = tools.find(tool => tool.id === "alphafold-protein-structure-database");
+assert.deepEqual(alphafoldDb.domain, ["protein-structures", "libraries-datasets"],
+    "AlphaFold DB should be a protein-structure database, not a pocket-prediction tool.");
+const inchi = tools.find(tool => tool.id === "inchi-software");
+assert.match(inchi.license || "", /IUPAC\/InChI Trust InChI Licence 1\.0/i);
+
+const pdv = tools.find(tool => tool.id === "pdv");
+assert.ok(!(pdv.access || []).includes("open-source") && pdv.source_available !== true,
+    "PDV's PolyForm Noncommercial licence must not be labelled open-source.");
+const shafts = tools.find(tool => tool.id === "shafts");
+assert.ok(!(shafts.access || []).includes("open-source") && shafts.source_available !== true,
+    "SHAFTS has a custom EULA rather than an open-source licence.");
+const open3dqsar = tools.find(tool => tool.id === "open3dqsar");
+assert.equal(open3dqsar.license, "GPL-3.0");
+const flexaid = tools.find(tool => tool.id === "flexaid");
+assert.equal(flexaid.license, "Apache-2.0");
+
+
 function normalizedName(value) {
     return String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
 }

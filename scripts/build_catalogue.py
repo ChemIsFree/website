@@ -274,7 +274,16 @@ def is_supporting_resource(tool):
         "library", "database", "dataset", "educational", "tutorial", "resource"
     }
 
+RECORD_OVERRIDE_FIELDS = {
+    "name", "description", "catalogue", "resource_type", "type", "access",
+    "source_available", "license", "platforms", "interface", "languages", "gpu",
+    "installation", "status", "developers", "website", "repository",
+    "documentation", "citation", "notes", "verification", "chemisfree_status",
+    "interface_classification",
+}
+
 def apply_record_overrides(tool, domains, overrides):
+    """Apply explicit category and metadata curation to the matching catalogue record."""
     for override in overrides:
         names = override.get("names") or []
         if not names or not name_matches(tool, names):
@@ -285,7 +294,9 @@ def apply_record_overrides(tool, domains, overrides):
         else:
             domains.extend(override.get("add_categories") or [])
 
-        for field in ("catalogue", "type", "resource_type"):
+        # Apply only known record fields. Control keys such as names/categories never leak
+        # into a displayed record, while licence and URL corrections actually take effect.
+        for field in RECORD_OVERRIDE_FIELDS:
             if field in override and override[field] is not None:
                 tool[field] = override[field]
         if override.get("clear_resource_type"):
@@ -339,11 +350,19 @@ def normalize_tool_domains(tool, category_curation):
         curation.get("record_overrides", []),
     )
 
-    # Keep Target Identification intentionally curated. An allowed entry may receive the
-    # category even when a registry record's original tags did not place it there.
+    # Apply the shared hand-curated category mapping to both maintained records and
+    # imported registry entries. This prevents the taxonomy from depending on legacy tags.
+    category_membership = curation.get("category_membership", {}) or {}
+    for category_id, names in category_membership.items():
+        if category_id in CATEGORY_ORDER and name_matches(tool, names or []):
+            domains.append(category_id)
+
+    # Target Identification remains intentionally curated. Explicit memberships from the
+    # curated category map count as approval alongside the dedicated target keep-list.
     target_rule = (curation.get("target-identification") or {})
     target_keep = target_rule.get("keep") or []
-    if name_matches(tool, target_keep):
+    target_members = category_membership.get("target-identification", []) or []
+    if name_matches(tool, list(target_keep) + list(target_members)):
         domains.append("target-identification")
     else:
         domains = [domain for domain in domains if domain != "target-identification"]
