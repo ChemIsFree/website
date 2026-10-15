@@ -157,6 +157,62 @@ for (const [label, aliases] of [
 const oddt = tools.find(tool => matchesAlias(tool, ["oddt", "opendrugdiscoverytoolkit"]));
 if (oddt) assert.equal(oddt.catalogue, "app", "ODDT must be presented as a tool, not a library card.");
 
+const requiredCoverage = [
+    ["HumanBase", ["humanbase"], ["target-identification"]],
+    ["ToppGene Suite", ["toppgene"], ["target-identification"]],
+    ["crosstalkr", ["crosstalkr"], ["target-identification"]],
+    ["AlphaFold Server", ["alphafoldserver"], ["protein-structures"]],
+    ["MODELLER", ["modeller"], ["protein-structures"]],
+    ["OpenFold3", ["openfold3"], ["protein-structures", "structure-based"]],
+    ["Protenix", ["protenix"], ["protein-structures", "structure-based"]],
+    ["UCSF ChimeraX", ["chimerax"], ["visualization"]],
+    ["VMD", ["vmd"], ["visualization"]],
+    ["NCBI iCn3D", ["icn3d"], ["visualization"]],
+    ["CavityPlus", ["cavityplus"], ["binding-pockets"]],
+    ["DOCK 6", ["dock6"], ["structure-based"]],
+    ["Dimorphite-DL", ["dimorphitedl"], ["cheminformatics"]],
+    ["MolCRAFT", ["molcraft"], ["de-novo-design"]],
+    ["DataSAIL", ["datasail"], ["ligand-based-qsar"]],
+    ["admetSAR 3.0", ["admetsar3"], ["admet-prediction"]],
+    ["BioTransformer 3.0", ["biotransformer"], ["admet-prediction"]],
+    ["LocalRetro", ["localretro"], ["retrosynthesis"]],
+    ["NCI/CADD Chemical Identifier Resolver", ["ncicaddchemicalidentifierresolver"], ["nomenclature-format-conversion"]],
+    ["PDBbind", ["pdbbind"], ["libraries-datasets"]],
+    ["QMugs", ["qmugs"], ["libraries-datasets"]],
+    ["PLINDER", ["plinder"], ["libraries-datasets"]],
+    ["DataLad", ["datalad"], ["organization"]],
+    ["Apptainer", ["apptainer"], ["organization"]],
+    ["conda-lock", ["condalock"], ["organization"]],
+    ["Pixi", ["pixi"], ["organization"]]
+];
+for (const [label, aliases, domains] of requiredCoverage) {
+    const record = tools.find(tool => matchesAlias(tool, aliases));
+    assert.ok(record, "Expected catalogue addition is missing: " + label);
+    domains.forEach(domain => assert.ok((record.domain || []).includes(domain),
+        label + " is missing category " + domain + "; actual domains: " + JSON.stringify(record.domain)));
+}
+
+const protenix = tools.find(tool => normalizedName(tool.name) === "protenix" || normalizedName(tool.id) === "protenix");
+assert.ok(protenix, "Protenix must remain in the catalogue.");
+assert.ok(!((protenix.access || []).map(value => String(value).toLowerCase()).includes("open-source")),
+    "Protenix's restricted v2 model weights must not trigger an overall open-source label.");
+assert.match(String(protenix.license || ""), /weights.*(proprietary|restricted)/i,
+    "Protenix's distinct model-weight terms must be recorded.");
+
+const openfold3 = tools.find(tool => normalizedName(tool.name) === "openfold3");
+assert.ok(openfold3 && (openfold3.access || []).includes("open-source"),
+    "OpenFold3 should carry its explicit Apache-2.0 open-source classification.");
+
+const enamine = tools.find(tool => normalizedName(tool.name) === "enaminereal");
+assert.ok(enamine && enamine.catalogue === "resource" &&
+    (enamine.access || []).includes("commercial"),
+    "Enamine REAL should be a commercial library, not free/open-source.");
+
+for (const withheld of ["orbic", "flexautodock", "pdv", "open3dqsar"]) {
+    assert.ok(!tools.some(tool => normalizedName(tool.id) === withheld),
+        "Unlicensed starred candidate must remain withheld pending licence clarification: " + withheld);
+}
+
 
 categoryIds.forEach((id, index) => {
     assert.ok(script.includes('id: "' + id + '"'), "Missing category ID in the catalogue UI: " + id);
@@ -174,7 +230,7 @@ assert.ok(!html.includes('id="view-featured"') && !html.includes('id="view-all"'
 assert.ok(html.includes('id="catalogue-grid"'), "Cards should render in the category-aware results area.");
 assert.ok(!html.includes('id="domain-filter"') && !html.includes('id="task-filter"'),
     "The old stacked select filters should remain removed.");
-assert.ok(html.includes('js/catalogue.js?v=3'), "The page should load the new functional-category renderer.");
+assert.ok(html.includes('js/catalogue.js?v=4'), "The page should load the new functional-category renderer.");
 assert.ok(script.includes('renderCardSection("Tools"') && script.includes('renderCardSection("Libraries & datasets"'),
     "Tools must be displayed before the supporting library/dataset section.");
 assert.ok(script.includes("getToolCategories") && script.includes("TASK_CATEGORY_MAP"),
