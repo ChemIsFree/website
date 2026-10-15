@@ -366,6 +366,16 @@ def normalize_tool_domains(tool, category_curation):
     else:
         domains = [domain for domain in domains if domain != "target-identification"]
 
+    # Protein Structures is an editorially curated category. Keep the list explicit
+    # so incidental keywords or legacy tags cannot repopulate the category.
+    protein_rule = curation.get("protein-structures") or {}
+    protein_keep = protein_rule.get("keep") or []
+    protein_members = category_membership.get("protein-structures", []) or []
+    if name_matches(tool, list(protein_keep) + list(protein_members)):
+        domains.append("protein-structures")
+    else:
+        domains = [domain for domain in domains if domain != "protein-structures"]
+
     # Supporting libraries/databases/datasets remain in the lower resource section.
     if is_supporting_resource(tool) and str(tool.get("resource_type") or tool.get("type") or "").lower() in {
         "library", "database", "dataset"

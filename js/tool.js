@@ -11,7 +11,7 @@ async function loadTool() {
         }
 
         const [toolsResponse, taxonomyResponse] = await Promise.all([
-            fetch("data/tools.json"),
+            fetch("data/tools.json?v=2"),
             fetch("data/taxonomy.json")
         ]);
 

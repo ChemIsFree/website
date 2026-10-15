@@ -212,6 +212,12 @@ const oddt = tools.find(tool => matchesAlias(tool, ["oddt", "opendrugdiscoveryto
 if (oddt) assert.equal(oddt.catalogue, "app", "ODDT must be presented as a tool, not a library card.");
 
 
+assert.ok(
+    script.includes("const categoryTools = state.domain") &&
+    script.includes('getToolCategories(tool).includes(state.domain)') &&
+    script.includes("categoryTools.filter(isFeatured).length"),
+    "Featured and all-listed count badges should reflect the selected category, while ignoring search/access filters."
+);
 categoryIds.forEach((id, index) => {
     assert.ok(script.includes('id: "' + id + '"'), "Missing category ID in the catalogue UI: " + id);
     assert.ok(script.includes('label: "' + categoryLabels[index] + '"'), "Missing category label in the catalogue UI: " + categoryLabels[index]);
@@ -229,10 +235,12 @@ assert.ok(html.includes('id="featured-count"'),
     "The featured-entry count is required.");
 assert.ok(script.includes('data/featured_tools.json') && script.includes("getFeaturedIds") && script.includes('view: "featured"'),
     "The catalogue should load the editorial shortlist and default to Featured selection.");
+assert.ok(script.includes("categoryTools.filter(isFeatured).length"),
+    "Featured counts should include the global featured union for the selected category.");
 assert.ok(html.includes('id="catalogue-grid"'), "Cards should render in the category-aware results area.");
 assert.ok(!html.includes('id="domain-filter"') && !html.includes('id="task-filter"'),
     "The old stacked select filters should remain removed.");
-assert.ok(html.includes('js/catalogue.js?v=4'), "The page should load the updated featured-aware catalogue renderer.");
+assert.ok(html.includes('js/catalogue.js?v=6'), "The page should load the updated featured-aware catalogue renderer.");
 assert.ok(script.includes('renderCardSection("Tools"') && script.includes('renderCardSection("Libraries & datasets"'),
     "Tools must be displayed before the supporting library/dataset section.");
 assert.ok(script.includes("getToolCategories") && script.includes("TASK_CATEGORY_MAP"),

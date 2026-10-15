@@ -146,7 +146,7 @@
     async function loadCatalogue() {
         try {
             const [response, featuredResponse] = await Promise.all([
-                fetch("data/tools.json"),
+                fetch("data/tools.json?v=2"),
                 fetch("data/featured_tools.json")
             ]);
             if (!response.ok) throw new Error("Catalogue request failed (HTTP " + response.status + ").");
@@ -411,10 +411,17 @@
                 button.setAttribute("aria-pressed", active ? "true" : "false");
             });
         }
+        // Counts describe the selected category (or the entire catalogue for All areas),
+        // independent of the current search term and access/licence filter.
+        const categoryTools = state.domain
+            ? allTools.filter(tool => getToolCategories(tool).includes(state.domain))
+            : allTools;
         const allCount = $("#all-count");
-        if (allCount) allCount.textContent = allTools.length.toLocaleString();
+        if (allCount) allCount.textContent = categoryTools.length.toLocaleString();
+        // A tool featured anywhere should also be featured in every category it belongs to.
+        // Count the global Featured union within this category, not only IDs listed under one group.
         const featuredCount = $("#featured-count");
-        if (featuredCount) featuredCount.textContent = allTools.filter(isFeatured).length.toLocaleString();
+        if (featuredCount) featuredCount.textContent = categoryTools.filter(isFeatured).length.toLocaleString();
     }
 
     function populateCategoryFilters() {
