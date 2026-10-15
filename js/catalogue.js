@@ -282,11 +282,13 @@
     }
 
     function isOpenSource(tool) {
+        // Use an explicit access classification, not a substring in the licence text.
+        // A code licence such as Apache-2.0 does not imply that pretrained model weights,
+        // hosted services or bundled datasets share those terms.
         const access = normalizedTokens(tool.access);
-        const license = String(tool.license || "");
-        return tool.source_available === true ||
-            access.some(value => ["open-source", "opensource", "source-available", "free-and-open-source"].includes(value)) ||
-            /\b(mit|apache|gpl|lgpl|bsd|mpl|agpl|epl|isc|artistic|cc0|unlicense)\b/i.test(license);
+        return access.some(value => [
+            "open-source", "opensource", "free-and-open-source", "open-source-software"
+        ].includes(value));
     }
 
     function isCommercial(tool) {
