@@ -233,8 +233,8 @@ assert.ok(html.includes('data-view="featured"') && html.includes('data-view="all
     "The catalogue should offer Featured selection and All listed tools views.");
 assert.ok(html.includes('id="featured-count"'),
     "The featured-entry count is required.");
-assert.ok(script.includes('data/featured_tools.json') && script.includes("getFeaturedIds") && script.includes('view: "featured"'),
-    "The catalogue should load the editorial shortlist and default to Featured selection.");
+assert.ok(script.includes('data/featured_tools.json?v=2') && script.includes("getFeaturedIds") && script.includes('view: "featured"'),
+    "The catalogue should load the cache-busted editorial shortlist and default to Featured selection.");
 assert.ok(script.includes("categoryTools.filter(isFeatured).length"),
     "Featured counts should include the global featured union for the selected category.");
 assert.ok(html.includes('id="catalogue-grid"'), "Cards should render in the category-aware results area.");
