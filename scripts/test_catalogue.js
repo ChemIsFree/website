@@ -186,7 +186,9 @@ const requiredCoverage = [
     ["Pixi", ["pixi"], ["organization"]]
 ];
 for (const [label, aliases, domains] of requiredCoverage) {
-    const record = tools.find(tool => matchesAlias(tool, aliases));
+    const record = label === "Protenix"
+        ? tools.find(tool => normalizedName(tool.name) === "protenix" || normalizedName(tool.id) === "protenix")
+        : tools.find(tool => matchesAlias(tool, aliases));
     assert.ok(record, "Expected catalogue addition is missing: " + label);
     domains.forEach(domain => assert.ok((record.domain || []).includes(domain),
         label + " is missing category " + domain + "; actual domains: " + JSON.stringify(record.domain)));
