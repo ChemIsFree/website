@@ -12,6 +12,7 @@ const html = read("tools.html");
 const homepage = read("index.html");
 const script = read("js/catalogue.js");
 const builder = read("scripts/build_catalogue.py");
+const categoryCuration = read("../catalogue/data/category_curation.yaml");
 const css = read("css/style.css");
 const tools = JSON.parse(read("data/tools.json"));
 
@@ -159,6 +160,9 @@ if (opera) {
     assert.ok(opera.domain.includes("ligand-based-qsar"), "OPERA belongs in Ligand-Based and QSAR.");
     assert.ok(!opera.domain.includes("target-identification"), "OPERA must not remain in Target Identification.");
 }
+assert.match(categoryCuration, /names: \[OPERA\][\s\S]*?categories: \[admet-prediction, ligand-based-qsar\]/,
+    "The source curation must preserve OPERA's dual ADMET and Ligand-Based/QSAR classification.");
+
 const breeze = tools.find(tool => matchesAlias(tool, ["breeze"]));
 if (breeze) assert.ok(breeze.domain.includes("visualization"), "BREEZE belongs in Visualization.");
 const fastTargetPred = tools.find(tool => matchesAlias(tool, ["fasttargetpred"]));
