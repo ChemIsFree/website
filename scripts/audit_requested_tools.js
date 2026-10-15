@@ -1661,3 +1661,5 @@ for(const [category,data] of Object.entries(summary)){
 }
 const all=Object.values(summary);
 console.log("TOTAL requested="+all.reduce((sum,x)=>sum+x.requested,0)+" found="+all.reduce((sum,x)=>sum+x.foundCount,0)+" missing="+all.reduce((sum,x)=>sum+x.missingCount,0));
+console.log("WITHHELD_PENDING_LICENSE_OR_PRIMARY_SOURCE_CONFIRMATION: orbIC | FlexAutoDock | PDV | Open3DQSAR | AlloSite | LeView | SHAFTS | LeDock | BR-SAScore");
+
