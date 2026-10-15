@@ -285,7 +285,14 @@ def apply_record_overrides(tool, domains, overrides):
         else:
             domains.extend(override.get("add_categories") or [])
 
-        for field in ("catalogue", "type", "resource_type"):
+        mutable_fields = (
+            "name", "description", "catalogue", "type", "resource_type",
+            "website", "repository", "documentation", "license", "access",
+            "source_available", "platforms", "interface", "languages",
+            "developers", "installation", "gpu", "status", "notes", "citation",
+            "verification", "chemisfree_status",
+        )
+        for field in mutable_fields:
             if field in override and override[field] is not None:
                 tool[field] = override[field]
         if override.get("clear_resource_type"):
