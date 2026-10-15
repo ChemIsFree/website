@@ -348,6 +348,12 @@ def normalize_tool_domains(tool, category_curation):
     else:
         domains = [domain for domain in domains if domain != "target-identification"]
 
+    # Apply explicit category assignments for requested catalogue candidates.
+    # This lets a record appear in multiple useful areas without creating duplicates.
+    for category_id, names in (curation.get("category_membership") or {}).items():
+        if category_id in CATEGORY_ORDER and name_matches(tool, names or []):
+            domains.append(category_id)
+
     # Supporting libraries/databases/datasets remain in the lower resource section.
     if is_supporting_resource(tool) and str(tool.get("resource_type") or tool.get("type") or "").lower() in {
         "library", "database", "dataset"
