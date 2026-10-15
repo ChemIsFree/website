@@ -212,6 +212,12 @@ const oddt = tools.find(tool => matchesAlias(tool, ["oddt", "opendrugdiscoveryto
 if (oddt) assert.equal(oddt.catalogue, "app", "ODDT must be presented as a tool, not a library card.");
 
 
+assert.ok(
+    script.includes("const categoryTools = state.domain") &&
+    script.includes('getToolCategories(tool).includes(state.domain)') &&
+    script.includes("categoryTools.filter(isFeatured).length"),
+    "Featured and all-listed count badges should reflect the selected category, while ignoring search/access filters."
+);
 categoryIds.forEach((id, index) => {
     assert.ok(script.includes('id: "' + id + '"'), "Missing category ID in the catalogue UI: " + id);
     assert.ok(script.includes('label: "' + categoryLabels[index] + '"'), "Missing category label in the catalogue UI: " + categoryLabels[index]);
