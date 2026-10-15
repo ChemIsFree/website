@@ -72,11 +72,13 @@
             </section>
 
             <div class="catalogue-controls-row">
-                <div class="catalogue-view-controls" aria-label="Catalogue curation view">
-                    <span class="catalogue-view-button is-active" aria-current="true">
+                <div id="catalogue-view-controls" class="catalogue-view-controls" role="group" aria-label="Catalogue curation view">
+                    <button type="button" class="catalogue-view-button is-active" data-view="featured" aria-pressed="true">
+                        Featured selection <span id="featured-count" class="catalogue-count-badge">—</span>
+                    </button>
+                    <button type="button" class="catalogue-view-button" data-view="all" aria-pressed="false">
                         All listed tools <span id="all-count" class="catalogue-count-badge">—</span>
-                    </span>
-                    <span class="catalogue-current-note">FEATURED SELECTION WILL FOLLOW CURATION</span>
+                    </button>
                 </div>
                 <button id="clear-filters" type="button" class="catalogue-reset">Reset filters ↺</button>
             </div>
