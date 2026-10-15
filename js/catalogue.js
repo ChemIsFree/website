@@ -147,7 +147,7 @@
         try {
             const [response, featuredResponse] = await Promise.all([
                 fetch("data/tools.json?v=3"),
-                fetch("data/featured_tools.json")
+                fetch("data/featured_tools.json?v=2")
             ]);
             if (!response.ok) throw new Error("Catalogue request failed (HTTP " + response.status + ").");
             if (!featuredResponse.ok) throw new Error("Featured catalogue request failed (HTTP " + featuredResponse.status + ").");
