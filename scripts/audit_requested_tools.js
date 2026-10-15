@@ -1651,12 +1651,12 @@ for(const [category,items] of Object.entries(requested)){
   if(record) found.push({label,match:record.name,id:record.id,catalogue:record.catalogue,domain:record.domain||[]});
   else missing.push(label);
  }
- summary[category]={requested:items.length,found:found.length,missing:missing.length,missingNames:missing,found};
+ summary[category]={requested:items.length,foundCount:found.length,missingCount:missing.length,missingNames:missing,foundRecords:found};
 }
 for(const [category,data] of Object.entries(summary)){
- console.log("CATEGORY "+category+" | requested="+data.requested+" | found="+data.found+" | missing="+data.missing);
+ console.log("CATEGORY "+category+" | requested="+data.requested+" | found="+data.foundCount+" | missing="+data.missingCount);
  console.log("MISSING: "+data.missingNames.join(" | "));
- console.log("FOUND RECORDS: "+data.found.map(x=>x.label+"=>"+x.match+" ["+(x.domain||[]).join(",")+"]").join(" | "));
+ console.log("FOUND RECORDS: "+data.foundRecords.map(x=>x.label+"=>"+x.match+" ["+(x.domain||[]).join(",")+"]").join(" | "));
 }
 const all=Object.values(summary);
-console.log("TOTAL requested="+all.reduce((s,x)=>s+x.requested,0)+" found="+all.reduce((s,x)=>s+x.found,0)+" missing="+all.reduce((s,x)=>s+x.missing,0));
+console.log("TOTAL requested="+all.reduce((sum,x)=>sum+x.requested,0)+" found="+all.reduce((sum,x)=>sum+x.foundCount,0)+" missing="+all.reduce((sum,x)=>sum+x.missingCount,0));
