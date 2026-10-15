@@ -146,7 +146,7 @@
     async function loadCatalogue() {
         try {
             const [response, featuredResponse] = await Promise.all([
-                fetch("data/tools.json"),
+                fetch("data/tools.json?v=2"),
                 fetch("data/featured_tools.json")
             ]);
             if (!response.ok) throw new Error("Catalogue request failed (HTTP " + response.status + ").");
@@ -418,12 +418,10 @@
             : allTools;
         const allCount = $("#all-count");
         if (allCount) allCount.textContent = categoryTools.length.toLocaleString();
-        const featuredIdsForCount = state.domain ? getFeaturedIds(state.domain) : null;
-        const featuredTotal = categoryTools.filter(tool => state.domain
-            ? featuredIdsForCount.has(String(tool && tool.id || ""))
-            : isFeatured(tool)).length;
+        // A tool featured anywhere should also be featured in every category it belongs to.
+        // Count the global Featured union within this category, not only IDs listed under one group.
         const featuredCount = $("#featured-count");
-        if (featuredCount) featuredCount.textContent = featuredTotal.toLocaleString();
+        if (featuredCount) featuredCount.textContent = categoryTools.filter(isFeatured).length.toLocaleString();
     }
 
     function populateCategoryFilters() {
