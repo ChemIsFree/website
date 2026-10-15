@@ -274,10 +274,19 @@ def is_supporting_resource(tool):
         "library", "database", "dataset", "educational", "tutorial", "resource"
     }
 
+def name_matches_exact(tool, aliases):
+    """Match record overrides only to exact normalised names/IDs, avoiding prefix collisions."""
+    values = {
+        normalized_name(tool.get("name")),
+        normalized_name(tool.get("id")),
+        normalized_name(tool.get("title")),
+    }
+    return any(normalized_name(alias) in values for alias in aliases if normalized_name(alias))
+
 def apply_record_overrides(tool, domains, overrides):
     for override in overrides:
         names = override.get("names") or []
-        if not names or not name_matches(tool, names):
+        if not names or not name_matches_exact(tool, names):
             continue
 
         if override.get("replace_categories"):
@@ -285,7 +294,14 @@ def apply_record_overrides(tool, domains, overrides):
         else:
             domains.extend(override.get("add_categories") or [])
 
-        for field in ("catalogue", "type", "resource_type"):
+        mutable_fields = (
+            "name", "description", "catalogue", "type", "resource_type",
+            "website", "repository", "documentation", "license", "access",
+            "source_available", "platforms", "interface", "languages",
+            "developers", "installation", "gpu", "status", "notes", "citation",
+            "verification", "chemisfree_status",
+        )
+        for field in mutable_fields:
             if field in override and override[field] is not None:
                 tool[field] = override[field]
         if override.get("clear_resource_type"):
@@ -347,6 +363,20 @@ def normalize_tool_domains(tool, category_curation):
         domains.append("target-identification")
     else:
         domains = [domain for domain in domains if domain != "target-identification"]
+
+    # Canonical requested-list assignments take precedence over inherited/legacy domains.
+    # A record is assigned only to the functional categories in which it was explicitly listed.
+    matched_categories = [
+        category_id
+        for category_id, names in (curation.get("category_membership") or {}).items()
+        if category_id in CATEGORY_ORDER and name_matches(tool, names or [])
+    ]
+    if matched_categories:
+        domains = matched_categories
+        # Preserve explicitly curated Target Identification keep-list entries such as
+        # DataWarrior even if the tool is also matched to Cheminformatics in the new list.
+        if name_matches(tool, target_keep):
+            domains.append("target-identification")
 
     # Supporting libraries/databases/datasets remain in the lower resource section.
     if is_supporting_resource(tool) and str(tool.get("resource_type") or tool.get("type") or "").lower() in {

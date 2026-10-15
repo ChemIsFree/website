@@ -44,6 +44,10 @@ jobs:
         working-directory: website
         run: python scripts/build_catalogue.py
 
+      - name: Audit the proposed candidate list against the catalogue
+        working-directory: website
+        run: node scripts/audit_requested_tools.js
+
       - name: Check JavaScript syntax
         working-directory: website
         run: |
