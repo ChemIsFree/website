@@ -399,7 +399,21 @@
         return getViewTools()
             .filter(tool => !state.domain || getToolCategories(tool).includes(state.domain))
             .filter(tool => matchesAccess(tool, state.access))
-            .sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+            .sort((a, b) => {
+                // Keep the primary structural archive first when browsing Protein Structures.
+                // The rest of the category remains alphabetically ordered.
+                if (state.domain === "protein-structures") {
+                    const isPdb = tool => {
+                        const id = String(tool && tool.id || "").toLowerCase();
+                        const name = String(tool && tool.name || "").toLowerCase();
+                        return id === "rcsb-pdb" || name.includes("rcsb protein data bank");
+                    };
+                    const aIsPdb = isPdb(a);
+                    const bIsPdb = isPdb(b);
+                    if (aIsPdb !== bIsPdb) return aIsPdb ? -1 : 1;
+                }
+                return String(a.name || "").localeCompare(String(b.name || ""));
+            });
     }
 
     function populateViewControls() {
