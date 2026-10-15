@@ -418,8 +418,12 @@
             : allTools;
         const allCount = $("#all-count");
         if (allCount) allCount.textContent = categoryTools.length.toLocaleString();
+        const featuredIdsForCount = state.domain ? getFeaturedIds(state.domain) : null;
+        const featuredTotal = categoryTools.filter(tool => state.domain
+            ? featuredIdsForCount.has(String(tool && tool.id || ""))
+            : isFeatured(tool)).length;
         const featuredCount = $("#featured-count");
-        if (featuredCount) featuredCount.textContent = categoryTools.filter(isFeatured).length.toLocaleString();
+        if (featuredCount) featuredCount.textContent = featuredTotal.toLocaleString();
     }
 
     function populateCategoryFilters() {
