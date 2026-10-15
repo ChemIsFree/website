@@ -215,7 +215,7 @@ if (oddt) assert.equal(oddt.catalogue, "app", "ODDT must be presented as a tool,
 assert.ok(
     script.includes("const categoryTools = state.domain") &&
     script.includes('getToolCategories(tool).includes(state.domain)') &&
-    script.includes("categoryTools.filter(isFeatured).length"),
+    script.includes("getFeaturedIds(state.domain)") && script.includes("featuredTotal"),
     "Featured and all-listed count badges should reflect the selected category, while ignoring search/access filters."
 );
 categoryIds.forEach((id, index) => {
