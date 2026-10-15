@@ -146,7 +146,7 @@
     async function loadCatalogue() {
         try {
             const [response, featuredResponse] = await Promise.all([
-                fetch("data/tools.json?v=3"),
+                fetch("data/tools.json?v=4"),
                 fetch("data/featured_tools.json")
             ]);
             if (!response.ok) throw new Error("Catalogue request failed (HTTP " + response.status + ").");
