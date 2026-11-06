@@ -19,7 +19,6 @@
     ];
     const CATEGORY_IDS = CATEGORY_ORDER.map(item => item.id);
     const CATEGORY_BY_ID = new Map(CATEGORY_ORDER.map(item => [item.id, item]));
-    const VISUALIZATION_TOOL_IDS = new Set(["datawarrior","assayer-chimera","pdv","pymol-open-source","catalist","ketcher","octet-draw","molview","lone-pair","moldraw","reactio-draw","molcanvas"]);
     const state = { domain: "", access: "", search: "", task: "", view: "featured" };
     let allTools = [];
     let featuredCatalogue = { domains: {} };
@@ -285,10 +284,7 @@
         )) add("libraries-datasets");
 
         if (assigned.length === 0) add(isResource(tool) ? "libraries-datasets" : "cheminformatics");
-        return CATEGORY_ORDER.map(item => item.id).filter(id =>
-            assigned.includes(id) &&
-            (id !== "visualization" || VISUALIZATION_TOOL_IDS.has(String(tool && tool.id || "")))
-        );
+        return CATEGORY_ORDER.map(item => item.id).filter(id => assigned.includes(id));
     }
 
     function primaryCategory(tool) {
