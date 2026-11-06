@@ -298,15 +298,27 @@ async function installMockRoutes(page) {
         assert.ok(await page.locator("#access-filters [data-access='open-source']").isVisible());
         assert.ok(await page.locator("#access-filters [data-access='free']").isVisible());
 
+        const expectedFeaturedCards = await page.evaluate(async () => {
+            const [toolsResponse, featuredResponse] = await Promise.all([
+                fetch("data/tools.json"),
+                fetch("data/featured_tools.json")
+            ]);
+            const tools = await toolsResponse.json();
+            const featured = await featuredResponse.json();
+            const featuredIds = new Set(Object.values(featured.domains || {})
+                .flatMap(entry => Array.isArray(entry.tools) ? entry.tools : []));
+            // Featured view contains shortlisted applications plus every resource.
+            return tools.filter(tool => tool.catalogue === "resource" || featuredIds.has(String(tool.id || ""))).length;
+        });
         const totalCards = await page.locator(".catalogue-tool-card").count();
-        assert.equal(totalCards, featuredCount,
-            "The default view should show the curated featured selection.");
+        assert.equal(totalCards, expectedFeaturedCards,
+            "The default view should show featured applications plus all supporting resources.");
         await page.locator('[data-view="all"]').click();
         assert.equal(await page.locator(".catalogue-tool-card").count(), allListed,
             "The All listed tools view should expose the full registry.");
         await page.locator('[data-view="featured"]').click();
-        assert.equal(await page.locator(".catalogue-tool-card").count(), featuredCount,
-            "Switching back should restore the featured shortlist.");
+        assert.equal(await page.locator(".catalogue-tool-card").count(), expectedFeaturedCards,
+            "Switching back should restore featured applications plus all supporting resources.");
         const cardLinks = await page.locator(".catalogue-tool-card h3 a").evaluateAll(nodes => nodes.map(node => node.getAttribute("href")));
         assert.equal(new Set(cardLinks).size, cardLinks.length, "Each entry should appear only once in the All categories view.");
 
@@ -326,6 +338,18 @@ async function installMockRoutes(page) {
         await page.locator('#category-filters [data-domain="structure-based"]').click();
         assert.ok(await page.locator(".catalogue-tool-card").count() > 0,
             "Choosing a new functional category should filter the cards.");
+        const getVisibleResourceIds = () => page.evaluate(() => {
+            const section = Array.from(document.querySelectorAll(".catalogue-card-section"))
+                .find(item => item.querySelector(".catalogue-card-section-heading h3")?.textContent.trim() === "Libraries & datasets");
+            return section ? Array.from(section.querySelectorAll(".catalogue-tool-card h3 a"))
+                .map(link => new URL(link.href).searchParams.get("id")).filter(Boolean).sort() : [];
+        });
+        const featuredResources = await getVisibleResourceIds();
+        await page.locator('[data-view="all"]').click();
+        const allListedResources = await getVisibleResourceIds();
+        assert.deepEqual(allListedResources, featuredResources,
+            "The Libraries & datasets section must be identical in Featured and All listed views for a category.");
+        await page.locator('[data-view="featured"]').click();
         assert.match(await page.locator("#active-filter-summary").innerText(), /STRUCTURE-BASED/);
         const selectedTitles = await page.locator("#catalogue-grid .catalogue-card-section-heading h3").allInnerTexts();
         assert.equal(selectedTitles[0], "Tools", "Filtered tools should stay in the upper section.");
