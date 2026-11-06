@@ -391,7 +391,12 @@
 
     function getViewTools() {
         const tools = getSearchTools();
-        return state.view === "featured" ? tools.filter(isFeatured) : tools;
+        if (state.view !== "featured") return tools;
+        // When a category is selected, show only tools featured for that category.
+        // The global featured union otherwise leaks tools featured in other categories
+        // into multi-category records (e.g. protein tools in Visualization and Drawing).
+        const featuredIds = getFeaturedIds(state.domain || "");
+        return tools.filter(tool => featuredIds.has(String(tool && tool.id || "")));
     }
 
     function getScopedTools() {
@@ -434,7 +439,7 @@
         // A tool featured anywhere should also be featured in every category it belongs to.
         // Count the global Featured union within this category, not only IDs listed under one group.
         const featuredCount = $("#featured-count");
-        if (featuredCount) featuredCount.textContent = categoryTools.filter(isFeatured).length.toLocaleString();
+        if (featuredCount) featuredCount.textContent = categoryTools.filter(tool => getFeaturedIds(state.domain || "").has(String(tool && tool.id || ""))).length.toLocaleString();
     }
 
     function populateCategoryFilters() {
@@ -596,7 +601,9 @@
     function readUrlState() {
         const params = new URLSearchParams(window.location.search);
         state.domain = normalizeCategory(params.get("domain") || params.get("area") || "");
-        state.view = params.get("view") || "featured";
+        // A direct category link opens its complete curated category by default.
+        // Users can still switch to the shorter featured selection explicitly.
+        state.view = params.get("view") || (state.domain ? "all" : "featured");
         if (!["featured", "all"].includes(state.view)) state.view = "featured";
         state.access = params.get("access") || "";
         state.search = params.get("search") || "";
