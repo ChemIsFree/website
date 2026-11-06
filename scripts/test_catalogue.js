@@ -16,11 +16,11 @@ const css = read("css/style.css");
 const tools = JSON.parse(read("data/tools.json"));
 const featuredCatalogue = JSON.parse(read("data/featured_tools.json"));
 
-const catalogueDescriptionCss = (css.match(/\\.catalogue-card-description\\s*\\{([^}]*)\\}/) || [])[1] || "";
-assert.ok(!/line-clamp|overflow\\s*:\\s*hidden/.test(catalogueDescriptionCss),
+const catalogueDescriptionCss = (css.match(/\.catalogue-card-description\s*\{([^}]*)\}/) || [])[1] || "";
+assert.ok(!/line-clamp|overflow\s*:\s*hidden/.test(catalogueDescriptionCss),
     "Catalogue cards must display complete descriptions without line clamping.");
-const applicationDescriptionCss = (css.match(/\\.application-card \\.tool-description\\s*\\{([^}]*)\\}/) || [])[1] || "";
-assert.ok(!/line-clamp|overflow\\s*:\\s*hidden/.test(applicationDescriptionCss),
+const applicationDescriptionCss = (css.match(/\.application-card \.tool-description\s*\{([^}]*)\}/) || [])[1] || "";
+assert.ok(!/line-clamp|overflow\s*:\s*hidden/.test(applicationDescriptionCss),
     "Application cards must display complete descriptions without line clamping.");
 
 const categoryIds = [
@@ -119,7 +119,7 @@ assert.ok(script.includes("isResourceInCurrentView(tool)") &&
     script.includes("featuredIds.has(String(tool && tool.id || \"\"))"),
     "Featured selection must filter applications only; resources remain present in both views.");
 const truncatedDescriptions = tools.filter(tool =>
-    /(?:…|\\.{3})\\s*$/.test(String(tool.description || "").trim())
+    /(?:…|\.{3})\s*$/.test(String(tool.description || "").trim())
 );
 assert.equal(truncatedDescriptions.length, 0,
     "No catalogue description may end with a truncation marker: " +
