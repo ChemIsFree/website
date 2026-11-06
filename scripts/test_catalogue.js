@@ -227,7 +227,7 @@ if (opera) {
     assert.ok(!opera.domain.includes("target-identification"), "OPERA must not remain in Target Identification.");
 }
 const breeze = tools.find(tool => matchesAlias(tool, ["breeze"]));
-if (breeze) assert.ok(!breeze.domain.includes("visualization"), "BREEZE is not part of the curated Visualization and Drawing category.");
+if (breeze) assert.ok(breeze.domain.includes("visualization"), "BREEZE should remain available in All listed tools for Visualization and Drawing.");
 const fastTargetPred = tools.find(tool => matchesAlias(tool, ["fasttargetpred"]));
 if (fastTargetPred) assert.equal(fastTargetPred.catalogue, "app", "FastTargetPred must be presented as a tool.");
 for (const [label, aliases] of [
