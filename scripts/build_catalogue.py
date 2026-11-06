@@ -376,17 +376,6 @@ def normalize_tool_domains(tool, category_curation):
     else:
         domains = [domain for domain in domains if domain != "protein-structures"]
 
-    # Visualization and Drawing is an explicitly curated category. Only the
-    # agreed molecular visualisation and chemical drawing tools belong here;
-    # legacy tags and keyword inference must not repopulate it.
-    visualization_rule = curation.get("visualization") or {}
-    visualization_keep = visualization_rule.get("keep") or []
-    visualization_members = category_membership.get("visualization", []) or []
-    if name_matches(tool, list(visualization_keep) + list(visualization_members)):
-        domains.append("visualization")
-    else:
-        domains = [domain for domain in domains if domain != "visualization"]
-
     # Supporting libraries/databases/datasets remain in the lower resource section.
     if is_supporting_resource(tool) and str(tool.get("resource_type") or tool.get("type") or "").lower() in {
         "library", "database", "dataset"
