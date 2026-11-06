@@ -369,8 +369,8 @@ async function installMockRoutes(page) {
             "The target tool should appear among name/description search matches.");
         await page.locator("#clear-filters").click();
         assert.equal(await page.locator("#search").inputValue(), "");
-        assert.equal(await page.locator(".catalogue-tool-card").count(), featuredCount,
-            "Reset should clear filters and return to Featured selection.");
+        assert.equal(await page.locator(".catalogue-tool-card").count(), expectedFeaturedCards,
+            "Reset should clear filters and return to featured applications plus all supporting resources.");
 
         await page.setViewportSize({ width: 390, height: 844 });
         await page.locator(".catalogue-tool-card").first().waitFor();
