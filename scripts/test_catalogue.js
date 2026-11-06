@@ -16,6 +16,13 @@ const css = read("css/style.css");
 const tools = JSON.parse(read("data/tools.json"));
 const featuredCatalogue = JSON.parse(read("data/featured_tools.json"));
 
+const catalogueDescriptionCss = (css.match(/\\.catalogue-card-description\\s*\\{([^}]*)\\}/) || [])[1] || "";
+assert.ok(!/line-clamp|overflow\\s*:\\s*hidden/.test(catalogueDescriptionCss),
+    "Catalogue cards must display complete descriptions without line clamping.");
+const applicationDescriptionCss = (css.match(/\\.application-card \\.tool-description\\s*\\{([^}]*)\\}/) || [])[1] || "";
+assert.ok(!/line-clamp|overflow\\s*:\\s*hidden/.test(applicationDescriptionCss),
+    "Application cards must display complete descriptions without line clamping.");
+
 const categoryIds = [
     "target-identification",
     "protein-structures",
@@ -107,8 +114,16 @@ assert.deepEqual(featuredCatalogue.domains.visualization.tools, expectedVisualiz
     "Visualization and Drawing Featured selection must contain the five visualization picks and all seven drawing tools.");
 assert.ok(!script.includes("VISUALIZATION_TOOL_IDS"),
     "The full Visualization and Drawing category must not be restricted by a browser allow-list.");
-assert.ok(script.includes('if (state.view !== "featured") return tools;'),
-    "All listed tools must retain every record assigned to the selected category.");
+assert.ok(script.includes("isResourceInCurrentView(tool)") &&
+    script.includes("return tools.filter(tool =>") &&
+    script.includes("featuredIds.has(String(tool && tool.id || \"\"))"),
+    "Featured selection must filter applications only; resources remain present in both views.");
+const truncatedDescriptions = tools.filter(tool =>
+    /(?:…|\\.{3})\\s*$/.test(String(tool.description || "").trim())
+);
+assert.equal(truncatedDescriptions.length, 0,
+    "No catalogue description may end with a truncation marker: " +
+    truncatedDescriptions.map(tool => tool.id + " (" + tool.name + ")").join(", "));
 for (const id of ["foldseek", "molve"]) {
     const record = tools.find(tool => tool.id === id);
     if (record) assert.ok(record.domain.includes("visualization"),

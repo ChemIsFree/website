@@ -4360,10 +4360,9 @@ button {
 }
 
 .application-card .tool-description {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
-    overflow: hidden;
+    display: block;
+    overflow: visible;
+    white-space: normal;
     margin: 9px 0 0;
     max-width: 600px;
     font-size: 12px;
@@ -6925,10 +6924,10 @@ button {
 }
 
 .catalogue-card-description {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
-    overflow: hidden;
+    display: block;
+    overflow: visible;
+    white-space: normal;
+    overflow-wrap: anywhere;
     min-height: 0;
     margin: 8px 0 12px;
     color: var(--text-muted);
@@ -7093,7 +7092,6 @@ button {
 
     .catalogue-card-description {
         font-size: 10px;
-        -webkit-line-clamp: 3;
     }
 
     .catalogue-card-chip {

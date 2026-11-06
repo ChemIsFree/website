@@ -392,11 +392,16 @@
     function getViewTools() {
         const tools = getSearchTools();
         if (state.view !== "featured") return tools;
-        // When a category is selected, show only tools featured for that category.
-        // The global featured union otherwise leaks tools featured in other categories
-        // into multi-category records (e.g. protein tools in Visualization and Drawing).
+        // Featured curation applies only to applications. Supporting libraries,
+        // databases and datasets are not editorially shortlisted: every resource
+        // assigned to this category remains visible in both Featured and All views.
+        // Scope application filtering to the selected category to avoid cross-category
+        // featured tools leaking into this category.
         const featuredIds = getFeaturedIds(state.domain || "");
-        return tools.filter(tool => featuredIds.has(String(tool && tool.id || "")));
+        return tools.filter(tool =>
+            isResourceInCurrentView(tool) ||
+            featuredIds.has(String(tool && tool.id || ""))
+        );
     }
 
     function getScopedTools() {
