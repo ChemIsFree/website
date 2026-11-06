@@ -14,6 +14,7 @@ const script = read("js/catalogue.js");
 const builder = read("scripts/build_catalogue.py");
 const css = read("css/style.css");
 const tools = JSON.parse(read("data/tools.json"));
+const featuredCatalogue = JSON.parse(read("data/featured_tools.json"));
 
 const categoryIds = [
     "target-identification",
@@ -86,6 +87,32 @@ for (const [id, category, expectedType] of requiredNewRecords) {
     assert.ok(record, "Missing newly added catalogue record: " + id);
     assert.equal(record.catalogue, expectedType, id + " is in the wrong Tools/Resources section.");
     assert.ok((record.domain || []).includes(category), id + " is missing category " + category + ".");
+}
+
+const expectedVisualizationFeatured = [
+    "datawarrior",
+    "assayer-chimera",
+    "pdv",
+    "pymol-open-source",
+    "catalist",
+    "ketcher",
+    "octet-draw",
+    "molview",
+    "lone-pair",
+    "moldraw",
+    "reactio-draw",
+    "molcanvas"
+];
+assert.deepEqual(featuredCatalogue.domains.visualization.tools, expectedVisualizationFeatured,
+    "Visualization and Drawing Featured selection must contain the five visualization picks and all seven drawing tools.");
+assert.ok(!script.includes("VISUALIZATION_TOOL_IDS"),
+    "The full Visualization and Drawing category must not be restricted by a browser allow-list.");
+assert.ok(script.includes('if (state.view !== "featured") return tools;'),
+    "All listed tools must retain every record assigned to the selected category.");
+for (const id of ["foldseek", "molve"]) {
+    const record = tools.find(tool => tool.id === id);
+    if (record) assert.ok(record.domain.includes("visualization"),
+        id + " should remain available in All listed tools, not be deleted from the category.");
 }
 
 const vega = tools.find(tool => tool.id === "vega");
