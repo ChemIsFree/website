@@ -240,7 +240,7 @@ assert.ok(
     script.includes("const categoryTools = state.domain") &&
     script.includes('getToolCategories(tool).includes(state.domain)') &&
     script.includes('getFeaturedIds(state.domain || "")') &&
-    script.includes("categoryTools.filter(tool => getFeaturedIds(state.domain || "").has"),
+    script.includes('categoryTools.filter(tool => getFeaturedIds(state.domain || "").has'),
     "Featured and all-listed count badges should reflect the selected category, while ignoring search/access filters."
 );
 categoryIds.forEach((id, index) => {
