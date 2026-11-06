@@ -34,7 +34,7 @@ const categoryIds = [
 const categoryLabels = [
     "Target Identification",
     "Protein Structures",
-    "Visualization",
+    "Visualization and Drawing",
     "Binding Pockets",
     "Structure-Based",
     "Molecular Dynamics",
@@ -62,7 +62,6 @@ assert.ok(tools.some(tool => tool.catalogue === "resource"), "The catalogue need
 
 const requiredNewRecords = [
     ["pdv", "visualization", "app"],
-    ["leview", "visualization", "app"],
     ["flexaid", "structure-based", "app"],
     ["shafts", "ligand-based-qsar", "app"],
     ["open3dqsar", "ligand-based-qsar", "app"],
@@ -78,7 +77,6 @@ const requiredNewRecords = [
     ["jupyterlab", "organization", "app"],
     ["conda", "organization", "app"],
     ["docker-engine", "organization", "app"],
-    ["pymol-open-source-build", "visualization", "app"],
     ["admetboost", "admet-prediction", "app"],
     ["pred-herg", "admet-prediction", "app"],
     ["tdc-admet-benchmark-group", "libraries-datasets", "resource"]
@@ -96,6 +94,32 @@ assert.ok((vega.access || []).includes("open-source"));
 const hmdb = tools.find(tool => tool.id === "hmdb");
 assert.match(hmdb.license || "", /CC BY-NC 4\.0/i, "HMDB's non-commercial data terms should be explicit.");
 assert.ok(!(hmdb.access || []).includes("open-source"), "HMDB data must not be labelled open-source.");
+
+const visualizationToolIds = [
+    "datawarrior",
+    "assayer-chimera",
+    "pdv",
+    "pymol-open-source",
+    "catalist",
+    "ketcher",
+    "octet-draw",
+    "molview",
+    "lone-pair",
+    "moldraw",
+    "reactio-draw",
+    "molcanvas"
+];
+for (const id of visualizationToolIds) {
+    const record = tools.find(tool => tool.id === id);
+    assert.ok(record, "Missing agreed Visualization and Drawing tool: " + id);
+    assert.ok((record.domain || []).includes("visualization"),
+        id + " must be assigned to Visualization and Drawing.");
+}
+for (const record of tools.filter(tool => (tool.domain || []).includes("visualization"))) {
+    assert.ok(visualizationToolIds.includes(record.id),
+        record.id + " is not part of the agreed Visualization and Drawing category.");
+}
+
 const alphafoldDb = tools.find(tool => tool.id === "alphafold-protein-structure-database");
 assert.deepEqual(alphafoldDb.domain, ["protein-structures", "libraries-datasets"],
     "AlphaFold DB should be a protein-structure database, not a pocket-prediction tool.");
@@ -194,7 +218,7 @@ if (opera) {
     assert.ok(!opera.domain.includes("target-identification"), "OPERA must not remain in Target Identification.");
 }
 const breeze = tools.find(tool => matchesAlias(tool, ["breeze"]));
-if (breeze) assert.ok(breeze.domain.includes("visualization"), "BREEZE belongs in Visualization.");
+if (breeze) assert.ok(!breeze.domain.includes("visualization"), "BREEZE is not part of the curated Visualization and Drawing category.");
 const fastTargetPred = tools.find(tool => matchesAlias(tool, ["fasttargetpred"]));
 if (fastTargetPred) assert.equal(fastTargetPred.catalogue, "app", "FastTargetPred must be presented as a tool.");
 for (const [label, aliases] of [
@@ -215,7 +239,8 @@ if (oddt) assert.equal(oddt.catalogue, "app", "ODDT must be presented as a tool,
 assert.ok(
     script.includes("const categoryTools = state.domain") &&
     script.includes('getToolCategories(tool).includes(state.domain)') &&
-    script.includes("categoryTools.filter(isFeatured).length"),
+    script.includes('getFeaturedIds(state.domain || "")') &&
+    script.includes("categoryTools.filter(tool => getFeaturedIds(state.domain || "").has"),
     "Featured and all-listed count badges should reflect the selected category, while ignoring search/access filters."
 );
 categoryIds.forEach((id, index) => {
@@ -235,12 +260,12 @@ assert.ok(html.includes('id="featured-count"'),
     "The featured-entry count is required.");
 assert.ok(script.includes('data/featured_tools.json') && script.includes("getFeaturedIds") && script.includes('view: "featured"'),
     "The catalogue should load the editorial shortlist and default to Featured selection.");
-assert.ok(script.includes("categoryTools.filter(isFeatured).length"),
-    "Featured counts should include the global featured union for the selected category.");
+assert.ok(script.includes('categoryTools.filter(tool => getFeaturedIds(state.domain || "").has'),
+    "Featured counts should use only the shortlist for the selected category.");
 assert.ok(html.includes('id="catalogue-grid"'), "Cards should render in the category-aware results area.");
 assert.ok(!html.includes('id="domain-filter"') && !html.includes('id="task-filter"'),
     "The old stacked select filters should remain removed.");
-assert.ok(html.includes('js/catalogue.js?v=6'), "The page should load the updated featured-aware catalogue renderer.");
+assert.ok(html.includes('js/catalogue.js?v=8'), "The page should load the updated category-aware catalogue renderer.");
 assert.ok(script.includes('renderCardSection("Tools"') && script.includes('renderCardSection("Libraries & datasets"'),
     "Tools must be displayed before the supporting library/dataset section.");
 assert.ok(script.includes("getToolCategories") && script.includes("TASK_CATEGORY_MAP"),
