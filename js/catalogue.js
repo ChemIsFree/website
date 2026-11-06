@@ -4,7 +4,7 @@
     const CATEGORY_ORDER = [
         { id: "target-identification", label: "Target Identification" },
         { id: "protein-structures", label: "Protein Structures" },
-        { id: "visualization", label: "Visualization" },
+        { id: "visualization", label: "Visualization and Drawing" },
         { id: "binding-pockets", label: "Binding Pockets" },
         { id: "structure-based", label: "Structure-Based" },
         { id: "molecular-dynamics", label: "Molecular Dynamics" },
@@ -65,7 +65,7 @@
         "structure-based-screening": ["structure-based"],
         "molecular-dynamics": ["molecular-dynamics"],
         "free-energy": ["molecular-dynamics"],
-        "structure-drawing": ["cheminformatics"],
+        "structure-drawing": ["visualization", "cheminformatics"],
         "structure-elucidation": ["cheminformatics"],
         "molecular-descriptors-properties": ["cheminformatics", "admet-prediction"],
         "structure-search": ["cheminformatics"],
@@ -336,7 +336,6 @@
         if (filter === "open-source") return isOpenSource(tool);
         if (filter === "free") return isFree(tool);
         if (filter === "free-web") return isFreeWeb(tool);
-        if (filter === "commercial") return isCommercial(tool);
         return true;
     }
 
@@ -465,8 +464,7 @@
             { id: "", label: "Any access", count: scoped.length },
             { id: "open-source", label: "Open source", count: scoped.filter(isOpenSource).length },
             { id: "free", label: "Free", count: scoped.filter(isFree).length },
-            { id: "free-web", label: "Free web", count: scoped.filter(isFreeWeb).length },
-            { id: "commercial", label: "Commercial / paid", count: scoped.filter(isCommercial).length }
+            { id: "free-web", label: "Free web", count: scoped.filter(isFreeWeb).length }
         ];
         container.innerHTML = filters.map(item => {
             const active = state.access === item.id;
@@ -605,7 +603,7 @@
         state.task = params.get("task") || "";
         const search = $("#search");
         if (search) search.value = state.search;
-        if (state.access && !["open-source", "free", "free-web", "commercial"].includes(state.access)) state.access = "";
+        if (state.access && !["open-source", "free", "free-web"].includes(state.access)) state.access = "";
     }
 
     function updateUrlState() {
