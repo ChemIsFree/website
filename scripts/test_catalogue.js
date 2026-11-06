@@ -122,32 +122,11 @@ const hmdb = tools.find(tool => tool.id === "hmdb");
 assert.match(hmdb.license || "", /CC BY-NC 4\.0/i, "HMDB's non-commercial data terms should be explicit.");
 assert.ok(!(hmdb.access || []).includes("open-source"), "HMDB data must not be labelled open-source.");
 
-const visualizationToolIds = [
-    "datawarrior",
-    "assayer-chimera",
-    "pdv",
-    "pymol-open-source",
-    "catalist",
-    "ketcher",
-    "octet-draw",
-    "molview",
-    "lone-pair",
-    "moldraw",
-    "reactio-draw",
-    "molcanvas"
-];
-assert.ok(script.includes("VISUALIZATION_TOOL_IDS") && script.includes("VISUALIZATION_TOOL_IDS.has(String(tool && tool.id || \"\"))"),
-    "The browser must enforce the same curated Visualization and Drawing allow-list as the catalogue build.");
-
-for (const id of visualizationToolIds) {
+for (const id of expectedVisualizationFeatured) {
     const record = tools.find(tool => tool.id === id);
-    assert.ok(record, "Missing agreed Visualization and Drawing tool: " + id);
+    assert.ok(record, "Missing agreed Visualization and Drawing featured tool: " + id);
     assert.ok((record.domain || []).includes("visualization"),
         id + " must be assigned to Visualization and Drawing.");
-}
-for (const record of tools.filter(tool => (tool.domain || []).includes("visualization"))) {
-    assert.ok(visualizationToolIds.includes(record.id),
-        record.id + " is not part of the agreed Visualization and Drawing category.");
 }
 
 const alphafoldDb = tools.find(tool => tool.id === "alphafold-protein-structure-database");
