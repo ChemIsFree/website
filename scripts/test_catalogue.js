@@ -109,6 +109,9 @@ const visualizationToolIds = [
     "reactio-draw",
     "molcanvas"
 ];
+assert.ok(script.includes("VISUALIZATION_TOOL_IDS") && script.includes("VISUALIZATION_TOOL_IDS.has(String(tool && tool.id || \"\"))"),
+    "The browser must enforce the same curated Visualization and Drawing allow-list as the catalogue build.");
+
 for (const id of visualizationToolIds) {
     const record = tools.find(tool => tool.id === id);
     assert.ok(record, "Missing agreed Visualization and Drawing tool: " + id);
